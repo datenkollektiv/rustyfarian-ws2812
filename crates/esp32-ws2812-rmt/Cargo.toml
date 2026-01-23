@@ -1,0 +1,21 @@
+[package]
+name = "esp32-ws2812-rmt"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "WS2812 (NeoPixel) LED driver using ESP32 RMT peripheral"
+keywords = ["ws2812", "neopixel", "esp32", "rmt", "led"]
+categories = ["embedded", "hardware-support"]
+
+[dependencies]
+anyhow.workspace = true
+esp-idf-hal.workspace = true
+led-effects = { workspace = true, optional = true }
+rgb.workspace = true
+ws2812-core.workspace = true
+
+[features]
+default = ["led-effects"]
+led-effects = ["dep:led-effects"]

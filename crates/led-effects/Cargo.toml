@@ -1,0 +1,13 @@
+[package]
+name = "led-effects"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Reusable LED animation effects for embedded projects"
+keywords = ["led", "animation", "embedded", "no-std"]
+categories = ["embedded", "no-std"]
+
+[dependencies]
+rgb.workspace = true

@@ -1,0 +1,13 @@
+[package]
+name = "ws2812-core"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Pure Rust WS2812 color utilities - no hardware dependencies"
+keywords = ["ws2812", "neopixel", "led", "no-std"]
+categories = ["embedded", "no-std"]
+
+[dependencies]
+rgb.workspace = true
