@@ -19,15 +19,15 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-esp32-ws2812-rmt = { git = "https://github.com/datenkollektiv/esp32-ws2812" }
+esp32-ws2812-rmt = { git = "https://github.com/datenkollektiv/rustyfarian-ws2812" }
 ```
 
 For `no_std` projects that only need the core utilities:
 
 ```toml
 [dependencies]
-led-effects = { git = "https://github.com/datenkollektiv/esp32-ws2812", default-features = false }
-ws2812-core = { git = "https://github.com/datenkollektiv/esp32-ws2812", default-features = false }
+led-effects = { git = "https://github.com/datenkollektiv/rustyfarian-ws2812", default-features = false }
+ws2812-core = { git = "https://github.com/datenkollektiv/rustyfarian-ws2812", default-features = false }
 ```
 
 ## Example
