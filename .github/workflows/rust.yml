@@ -11,12 +11,39 @@ env:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
+      - uses: actions/checkout@v4
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Deny
+        uses: EmbarkStudios/cargo-deny-action@v2
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Check ws2812-core
+        run: cargo check --manifest-path crates/ws2812-core/Cargo.toml
+
+      - name: Check led-effects
+        run: cargo check --manifest-path crates/led-effects/Cargo.toml
+
+      - name: Clippy ws2812-core
+        run: cargo clippy --manifest-path crates/ws2812-core/Cargo.toml -- -D warnings
+
+      - name: Clippy led-effects
+        run: cargo clippy --manifest-path crates/led-effects/Cargo.toml -- -D warnings
+
+      - name: Test ws2812-core
+        run: cargo test --manifest-path crates/ws2812-core/Cargo.toml

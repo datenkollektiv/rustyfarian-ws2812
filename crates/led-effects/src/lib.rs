@@ -24,7 +24,11 @@ impl core::fmt::Display for PulseEffectError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             PulseEffectError::InvalidRange { min, max } => {
-                write!(f, "invalid range: min ({}) must be less than max ({})", min, max)
+                write!(
+                    f,
+                    "invalid range: min ({}) must be less than max ({})",
+                    min, max
+                )
             }
             PulseEffectError::ZeroStep => {
                 write!(f, "step must be greater than 0")
@@ -233,7 +237,10 @@ mod tests {
     #[test]
     fn test_error_display() {
         let err = PulseEffectError::InvalidRange { min: 100, max: 10 };
-        assert_eq!(format!("{}", err), "invalid range: min (100) must be less than max (10)");
+        assert_eq!(
+            format!("{}", err),
+            "invalid range: min (100) must be less than max (10)"
+        );
 
         let err = PulseEffectError::ZeroStep;
         assert_eq!(format!("{}", err), "step must be greater than 0");
