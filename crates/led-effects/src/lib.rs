@@ -8,8 +8,24 @@
 //! The `StatusLed` trait provides a common interface for LED drivers that can
 //! display status colors. This enables crates like `esp32-wifi-manager` to
 //! show connection status without depending on a specific LED implementation.
+//!
+//! # SimpleLed (ESP-IDF only)
+//!
+//! For simple on/off GPIO LEDs (not RGB), enable the `esp-idf` feature to get
+//! the `SimpleLed` adapter which implements `StatusLed` by mapping RGB colors
+//! to on/off based on brightness.
+//!
+//! ```toml
+//! led-effects = { version = "0.1", features = ["esp-idf"] }
+//! ```
 
 use rgb::RGB8;
+
+#[cfg(feature = "esp-idf")]
+mod simple_led;
+
+#[cfg(feature = "esp-idf")]
+pub use simple_led::SimpleLed;
 
 /// Error type for PulseEffect configuration.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -65,6 +81,48 @@ pub trait StatusLed {
 
     /// Sets the LED to the specified color.
     fn set_color(&mut self, color: RGB8) -> Result<(), Self::Error>;
+}
+
+/// Default brightness threshold for simple on/off LED decisions.
+pub const DEFAULT_BRIGHTNESS_THRESHOLD: u8 = 10;
+
+/// Calculates the maximum channel value from an RGB color.
+///
+/// Returns the highest value among red, green, and blue channels.
+/// Useful for simple brightness-based on/off decisions.
+///
+/// # Example
+///
+/// ```
+/// use led_effects::max_channel_brightness;
+/// use rgb::RGB8;
+///
+/// let color = RGB8::new(10, 50, 30);
+/// assert_eq!(max_channel_brightness(color), 50);
+/// ```
+#[inline]
+pub fn max_channel_brightness(color: RGB8) -> u8 {
+    color.r.max(color.g).max(color.b)
+}
+
+/// Determines if an RGB color exceeds a brightness threshold.
+///
+/// Returns `true` if any channel is greater than the threshold.
+/// Useful for converting RGB colors to simple on/off states.
+///
+/// # Example
+///
+/// ```
+/// use led_effects::exceeds_threshold;
+/// use rgb::RGB8;
+///
+/// let color = RGB8::new(0, 0, 15);
+/// assert!(exceeds_threshold(color, 10));  // 15 > 10
+/// assert!(!exceeds_threshold(color, 20)); // 15 <= 20
+/// ```
+#[inline]
+pub fn exceeds_threshold(color: RGB8, threshold: u8) -> bool {
+    max_channel_brightness(color) > threshold
 }
 
 /// A pulsing brightness effect that smoothly oscillates between dim and bright.
@@ -196,6 +254,47 @@ impl PulseEffect {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_max_channel_brightness_returns_highest() {
+        assert_eq!(max_channel_brightness(RGB8::new(100, 50, 25)), 100);
+        assert_eq!(max_channel_brightness(RGB8::new(25, 100, 50)), 100);
+        assert_eq!(max_channel_brightness(RGB8::new(50, 25, 100)), 100);
+    }
+
+    #[test]
+    fn test_max_channel_brightness_all_same() {
+        assert_eq!(max_channel_brightness(RGB8::new(42, 42, 42)), 42);
+    }
+
+    #[test]
+    fn test_max_channel_brightness_black() {
+        assert_eq!(max_channel_brightness(RGB8::new(0, 0, 0)), 0);
+    }
+
+    #[test]
+    fn test_max_channel_brightness_white() {
+        assert_eq!(max_channel_brightness(RGB8::new(255, 255, 255)), 255);
+    }
+
+    #[test]
+    fn test_exceeds_threshold_above() {
+        assert!(exceeds_threshold(RGB8::new(0, 0, 15), 10));
+        assert!(exceeds_threshold(RGB8::new(11, 0, 0), 10));
+        assert!(exceeds_threshold(RGB8::new(0, 255, 0), 10));
+    }
+
+    #[test]
+    fn test_exceeds_threshold_at_boundary() {
+        // Equal to a threshold should return false (must be greater than)
+        assert!(!exceeds_threshold(RGB8::new(10, 10, 10), 10));
+    }
+
+    #[test]
+    fn test_exceeds_threshold_below() {
+        assert!(!exceeds_threshold(RGB8::new(5, 5, 5), 10));
+        assert!(!exceeds_threshold(RGB8::new(0, 0, 0), 10));
+    }
 
     #[test]
     fn test_pulse_increases_then_decreases() {
