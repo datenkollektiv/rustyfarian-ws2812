@@ -1,6 +1,6 @@
 [package]
 name = "led-effects"
-version = "0.1.0"
+version = "0.1.1"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -9,5 +9,14 @@ description = "Reusable LED animation effects for embedded projects"
 keywords = ["led", "animation", "embedded", "no-std"]
 categories = ["embedded", "no-std"]
 
+[features]
+default = []
+# Enable SimpleLed adapter for ESP-IDF GPIO pins
+esp-idf = ["dep:esp-idf-hal", "dep:esp-idf-svc"]
+
 [dependencies]
 rgb.workspace = true
+
+# Optional ESP-IDF dependencies for SimpleLed
+esp-idf-hal = { workspace = true, optional = true }
+esp-idf-svc = { version = "0.51", optional = true }

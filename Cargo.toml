@@ -17,5 +17,6 @@ rgb = "0.8"
 led-effects = { path = "crates/led-effects" }
 ws2812-core = { path = "crates/ws2812-core" }
 
-# ESP32 dependencies (only for esp32-ws2812-rmt)
+# ESP32 dependencies
 esp-idf-hal = { version = "0.45", features = ["rmt-legacy"] }
+esp-idf-svc = "0.51"
