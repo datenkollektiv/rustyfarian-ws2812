@@ -10,13 +10,9 @@ keywords = ["led", "animation", "embedded", "no-std"]
 categories = ["embedded", "no-std"]
 
 [features]
-default = []
-# Enable SimpleLed adapter for ESP-IDF GPIO pins
-esp-idf = ["dep:esp-idf-hal", "dep:esp-idf-svc"]
+default = ["hal"]
+hal = ["dep:embedded-hal"]
 
 [dependencies]
+embedded-hal = { version = "1", optional = true }
 rgb.workspace = true
-
-# Optional ESP-IDF dependencies for SimpleLed
-esp-idf-hal = { workspace = true, optional = true }
-esp-idf-svc = { version = "0.51", optional = true }
