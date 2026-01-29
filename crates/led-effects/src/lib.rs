@@ -9,22 +9,19 @@
 //! display status colors. This enables crates like `esp32-wifi-manager` to
 //! show connection status without depending on a specific LED implementation.
 //!
-//! # SimpleLed (ESP-IDF only)
+//! # SimpleLed (requires `hal` feature, enabled by default)
 //!
-//! For simple on/off GPIO LEDs (not RGB), enable the `esp-idf` feature to get
-//! the `SimpleLed` adapter which implements `StatusLed` by mapping RGB colors
-//! to on/off based on brightness.
-//!
-//! ```toml
-//! led-effects = { version = "0.1", features = ["esp-idf"] }
-//! ```
+//! For simple on/off GPIO LEDs (not RGB), use the [`SimpleLed`] adapter which
+//! implements `StatusLed` by mapping RGB colors to on/off based on brightness.
+//! It is generic over [`embedded_hal::digital::OutputPin`], so it works with
+//! any HAL or test mock.
 
 use rgb::RGB8;
 
-#[cfg(feature = "esp-idf")]
+#[cfg(feature = "hal")]
 mod simple_led;
 
-#[cfg(feature = "esp-idf")]
+#[cfg(feature = "hal")]
 pub use simple_led::SimpleLed;
 
 /// Error type for PulseEffect configuration.
@@ -107,7 +104,8 @@ pub fn max_channel_brightness(color: RGB8) -> u8 {
 
 /// Determines if an RGB color exceeds a brightness threshold.
 ///
-/// Returns `true` if any channel is greater than the threshold.
+/// Returns `true` if any channel is strictly greater than the threshold.
+/// A color exactly equal to the threshold is considered "off".
 /// Useful for converting RGB colors to simple on/off states.
 ///
 /// # Example
@@ -254,6 +252,71 @@ impl PulseEffect {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(feature = "hal")]
+    mod simple_led_tests {
+        use super::*;
+        use core::convert::Infallible;
+        use embedded_hal::digital::{ErrorType, OutputPin};
+
+        /// Minimal mock pin that tracks its on/off state.
+        struct MockPin {
+            is_high: bool,
+        }
+
+        impl MockPin {
+            fn new() -> Self {
+                Self { is_high: false }
+            }
+        }
+
+        impl ErrorType for MockPin {
+            type Error = Infallible;
+        }
+
+        impl OutputPin for MockPin {
+            fn set_low(&mut self) -> Result<(), Self::Error> {
+                self.is_high = false;
+                Ok(())
+            }
+            fn set_high(&mut self) -> Result<(), Self::Error> {
+                self.is_high = true;
+                Ok(())
+            }
+        }
+
+        #[test]
+        fn test_simple_led_turns_on_for_bright_color() {
+            let mut led = SimpleLed::new(MockPin::new());
+            led.set_color(RGB8::new(0, 0, 255)).unwrap();
+            assert!(led.pin.is_high);
+        }
+
+        #[test]
+        fn test_simple_led_turns_off_for_black() {
+            let mut led = SimpleLed::new(MockPin::new());
+            led.set_color(RGB8::new(255, 0, 0)).unwrap();
+            assert!(led.pin.is_high);
+            led.set_color(RGB8::new(0, 0, 0)).unwrap();
+            assert!(!led.pin.is_high);
+        }
+
+        #[test]
+        fn test_simple_led_respects_custom_threshold() {
+            let mut led = SimpleLed::with_threshold(MockPin::new(), 100);
+            led.set_color(RGB8::new(50, 50, 50)).unwrap();
+            assert!(!led.pin.is_high);
+            led.set_color(RGB8::new(101, 0, 0)).unwrap();
+            assert!(led.pin.is_high);
+        }
+
+        #[test]
+        fn test_simple_led_at_threshold_stays_off() {
+            let mut led = SimpleLed::with_threshold(MockPin::new(), 100);
+            led.set_color(RGB8::new(100, 100, 100)).unwrap();
+            assert!(!led.pin.is_high);
+        }
+    }
 
     #[test]
     fn test_max_channel_brightness_returns_highest() {
