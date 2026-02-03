@@ -1,7 +1,8 @@
 /target
-Cargo.lock
 .embuild
+# This is a library crate, so we don't pin the dependencies.
+Cargo.lock
 
 .idea/
 .claude/
-pr-feedback/
+inbox/
