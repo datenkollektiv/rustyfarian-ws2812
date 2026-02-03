@@ -52,6 +52,31 @@ loop {
 }
 ```
 
+### Rainbow Effect
+
+For LED rings, use `RainbowEffect` to create smooth rainbow animations:
+
+```rust
+use esp32_ws2812_rmt::WS2812RMT;
+use led_effects::{RainbowEffect, Direction};
+use rgb::RGB8;
+
+let mut driver = WS2812RMT::new(gpio_pin, rmt_channel)?;
+
+let mut rainbow = RainbowEffect::new(12)?
+    .with_speed(2)?
+    .with_brightness(128)
+    .with_direction(Direction::Clockwise);
+
+let mut buffer = [RGB8::default(); 12];
+
+loop {
+    rainbow.update(&mut buffer)?;
+    driver.set_pixels(&buffer)?;
+    // delay...
+}
+```
+
 ## License
 
 MIT or Apache-2.0
