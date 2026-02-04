@@ -33,17 +33,17 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Check ws2812-core
-        run: cargo check --manifest-path crates/ws2812-core/Cargo.toml
+      - name: Check ws2812-pure
+        run: cargo check --manifest-path crates/ws2812-pure/Cargo.toml
 
       - name: Check led-effects
         run: cargo check --manifest-path crates/led-effects/Cargo.toml
 
-      - name: Clippy ws2812-core
-        run: cargo clippy --manifest-path crates/ws2812-core/Cargo.toml -- -D warnings
+      - name: Clippy ws2812-pure
+        run: cargo clippy --manifest-path crates/ws2812-pure/Cargo.toml -- -D warnings
 
       - name: Clippy led-effects
         run: cargo clippy --manifest-path crates/led-effects/Cargo.toml -- -D warnings
 
-      - name: Test ws2812-core
-        run: cargo test --manifest-path crates/ws2812-core/Cargo.toml
+      - name: Test ws2812-pure
+        run: cargo test --manifest-path crates/ws2812-pure/Cargo.toml
