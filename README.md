@@ -1,5 +1,10 @@
 # Rustyfarian WS2812 Related Crates
 
+[![CI](https://github.com/datenkollektiv/rustyfarian-ws2812/actions/workflows/rust.yml/badge.svg)](https://github.com/datenkollektiv/rustyfarian-ws2812/actions/workflows/rust.yml)
+[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE)
+[![Rust](https://img.shields.io/badge/rust-1.77%2B-orange.svg)](https://www.rust-lang.org)
+[![Last Commit](https://img.shields.io/github/last-commit/datenkollektiv/rustyfarian-ws2812)](https://github.com/datenkollektiv/rustyfarian-ws2812/commits/)
+
 WS2812 (NeoPixel) LED libraries for ESP32 and embedded Rust projects.
 
 > Note: Parts of this library were developed with the assistance of AI tools.
