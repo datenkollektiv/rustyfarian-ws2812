@@ -1,3 +1,5 @@
+#![cfg_attr(not(test), no_std)]
+
 //! Pure Rust WS2812 color utilities.
 //!
 //! This crate provides hardware-independent color conversion and bit manipulation
@@ -17,7 +19,7 @@ use rgb::RGB8;
 /// # Example
 ///
 /// ```
-/// use ws2812_core::rgb_to_grb;
+/// use ws2812_pure::rgb_to_grb;
 /// use rgb::RGB8;
 ///
 /// let red = RGB8::new(255, 0, 0);
@@ -35,7 +37,7 @@ pub fn rgb_to_grb(rgb: RGB8) -> u32 {
 /// # Example
 ///
 /// ```
-/// use ws2812_core::color_to_bits;
+/// use ws2812_pure::color_to_bits;
 ///
 /// let bits = color_to_bits(0b101010101010101010101010);
 /// assert_eq!(bits[0], true);  // MSB

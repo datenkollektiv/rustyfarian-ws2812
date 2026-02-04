@@ -15,7 +15,7 @@ rgb = "0.8"
 
 # Internal crates
 led-effects = { path = "crates/led-effects" }
-ws2812-core = { path = "crates/ws2812-core" }
+ws2812-pure = { path = "crates/ws2812-pure" }
 
 # ESP32 dependencies
 esp-idf-hal = { version = "0.45", features = ["rmt-legacy"] }

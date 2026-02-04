@@ -3,7 +3,7 @@
 //! This crate provides a driver for WS2812/NeoPixel addressable LEDs using
 //! the ESP32's RMT (Remote Control Transceiver) peripheral for precise timing.
 //!
-//! Pure color utilities are available in the `ws2812-core` crate for testing.
+//! Pure color utilities are available in the `ws2812-pure` crate for testing.
 //!
 //! # Example
 //!
@@ -40,7 +40,7 @@ use esp_idf_hal::{
     },
 };
 use rgb::RGB8;
-use ws2812_core::rgb_to_grb;
+use ws2812_pure::rgb_to_grb;
 
 /// WS2812 LED driver using RMT peripheral.
 ///
