@@ -7,10 +7,11 @@ Accepted
 ## Context
 
 The workspace currently depends on the external `rgb` crate (v0.8) for its `RGB8` color type.
-This type is used across all three crates:
+This type is used across multiple crates:
 
 - `ws2812-pure`: `rgb_to_grb(RGB8) -> u32`
-- `led-effects`: `StatusLed::set_color(RGB8)`, `hsv_to_rgb() -> RGB8`, `RainbowEffect::update(&mut [RGB8])`
+- `ferriswheel`: `hsv_to_rgb() -> RGB8`, `RainbowEffect::update(&mut [RGB8])`
+- `led-effects`: `StatusLed::set_color(RGB8)`, `PulseEffect::update() -> RGB8`
 - `esp32-ws2812-rmt`: `set_pixel(RGB8)`, `set_pixels_slice(&[RGB8])`
 
 Feedback from the first downstream project (`rustyfarian-rgb-clock`) highlighted an integration friction point:
