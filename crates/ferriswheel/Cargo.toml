@@ -1,0 +1,13 @@
+[package]
+name = "ferriswheel"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "RGB LED ring effects and animations"
+keywords = ["led", "rgb", "ring", "ws2812", "neopixel", "rainbow"]
+categories = ["embedded", "no-std"]
+
+[dependencies]
+rgb.workspace = true

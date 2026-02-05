@@ -14,6 +14,7 @@ anyhow = "1.0"
 rgb = "0.8"
 
 # Internal crates
+ferriswheel = { path = "crates/ferriswheel" }
 led-effects = { path = "crates/led-effects" }
 ws2812-pure = { path = "crates/ws2812-pure" }
 
