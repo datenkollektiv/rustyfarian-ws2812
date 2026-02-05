@@ -2,7 +2,10 @@
 .embuild
 # This is a library crate, so we don't pin the dependencies.
 Cargo.lock
+.cargo/config.toml
 
 .idea/
 .claude/
+CLAUDE.md
 inbox/
+outbox/
