@@ -17,22 +17,14 @@
 //! It is generic over [`embedded_hal::digital::OutputPin`], so it works with
 //! any HAL or test mock.
 //!
-//! # RainbowEffect
+//! # PulseEffect
 //!
-//! The [`RainbowEffect`] creates smooth rainbow animations for LED rings of any size.
-//! It uses pure integer math for HSV-to-RGB conversion, making it suitable for
-//! embedded systems without floating-point support.
+//! The [`PulseEffect`] creates smooth pulsing brightness animations.
 
 use rgb::RGB8;
 
-mod hsv;
-mod rainbow;
-
 #[cfg(feature = "hal")]
 mod simple_led;
-
-pub use hsv::hsv_to_rgb;
-pub use rainbow::{Direction, EffectError, RainbowEffect, MAX_LEDS};
 
 #[cfg(feature = "hal")]
 pub use simple_led::SimpleLed;

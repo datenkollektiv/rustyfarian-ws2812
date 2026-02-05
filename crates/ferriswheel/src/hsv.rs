@@ -18,7 +18,7 @@ use rgb::RGB8;
 /// # Example
 ///
 /// ```
-/// use led_effects::hsv_to_rgb;
+/// use ferriswheel::hsv_to_rgb;
 /// use rgb::RGB8;
 ///
 /// // Pure red

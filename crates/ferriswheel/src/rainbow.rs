@@ -77,7 +77,7 @@ pub enum Direction {
 /// # Example
 ///
 /// ```
-/// use led_effects::{RainbowEffect, Direction};
+/// use ferriswheel::{RainbowEffect, Direction};
 /// use rgb::RGB8;
 ///
 /// let mut rainbow = RainbowEffect::new(12).unwrap();
