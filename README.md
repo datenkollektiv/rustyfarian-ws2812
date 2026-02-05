@@ -12,11 +12,12 @@ No application code—just reusable, composable crates.
 
 This library embodies the principle of **extracting testable pure logic from hardware-specific code**—a pattern common in application development but rare in embedded Rust.
 
-- Pure functions belong in `no_std` crates (`ws2812-pure`, `led-effects`)
+- Pure functions belong in `no_std` crates (`ws2812-pure`, `led-effects`, `ferriswheel`)
 - Hardware-specific wrappers should be thin, delegating logic to pure functions
 - If you can unit test it without hardware, it should be in a testable crate
+- Ring-specific animations live in `ferriswheel` so they can be reused and tested independently
 
-The radical separation into multiple crates means `ws2812-pure` (color conversion logic) can be fully unit-tested on your laptop without an ESP32 or ESP toolchain.
+The radical separation into multiple crates means `ws2812-pure` (color conversion logic) and `ferriswheel` (ring animations) can be fully unit-tested on your laptop without an ESP32 or ESP toolchain.
 Most embedded LED libraries require a device to verify even pure logic.
 
 See [Why Yet Another WS2812 Crate?](docs/why-yet-another-ws2812-crate.md) for the full design rationale.
@@ -28,7 +29,8 @@ See [Why Yet Another WS2812 Crate?](docs/why-yet-another-ws2812-crate.md) for th
 
 | Crate                                         | Description                                                 | Target              |
 |:----------------------------------------------|-------------------------------------------------------------|:--------------------|
-| [`led-effects`](crates/led-effects)           | Reusable LED animation effects (pulse, etc.)                | `no_std` compatible |
+| [`ferriswheel`](crates/ferriswheel)           | RGB LED ring animations (rainbow, HSV utilities)            | `no_std` compatible |
+| [`led-effects`](crates/led-effects)           | LED status effects (pulse, simple LED adapter)              | `no_std` compatible |
 | [`ws2812-pure`](crates/ws2812-pure)           | Pure Rust WS2812 utilities (color conversion, bit encoding) | `no_std` compatible |
 | [`esp32-ws2812-rmt`](crates/esp32-ws2812-rmt) | WS2812 driver using ESP32 RMT peripheral                    | ESP32 only          |
 
@@ -45,8 +47,9 @@ For `no_std` projects that only need the pure utilities:
 
 ```toml
 [dependencies]
+ferriswheel = { git = "https://github.com/datenkollektiv/rustyfarian-ws2812" }
 led-effects = { git = "https://github.com/datenkollektiv/rustyfarian-ws2812", default-features = false }
-ws2812-pure = { git = "https://github.com/datenkollektiv/rustyfarian-ws2812", default-features = false }
+ws2812-pure = { git = "https://github.com/datenkollektiv/rustyfarian-ws2812" }
 ```
 
 ## Example
@@ -73,11 +76,11 @@ loop {
 
 ### Rainbow Effect
 
-For LED rings, use `RainbowEffect` to create smooth rainbow animations:
+For LED rings, use `RainbowEffect` from the `ferriswheel` crate:
 
 ```rust
 use esp32_ws2812_rmt::WS2812RMT;
-use led_effects::{RainbowEffect, Direction};
+use ferriswheel::{RainbowEffect, Direction};
 use rgb::RGB8;
 
 let mut driver = WS2812RMT::new(gpio_pin, rmt_channel)?;
