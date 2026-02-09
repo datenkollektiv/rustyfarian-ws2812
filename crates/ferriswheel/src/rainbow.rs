@@ -3,71 +3,11 @@
 //! Creates smooth rainbow animations that cycle through the full color spectrum.
 //! Works with any LED ring size.
 
+use crate::effect::{
+    validate_buffer, validate_num_leds, validate_speed, Direction, Effect, EffectError,
+};
 use crate::hsv::hsv_to_rgb;
 use rgb::RGB8;
-
-/// Maximum supported number of LEDs in a ring.
-///
-/// This limit ensures correct hue distribution across LEDs using simple integer math.
-/// LED rings larger than this are rare in practice.
-/// See ADR-002 for the rationale.
-pub const MAX_LEDS: usize = 256;
-
-/// Error type for RainbowEffect configuration and operations.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum EffectError {
-    /// The number of LEDs must be greater than 0.
-    ZeroLeds,
-    /// The number of LEDs exceeds the maximum supported (256).
-    TooManyLeds {
-        /// Number of LEDs requested.
-        requested: usize,
-        /// Maximum supported.
-        max: usize,
-    },
-    /// Speed/step must be greater than 0.
-    ZeroStep,
-    /// Buffer is too small for the configured number of LEDs.
-    BufferTooSmall {
-        /// Number of LEDs configured.
-        required: usize,
-        /// Actual buffer size provided.
-        actual: usize,
-    },
-}
-
-impl core::fmt::Display for EffectError {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            EffectError::ZeroLeds => write!(f, "number of LEDs must be greater than 0"),
-            EffectError::TooManyLeds { requested, max } => {
-                write!(
-                    f,
-                    "too many LEDs: requested {}, maximum supported is {}",
-                    requested, max
-                )
-            }
-            EffectError::ZeroStep => write!(f, "speed must be greater than 0"),
-            EffectError::BufferTooSmall { required, actual } => {
-                write!(
-                    f,
-                    "buffer too small: need {} LEDs, got {}",
-                    required, actual
-                )
-            }
-        }
-    }
-}
-
-/// Direction of the rainbow animation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum Direction {
-    /// Rainbow rotates clockwise (hue increases).
-    #[default]
-    Clockwise,
-    /// Rainbow rotates counter-clockwise (hue decreases).
-    CounterClockwise,
-}
 
 /// A rainbow animation effect for LED rings.
 ///
@@ -114,15 +54,7 @@ impl RainbowEffect {
     /// - Saturation: 255 (full)
     /// - Direction: Clockwise
     pub fn new(num_leds: usize) -> Result<Self, EffectError> {
-        if num_leds == 0 {
-            return Err(EffectError::ZeroLeds);
-        }
-        if num_leds > MAX_LEDS {
-            return Err(EffectError::TooManyLeds {
-                requested: num_leds,
-                max: MAX_LEDS,
-            });
-        }
+        validate_num_leds(num_leds)?;
 
         Ok(Self {
             num_leds,
@@ -142,9 +74,7 @@ impl RainbowEffect {
     ///
     /// Returns `EffectError::ZeroStep` if `speed` is 0.
     pub fn with_speed(mut self, speed: u8) -> Result<Self, EffectError> {
-        if speed == 0 {
-            return Err(EffectError::ZeroStep);
-        }
+        validate_speed(speed)?;
         self.speed = speed;
         Ok(self)
     }
@@ -193,12 +123,7 @@ impl RainbowEffect {
     /// Returns `EffectError::BufferTooSmall` if the buffer has fewer
     /// elements than `num_leds`.
     pub fn current(&self, buffer: &mut [RGB8]) -> Result<(), EffectError> {
-        if buffer.len() < self.num_leds {
-            return Err(EffectError::BufferTooSmall {
-                required: self.num_leds,
-                actual: buffer.len(),
-            });
-        }
+        validate_buffer(buffer, self.num_leds)?;
 
         for (i, pixel) in buffer.iter_mut().take(self.num_leds).enumerate() {
             // Spread the full hue range (0-255) evenly across all LEDs.
@@ -238,9 +163,24 @@ impl RainbowEffect {
     }
 }
 
+impl Effect for RainbowEffect {
+    fn update(&mut self, buffer: &mut [RGB8]) -> Result<(), EffectError> {
+        self.update(buffer)
+    }
+
+    fn current(&self, buffer: &mut [RGB8]) -> Result<(), EffectError> {
+        self.current(buffer)
+    }
+
+    fn reset(&mut self) {
+        self.reset();
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::effect::MAX_LEDS;
 
     #[test]
     fn test_new_with_zero_leds_returns_error() {
@@ -432,5 +372,51 @@ mod tests {
             ),
             "buffer too small: need 12 LEDs, got 8"
         );
+    }
+
+    #[test]
+    fn test_trait_object_current() {
+        let effect = RainbowEffect::new(12).unwrap();
+        let effect_ref: &dyn Effect = &effect;
+
+        let mut buffer = [RGB8::default(); 12];
+        effect_ref.current(&mut buffer).unwrap();
+
+        // Should produce non-black colors (hue 0 = red at full brightness)
+        assert_ne!(buffer[0], RGB8::default());
+    }
+
+    #[test]
+    fn test_trait_object_update() {
+        let mut effect = RainbowEffect::new(12).unwrap().with_speed(10).unwrap();
+        let effect_ref: &mut dyn Effect = &mut effect;
+
+        let mut buffer1 = [RGB8::default(); 12];
+        let mut buffer2 = [RGB8::default(); 12];
+
+        effect_ref.update(&mut buffer1).unwrap();
+        effect_ref.update(&mut buffer2).unwrap();
+
+        assert_ne!(buffer1[0], buffer2[0], "trait update should advance state");
+    }
+
+    #[test]
+    fn test_trait_object_reset() {
+        let mut effect = RainbowEffect::new(12).unwrap().with_speed(50).unwrap();
+
+        let mut buffer_initial = [RGB8::default(); 12];
+        effect.current(&mut buffer_initial).unwrap();
+
+        let effect_ref: &mut dyn Effect = &mut effect;
+        let mut temp = [RGB8::default(); 12];
+        for _ in 0..5 {
+            effect_ref.update(&mut temp).unwrap();
+        }
+        effect_ref.reset();
+
+        let mut buffer_after = [RGB8::default(); 12];
+        effect_ref.current(&mut buffer_after).unwrap();
+
+        assert_eq!(buffer_initial, buffer_after);
     }
 }
