@@ -1,12 +1,12 @@
 [package]
-name = "esp32-ws2812-rmt"
+name = "rustyfarian-esp-idf-ws2812"
 version = "0.1.0"
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "WS2812 (NeoPixel) LED driver using ESP32 RMT peripheral"
-keywords = ["ws2812", "neopixel", "esp32", "rmt", "led"]
+description = "WS2812 (NeoPixel) LED driver using ESP-IDF RMT peripheral"
+keywords = ["ws2812", "neopixel", "esp-idf", "rmt", "led"]
 categories = ["embedded", "hardware-support"]
 
 [dependencies]

@@ -12,7 +12,7 @@ This type is used across multiple crates:
 - `ws2812-pure`: `rgb_to_grb(RGB8) -> u32`
 - `ferriswheel`: `hsv_to_rgb() -> RGB8`, `RainbowEffect::update(&mut [RGB8])`
 - `led-effects`: `StatusLed::set_color(RGB8)`, `PulseEffect::update() -> RGB8`
-- `esp32-ws2812-rmt`: `set_pixel(RGB8)`, `set_pixels_slice(&[RGB8])`
+- `rustyfarian-esp-idf-ws2812`: `set_pixel(RGB8)`, `set_pixels_slice(&[RGB8])`
 
 Feedback from the first downstream project (`rustyfarian-rgb-clock`) highlighted an integration friction point:
 their `clock-core` crate uses `type Rgb = (u8, u8, u8)` while `led-effects` uses `rgb::RGB8`, requiring conversion code at the boundary.

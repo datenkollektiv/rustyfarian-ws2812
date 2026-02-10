@@ -9,3 +9,4 @@ Cargo.lock
 CLAUDE.md
 inbox/
 outbox/
+archive/

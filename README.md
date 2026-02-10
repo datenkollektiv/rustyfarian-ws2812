@@ -32,7 +32,8 @@ See [Why Yet Another WS2812 Crate?](docs/why-yet-another-ws2812-crate.md) for th
 | [`ferriswheel`](crates/ferriswheel)           | RGB LED ring animations (rainbow, HSV utilities)            | `no_std` compatible |
 | [`led-effects`](crates/led-effects)           | LED status effects (pulse, simple LED adapter)              | `no_std` compatible |
 | [`ws2812-pure`](crates/ws2812-pure)           | Pure Rust WS2812 utilities (color conversion, bit encoding) | `no_std` compatible |
-| [`esp32-ws2812-rmt`](crates/esp32-ws2812-rmt) | WS2812 driver using ESP32 RMT peripheral                    | ESP32 only          |
+| [`rustyfarian-esp-idf-ws2812`](crates/rustyfarian-esp-idf-ws2812) | WS2812 driver using ESP-IDF RMT peripheral                  | ESP-IDF (std)       |
+| [`rustyfarian-esp-hal-ws2812`](crates/rustyfarian-esp-hal-ws2812) | WS2812 driver using esp-hal RMT peripheral (skeleton)       | esp-hal (no_std)    |
 
 ## Usage
 
@@ -40,7 +41,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-esp32-ws2812-rmt = { git = "https://github.com/datenkollektiv/rustyfarian-ws2812" }
+rustyfarian-esp-idf-ws2812 = { git = "https://github.com/datenkollektiv/rustyfarian-ws2812" }
 ```
 
 For `no_std` projects that only need the pure utilities:
@@ -55,7 +56,7 @@ ws2812-pure = { git = "https://github.com/datenkollektiv/rustyfarian-ws2812" }
 ## Example
 
 ```rust
-use esp32_ws2812_rmt::WS2812RMT;
+use rustyfarian_esp_idf_ws2812::WS2812RMT;
 use led_effects::PulseEffect;
 use rgb::RGB8;
 
@@ -79,7 +80,7 @@ loop {
 For LED rings, use `RainbowEffect` from the `ferriswheel` crate:
 
 ```rust
-use esp32_ws2812_rmt::WS2812RMT;
+use rustyfarian_esp_idf_ws2812::WS2812RMT;
 use ferriswheel::{RainbowEffect, Direction};
 use rgb::RGB8;
 
