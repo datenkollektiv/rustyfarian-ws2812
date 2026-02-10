@@ -1,0 +1,19 @@
+[package]
+name = "esp-hal-ws2812-rmt"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "WS2812 (NeoPixel) LED driver using esp-hal RMT peripheral (bare-metal, no_std)"
+keywords = ["ws2812", "neopixel", "esp-hal", "rmt", "led"]
+categories = ["embedded", "hardware-support", "no-std"]
+
+[dependencies]
+rgb.workspace = true
+ws2812-pure.workspace = true
+led-effects = { workspace = true, optional = true }
+
+[features]
+default = ["led-effects"]
+led-effects = ["dep:led-effects"]

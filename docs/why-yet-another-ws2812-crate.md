@@ -25,7 +25,7 @@ This makes your code testable (e.g., mock LEDs in tests, real WS2812s in product
 ## `no_std` at the Core
 
 `ws2812-pure` and `led-effects` are fully `no_std` with zero allocations.
-The ESP-specific parts only exist in `esp32-ws2812-rmt`.
+The ESP-specific parts only exist in `esp-idf-ws2812-rmt`.
 This is unusual.
 Most LED crates assume `std` throughout.
 

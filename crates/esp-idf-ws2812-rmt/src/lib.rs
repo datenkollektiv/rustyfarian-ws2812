@@ -1,30 +1,29 @@
-//! WS2812 (NeoPixel) LED driver using ESP32 RMT peripheral.
+//! WS2812 (NeoPixel) LED driver using ESP-IDF RMT peripheral.
 //!
 //! This crate provides a driver for WS2812/NeoPixel addressable LEDs using
-//! the ESP32's RMT (Remote Control Transceiver) peripheral for precise timing.
+//! the ESP-IDF RMT (Remote Control Transceiver) peripheral for precise timing.
+//! It works with any ESP32 variant that supports RMT via ESP-IDF.
 //!
+//! For bare-metal (no_std) projects using `esp-hal`, see `esp-hal-ws2812-rmt`.
 //! Pure color utilities are available in the `ws2812-pure` crate for testing.
 //!
 //! # Example
 //!
 //! ```ignore
-//! use esp32_ws2812_rmt::WS2812RMT;
+//! use esp_idf_ws2812_rmt::WS2812RMT;
 //! use rgb::RGB8;
 //!
-//! // Create driver for single LED on GPIO8
 //! let mut led = WS2812RMT::new(peripherals.pins.gpio8, peripherals.rmt.channel0)?;
 //!
-//! // Set single pixel color
-//! led.set_pixel(RGB8::new(255, 0, 0))?; // Red
+//! led.set_pixel(RGB8::new(255, 0, 0))?;
 //!
-//! // Set multiple pixels
 //! let colors = [RGB8::new(255, 0, 0), RGB8::new(0, 255, 0), RGB8::new(0, 0, 255)];
 //! led.set_pixels_slice(&colors)?;
 //! ```
 //!
 //! # Supported Boards
 //!
-//! Works with any ESP32 variant that has RMT support:
+//! Works with any ESP32 variant that has RMT support via ESP-IDF:
 //! - ESP32-C3-DevKit-Rust-1: GPIO2
 //! - ESP32-C3-DevKitC-02: GPIO8
 //! - ESP32-C6-DevKitC-1: GPIO8

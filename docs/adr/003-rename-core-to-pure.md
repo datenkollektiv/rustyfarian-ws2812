@@ -36,7 +36,7 @@ Rename `ws2812-core` to `ws2812-pure`.
 | **Consistency**          | README already describes it as "Pure Rust WS2812 utilities"                                               |
 | **Searchability**        | Developers familiar with functional programming or sans-io patterns may search for "pure" implementations |
 | **Teaching value**       | Every `use ws2812_pure::...` reinforces the architectural boundary to users                               |
-| **Differentiation**      | Clearly distinguishes this crate from the hardware-specific `esp32-ws2812-rmt`                            |
+| **Differentiation**      | Clearly distinguishes this crate from the hardware-specific `esp-idf-ws2812-rmt`                            |
 
 ### Arguments against (keeping `ws2812-core`)
 
