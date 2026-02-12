@@ -15,9 +15,11 @@
 //! - [`ChaseEffect`] — moving a solid segment around the ring
 //! - [`FlashEffect`] — rapid on/off toggle with configurable duty cycle
 //! - [`ProgressEffect`] — proportional ring fill
+//! - [`SectionEffect`] — weighted color sections on a ring
 //!
 //! # Utilities
 //!
+//! - [`ColorPalette`] — three-color theme for effects
 //! - [`fill_solid`] — fill a buffer with a single color
 //! - [`sine_wave`] — sine lookup for smooth animations
 //! - [`scale_brightness`] — scale an RGB color's brightness
@@ -44,9 +46,11 @@ mod chase;
 mod effect;
 mod flash;
 mod hsv;
+mod palette;
 mod progress;
 mod pulse;
 mod rainbow;
+mod section;
 mod spinner;
 mod util;
 
@@ -54,8 +58,10 @@ pub use chase::ChaseEffect;
 pub use effect::{Direction, Effect, EffectError, MAX_LEDS};
 pub use flash::FlashEffect;
 pub use hsv::hsv_to_rgb;
+pub use palette::ColorPalette;
 pub use progress::ProgressEffect;
 pub use pulse::PulseEffect;
 pub use rainbow::RainbowEffect;
+pub use section::{SectionEffect, MAX_SECTIONS};
 pub use spinner::SpinnerEffect;
 pub use util::{fill_solid, lerp_color, scale_brightness, sine_wave};
