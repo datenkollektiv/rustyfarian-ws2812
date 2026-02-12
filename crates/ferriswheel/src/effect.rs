@@ -26,6 +26,8 @@ pub enum EffectError {
     },
     /// Speed/step must be greater than 0.
     ZeroStep,
+    /// On and off durations must both be greater than 0.
+    ZeroDuty,
     /// Buffer is too small for the configured number of LEDs.
     BufferTooSmall {
         /// Number of LEDs configured.
@@ -47,6 +49,9 @@ impl core::fmt::Display for EffectError {
                 )
             }
             EffectError::ZeroStep => write!(f, "speed must be greater than 0"),
+            EffectError::ZeroDuty => {
+                write!(f, "on and off durations must both be greater than 0")
+            }
             EffectError::BufferTooSmall { required, actual } => {
                 write!(
                     f,
@@ -134,6 +139,32 @@ pub(crate) fn validate_buffer(buffer: &[RGB8], num_leds: usize) -> Result<(), Ef
     Ok(())
 }
 
+/// Advances a position around a ring of `num_leds` LEDs.
+///
+/// Returns the new position after moving `speed` steps in the given `direction`,
+/// wrapping around the ring using modular arithmetic.
+pub(crate) fn advance_position(
+    position: u8,
+    speed: u8,
+    num_leds: usize,
+    direction: Direction,
+) -> u8 {
+    match direction {
+        Direction::Clockwise => (position as usize + speed as usize).rem_euclid(num_leds) as u8,
+        Direction::CounterClockwise => {
+            (position as isize - speed as isize).rem_euclid(num_leds as isize) as u8
+        }
+    }
+}
+
+/// Validates that both on and off tick durations are greater than 0.
+pub(crate) fn validate_duty(on_ticks: u8, off_ticks: u8) -> Result<(), EffectError> {
+    if on_ticks == 0 || off_ticks == 0 {
+        return Err(EffectError::ZeroDuty);
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -192,8 +223,48 @@ mod tests {
     }
 
     #[test]
+    fn test_validate_duty_zero_on() {
+        assert_eq!(validate_duty(0, 4).unwrap_err(), EffectError::ZeroDuty);
+    }
+
+    #[test]
+    fn test_validate_duty_zero_off() {
+        assert_eq!(validate_duty(4, 0).unwrap_err(), EffectError::ZeroDuty);
+    }
+
+    #[test]
+    fn test_validate_duty_both_zero() {
+        assert_eq!(validate_duty(0, 0).unwrap_err(), EffectError::ZeroDuty);
+    }
+
+    #[test]
+    fn test_validate_duty_valid() {
+        assert!(validate_duty(1, 1).is_ok());
+        assert!(validate_duty(4, 4).is_ok());
+        assert!(validate_duty(255, 1).is_ok());
+    }
+
+    #[test]
     fn test_direction_default_is_clockwise() {
         assert_eq!(Direction::default(), Direction::Clockwise);
+    }
+
+    #[test]
+    fn test_advance_position_clockwise() {
+        assert_eq!(advance_position(0, 1, 8, Direction::Clockwise), 1);
+        assert_eq!(advance_position(5, 3, 8, Direction::Clockwise), 0);
+    }
+
+    #[test]
+    fn test_advance_position_counter_clockwise() {
+        assert_eq!(advance_position(3, 1, 8, Direction::CounterClockwise), 2);
+        assert_eq!(advance_position(0, 1, 8, Direction::CounterClockwise), 7);
+    }
+
+    #[test]
+    fn test_advance_position_wraps_with_large_speed() {
+        assert_eq!(advance_position(0, 10, 8, Direction::Clockwise), 2);
+        assert_eq!(advance_position(0, 10, 8, Direction::CounterClockwise), 6);
     }
 
     #[test]
@@ -215,6 +286,10 @@ mod tests {
         assert_eq!(
             format!("{}", EffectError::ZeroStep),
             "speed must be greater than 0"
+        );
+        assert_eq!(
+            format!("{}", EffectError::ZeroDuty),
+            "on and off durations must both be greater than 0"
         );
         assert_eq!(
             format!(

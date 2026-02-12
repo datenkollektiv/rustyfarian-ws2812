@@ -12,6 +12,8 @@
 //! - [`RainbowEffect`] — smooth rainbow gradient rotation
 //! - [`PulseEffect`] — sine-wave breathing animation
 //! - [`SpinnerEffect`] — rotating dot with fading tail
+//! - [`ChaseEffect`] — moving a solid segment around the ring
+//! - [`FlashEffect`] — rapid on/off toggle with configurable duty cycle
 //! - [`ProgressEffect`] — proportional ring fill
 //!
 //! # Utilities
@@ -38,7 +40,9 @@
 //! effect.current(&mut buffer).unwrap();
 //! ```
 
+mod chase;
 mod effect;
+mod flash;
 mod hsv;
 mod progress;
 mod pulse;
@@ -46,7 +50,9 @@ mod rainbow;
 mod spinner;
 mod util;
 
+pub use chase::ChaseEffect;
 pub use effect::{Direction, Effect, EffectError, MAX_LEDS};
+pub use flash::FlashEffect;
 pub use hsv::hsv_to_rgb;
 pub use progress::ProgressEffect;
 pub use pulse::PulseEffect;
