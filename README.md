@@ -121,8 +121,6 @@ just verify
 just ci
 ```
 
-See `CLAUDE.md` for the full testing and verification policy.
-
 ## License
 
 MIT or Apache-2.0
