@@ -35,6 +35,13 @@ pub enum EffectError {
         /// Actual buffer size provided.
         actual: usize,
     },
+    /// Too many sections for the effect.
+    TooManySections {
+        /// Number of sections requested.
+        requested: usize,
+        /// Maximum supported.
+        max: usize,
+    },
 }
 
 impl core::fmt::Display for EffectError {
@@ -57,6 +64,13 @@ impl core::fmt::Display for EffectError {
                     f,
                     "buffer too small: need {} LEDs, got {}",
                     required, actual
+                )
+            }
+            EffectError::TooManySections { requested, max } => {
+                write!(
+                    f,
+                    "too many sections: requested {}, maximum is {}",
+                    requested, max
                 )
             }
         }
@@ -300,6 +314,16 @@ mod tests {
                 }
             ),
             "buffer too small: need 12 LEDs, got 8"
+        );
+        assert_eq!(
+            format!(
+                "{}",
+                EffectError::TooManySections {
+                    requested: 10,
+                    max: 8
+                }
+            ),
+            "too many sections: requested 10, maximum is 8"
         );
     }
 }
