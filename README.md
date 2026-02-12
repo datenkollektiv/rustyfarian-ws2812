@@ -100,6 +100,29 @@ loop {
 }
 ```
 
+## Development
+
+A [`justfile`](justfile) provides all common development tasks.
+The workspace defaults to the ESP32 target, so `just` recipes override the target automatically for platform-independent crates.
+
+List available recipes:
+
+```sh
+just
+```
+
+Common workflows:
+
+```sh
+just verify
+```
+
+```sh
+just ci
+```
+
+See `CLAUDE.md` for the full testing and verification policy.
+
 ## License
 
 MIT or Apache-2.0
