@@ -4,7 +4,7 @@
 # .cargo/config.toml, so every recipe that touches platform-independent crates
 # explicitly passes --target to override it.
 
-host_target := `rustc -vV | sed -n 's/^host: //p'`
+host_target := `host=$(rustc -vV 2>/dev/null | grep '^host:' | awk '{print $2}'); if [ -z "$host" ]; then printf 'Error: Failed to determine rustc host target.\n' >&2; exit 1; fi; echo "$host"`
 pure_crates := "-p ws2812-pure -p ferriswheel -p led-effects"
 
 # list available recipes (default)
@@ -77,7 +77,7 @@ clean:
 
 # watch and re-run tests on file changes (requires cargo-watch)
 watch:
-    cargo watch -x 'test {{ pure_crates }} --target {{ host_target }}'
+    cargo watch -x "test {{ pure_crates }} --target {{ host_target }}"
 
 # full pre-commit verification: format, check, lint, test
 verify: fmt check clippy test
