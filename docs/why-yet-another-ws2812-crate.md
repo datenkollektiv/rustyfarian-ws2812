@@ -20,13 +20,13 @@ pub trait StatusLed {
 ```
 
 Your RGB clock code can depend on this trait rather than a specific driver.
-This makes your code testable (e.g., mock LEDs in tests, real WS2812s in production).
+This makes your code testable (e.g., mock LEDs for tests, real WS2812s for production).
 
 ## `no_std` at the Core
 
 `ws2812-pure` and `led-effects` are fully `no_std` with zero allocations.
 The ESP-specific parts only exist in `rustyfarian-esp-idf-ws2812`.
-This is unusual.
+This separation is unusual among LED crates and is significant because it keeps the core logic portable, easily testable on a desktop, and usable on bare-metal targets while confining platform-specific code to a single crate.
 Most LED crates assume `std` throughout.
 
 ## Zero Dynamic Allocation in the Driver

@@ -82,8 +82,12 @@ impl SpinnerEffect {
     }
 
     /// Sets the number of LEDs in the fading tail behind the head.
+    ///
+    /// Clamped to `num_leds` to prevent the tail from wrapping around
+    /// and overwriting the head.
     pub fn with_tail_length(mut self, tail_length: u8) -> Self {
-        self.tail_length = tail_length;
+        let max_tail = self.num_leds.min(u8::MAX as usize) as u8;
+        self.tail_length = tail_length.min(max_tail);
         self
     }
 
@@ -113,15 +117,22 @@ impl SpinnerEffect {
         // Head at full brightness
         buffer[head] = self.color;
 
-        // Tail with linearly decreasing brightness
-        let total = self.tail_length as usize + 1; // head + tail
-        for i in 1..=self.tail_length as usize {
+        // Tail with linearly decreasing brightness.
+        // Cap to n-1 so the tail never overwrites the head or wraps the ring twice.
+        let effective_tail = (self.tail_length as usize).min(n.saturating_sub(1));
+        let total = effective_tail + 1; // head + effective tail LEDs
+        for i in 1..=effective_tail {
             let tail_idx = match self.direction {
                 Direction::Clockwise => (head + n - i) % n,
                 Direction::CounterClockwise => (head + i) % n,
             };
-            // Linear fade: tail LED 1 is brightest, last is dimmest
-            let brightness = (255 * (total - i) / total) as u8;
+            // Linear fade: tail LED 1 is brightest, last is dimmest.
+            // Invariant: every tail LED remains visibly lit (brightness ≥ 1).
+            // Without the floor, integer division truncates to 0 for very long tails.
+            let mut brightness = (255 * (total - i) / total) as u8;
+            if brightness == 0 {
+                brightness = 1;
+            }
             buffer[tail_idx] = scale_brightness(self.color, brightness);
         }
 
@@ -341,5 +352,132 @@ mod tests {
         effect_ref.update(&mut buf2).unwrap();
 
         assert_ne!(buf1, buf2, "spinner should advance between updates");
+    }
+
+    // --- Tests for with_tail_length clamping ---
+
+    /// with_tail_length(255) on a 4-LED ring must clamp to 4 (max_tail = min(4,255) = 4).
+    /// effective_tail = min(4, 4-1) = 3, so head + 3 tail LEDs fill all 4 slots.
+    /// The head LED must remain at full brightness and not be overwritten by a tail LED.
+    #[test]
+    fn test_tail_length_clamps_to_num_leds() {
+        let color = RGB8::new(255, 255, 255);
+        let effect = SpinnerEffect::new(4)
+            .unwrap()
+            .with_color(color)
+            .with_tail_length(255); // would exceed ring size; must clamp
+
+        let mut buffer = [RGB8::default(); 4];
+        effect.current(&mut buffer).unwrap();
+
+        // Head at position 0 must be at full brightness
+        assert_eq!(
+            buffer[0], color,
+            "head LED must be full brightness even when tail_length was clamped from 255 to 4"
+        );
+        // effective_tail = min(4, 3) = 3: LEDs 3, 2, 1 are tail (clockwise behind head)
+        // All four LEDs must be non-black (head + 3 tail)
+        for (i, led) in buffer.iter().enumerate() {
+            assert!(
+                led.r > 0 || led.g > 0 || led.b > 0,
+                "LED {} should be lit (head or tail) after clamping tail_length",
+                i
+            );
+        }
+    }
+
+    /// with_tail_length(0) must stay 0: only the head LED is lit, no tail.
+    #[test]
+    fn test_tail_length_zero_only_head_lit() {
+        let color = RGB8::new(255, 0, 0);
+        let effect = SpinnerEffect::new(4)
+            .unwrap()
+            .with_color(color)
+            .with_tail_length(0);
+
+        let mut buffer = [RGB8::default(); 4];
+        effect.current(&mut buffer).unwrap();
+
+        assert_eq!(buffer[0], color, "head LED should be lit");
+        for i in 1..4 {
+            assert_eq!(
+                buffer[i],
+                RGB8::new(0, 0, 0),
+                "LED {} should be off with tail_length=0",
+                i
+            );
+        }
+    }
+
+    /// with_tail_length within num_leds must not be clamped.
+    /// tail_length=4 on an 8-LED ring: max_tail = min(8, 255) = 8, so 4 < 8, no clamp.
+    #[test]
+    fn test_tail_length_within_ring_not_clamped() {
+        let color = RGB8::new(0, 255, 0);
+        let effect = SpinnerEffect::new(8)
+            .unwrap()
+            .with_color(color)
+            .with_tail_length(4);
+
+        let mut buffer = [RGB8::default(); 8];
+        effect.current(&mut buffer).unwrap();
+
+        // Head at 0; tail at 7, 6, 5, 4 (clockwise, 4 LEDs)
+        assert_eq!(buffer[0], color, "head should be full brightness");
+        // LEDs 1, 2, 3 are beyond the tail and must be off
+        for i in 1..=3 {
+            assert_eq!(buffer[i], RGB8::new(0, 0, 0), "LED {} should be off", i);
+        }
+        // All four tail LEDs must be lit (non-zero)
+        for i in [4usize, 5, 6, 7] {
+            assert!(
+                buffer[i].g > 0,
+                "tail LED {} should be lit (not clamped away)",
+                i
+            );
+        }
+    }
+
+    // --- Test for brightness floor at 1 ---
+
+    /// On a 256-LED ring with tail_length=255, effective_tail=255 and total=256.
+    /// The last tail LED (i=255) computes brightness = 255*1/256 = 0 via integer division.
+    /// The floor clamps this to 1, so the LED is never fully off.
+    /// Existing tests only cover tail_length=3 where this floor is never reached.
+    #[test]
+    fn test_brightness_floor_prevents_fully_dark_tail_led() {
+        use crate::effect::MAX_LEDS;
+        // MAX_LEDS must be >= 256 for this test to exercise the floor.
+        // If the ring is smaller, skip gracefully by checking at runtime.
+        if MAX_LEDS < 256 {
+            // Cannot exercise the floor with this MAX_LEDS; nothing to assert.
+            return;
+        }
+
+        let color = RGB8::new(255, 255, 255);
+        let effect = SpinnerEffect::new(256)
+            .unwrap()
+            .with_color(color)
+            .with_tail_length(255); // max_tail = min(256, 255) = 255; no further clamp
+
+        let mut buffer = [RGB8::default(); 256];
+        effect.current(&mut buffer).unwrap();
+
+        // Head at position 0. Tail goes clockwise behind head: positions 255, 254, …, 1.
+        // effective_tail = min(255, 255) = 255. total = 256.
+        // Last tail LED is position 1 (i=255 in the loop, tail_idx = (0+256-255)%256 = 1).
+        // brightness = 255*(256-255)/256 = 255*1/256 = 0 → floored to 1.
+        let last_tail = buffer[1];
+        assert!(
+            last_tail.r > 0 || last_tail.g > 0 || last_tail.b > 0,
+            "last tail LED must not be fully dark; brightness floor should have applied (got {:?})",
+            last_tail
+        );
+        // scale_brightness(white, 1): r = (255 * 1) / 255 = 1.
+        assert_eq!(
+            last_tail.r, 1,
+            "last tail LED should have r=1 after brightness floor (got {})",
+            last_tail.r
+        );
     }
 }

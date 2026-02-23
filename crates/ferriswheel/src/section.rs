@@ -129,12 +129,12 @@ impl SectionEffect {
         };
 
         let mut led_idx = 0;
-        for (i, (&weight, &(palette, _))) in effective_weights[..self.count]
+        for (section_index, (&weight, &(palette, _))) in effective_weights[..self.count]
             .iter()
             .zip(self.sections[..self.count].iter())
             .enumerate()
         {
-            let leds_for_section = if i == self.count - 1 {
+            let leds_for_section = if section_index == self.count - 1 {
                 // Last section absorbs rounding remainder
                 self.num_leds - led_idx
             } else {
@@ -163,15 +163,15 @@ impl SectionEffect {
 
 impl Effect for SectionEffect {
     fn update(&mut self, buffer: &mut [RGB8]) -> Result<(), EffectError> {
-        self.update(buffer)
+        SectionEffect::update(self, buffer)
     }
 
     fn current(&self, buffer: &mut [RGB8]) -> Result<(), EffectError> {
-        self.current(buffer)
+        SectionEffect::current(self, buffer)
     }
 
     fn reset(&mut self) {
-        self.reset();
+        SectionEffect::reset(self);
     }
 }
 

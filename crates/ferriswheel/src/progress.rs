@@ -91,10 +91,10 @@ impl ProgressEffect {
         let n = self.num_leds;
 
         // Scale progress (0–255) to LED-space (0–num_leds*256)
-        // This gives sub-LED resolution for partial fill.
-        let fill_256 = self.progress as u32 * n as u32; // 0..(255 * n)
-        let full_leds = (fill_256 / 255) as usize;
-        let fractional = ((fill_256 % 255) * 255 / 255) as u8;
+        // This gives sub-LED resolution for partial fill using 0–255 as the fraction.
+        let fill_256 = self.progress as u32 * n as u32 * 256 / 255;
+        let full_leds = (fill_256 / 256) as usize;
+        let fractional = (fill_256 % 256) as u8;
 
         for (i, led) in buffer.iter_mut().take(n).enumerate() {
             if i < full_leds {
@@ -292,5 +292,96 @@ mod tests {
         // Most LEDs should be filled
         let filled = buffer.iter().filter(|led| led.r > 128).count();
         assert!(filled >= 2, "most LEDs should be filled at progress 200");
+    }
+
+    // --- Tests for the fractional-byte fix (fill_256 formula) ---
+
+    /// At progress=254 with n=1, the single LED is a partial fill: fractional=254,
+    /// so lerp(empty, fill, 254) produces a near-full but distinct colour from fill_color.
+    /// This exercises the partial-LED blending path at the top of the progress range.
+    #[test]
+    fn test_progress_254_single_led_is_nearly_full() {
+        let fill = RGB8::new(255, 0, 0);
+        let empty = RGB8::new(0, 0, 0);
+        let mut effect = ProgressEffect::new(1)
+            .unwrap()
+            .with_fill_color(fill)
+            .with_empty_color(empty);
+
+        effect.set_progress(254);
+
+        let mut buffer = [RGB8::default(); 1];
+        effect.current(&mut buffer).unwrap();
+
+        // fill_256 = 254*1*256/255 = 65024/255 = 254 (integer), full_leds=0, fractional=254
+        // lerp(black, red, 254): r = (0*1 + 255*254)/255 = 64770/255 = 254
+        // The LED is nearly full (254 out of 255) but not exactly fill_color
+        assert!(
+            buffer[0].r >= 250 && buffer[0].r < 255,
+            "at progress=254 with 1 LED, red channel should be nearly full (250..254), got {}",
+            buffer[0].r
+        );
+        assert_ne!(
+            buffer[0], fill,
+            "at progress=254 with 1 LED, should not yet be exactly fill_color"
+        );
+        assert_ne!(
+            buffer[0], empty,
+            "at progress=254 with 1 LED, should not be empty"
+        );
+    }
+
+    /// At progress=255 with n=1, full_leds==1, so LED 0 is filled directly.
+    /// Verifies no partial-blend LED appears at the maximum boundary for a 1-LED ring.
+    /// The existing test_full_progress_all_filled only uses n=8; this covers n=1.
+    #[test]
+    fn test_full_progress_single_led_is_filled() {
+        let fill = RGB8::new(0, 128, 255);
+        let mut effect = ProgressEffect::new(1)
+            .unwrap()
+            .with_fill_color(fill)
+            .with_empty_color(RGB8::new(0, 0, 0));
+
+        effect.set_progress(255);
+
+        let mut buffer = [RGB8::default(); 1];
+        effect.current(&mut buffer).unwrap();
+
+        // fill_256 = 255*1*256/255 = 256, full_leds = 1, fractional = 0
+        // LED 0: i < full_leds (0 < 1) → fill_color, no partial-blend LED
+        assert_eq!(
+            buffer[0], fill,
+            "single LED should be fully filled at progress=255"
+        );
+    }
+
+    /// At progress=255, fill_256 = 255*n*256/255 = n*256, so full_leds=n and fractional=0.
+    /// The partial-LED branch (i==full_leds && full_leds < n) is never entered,
+    /// meaning no blended LED appears at the boundary. Tests n=4 which differs from the
+    /// existing test_full_progress_all_filled (n=8).
+    #[test]
+    fn test_full_progress_no_partial_blend_led() {
+        let fill = RGB8::new(255, 0, 0);
+        let empty = RGB8::new(0, 0, 0);
+        let mut effect = ProgressEffect::new(4)
+            .unwrap()
+            .with_fill_color(fill)
+            .with_empty_color(empty);
+
+        effect.set_progress(255);
+
+        let mut buffer = [RGB8::default(); 4];
+        effect.current(&mut buffer).unwrap();
+
+        // fill_256 = 255*4*256/255 = 1024, full_leds=4, fractional=0
+        // The partial-LED branch (i==full_leds && full_leds < n) is never entered
+        // because full_leds==n. Every LED must be exactly fill_color.
+        for (i, led) in buffer.iter().enumerate() {
+            assert_eq!(
+                *led, fill,
+                "LED {} should be fill_color at progress=255, not blended",
+                i
+            );
+        }
     }
 }
