@@ -118,6 +118,10 @@ just verify
 ```
 
 ```sh
+just pre-commit
+```
+
+```sh
 just ci
 ```
 

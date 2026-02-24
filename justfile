@@ -79,8 +79,15 @@ clean:
 watch:
     cargo watch -x "test {{ pure_crates }} --target {{ host_target }}"
 
-# full pre-commit verification: format, check, lint, test
-verify: fmt check clippy test
+# full pre-commit verification: format, check, lint, test (modifies files — local use only)
+pre-commit: fmt check clippy test
+
+# verify code quality without modifying files; suggests 'just pre-commit' on formatting issues
+verify:
+    @cargo fmt -- --check || (printf '\nFormatting issues found — run `just pre-commit` to auto-fix.\n' >&2 && exit 1)
+    cargo check {{ pure_crates }} --target {{ host_target }}
+    cargo clippy {{ pure_crates }} --target {{ host_target }} -- -D warnings
+    cargo test {{ pure_crates }} --target {{ host_target }}
 
 # CI-equivalent verification (non-modifying): format check, deny, check, lint, test
 ci: fmt-check deny check clippy test
