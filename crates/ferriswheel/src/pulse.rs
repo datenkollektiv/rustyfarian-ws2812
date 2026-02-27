@@ -91,6 +91,14 @@ impl PulseEffect {
         self
     }
 
+    /// Sets the pulse color without resetting the animation phase.
+    ///
+    /// Use this to change the color live (e.g., from a rotary encoder)
+    /// without restarting the breathing cycle.
+    pub fn set_color(&mut self, color: RGB8) {
+        self.color = color;
+    }
+
     /// Returns the number of LEDs this effect is configured for.
     pub fn num_leds(&self) -> usize {
         self.num_leds
@@ -305,6 +313,40 @@ mod tests {
         effect.current(&mut buf2).unwrap();
 
         assert_eq!(buf1, buf2);
+    }
+
+    #[test]
+    fn test_set_color_does_not_reset_phase() {
+        let mut effect = PulseEffect::new(4)
+            .unwrap()
+            .with_color(RGB8::new(255, 0, 0))
+            .with_speed(20)
+            .unwrap();
+
+        let mut buffer = [RGB8::default(); 4];
+
+        // Advance to a non-zero phase
+        for _ in 0..5 {
+            effect.update(&mut buffer).unwrap();
+        }
+
+        let mut before = [RGB8::default(); 4];
+        effect.current(&mut before).unwrap();
+
+        // Change color — should not reset the breathing phase
+        effect.set_color(RGB8::new(0, 255, 0));
+
+        let mut after = [RGB8::default(); 4];
+        effect.current(&mut after).unwrap();
+
+        // Brightness should be the same (same phase), just a different hue
+        let brightness_before = before[0].r.max(before[0].g).max(before[0].b);
+        let brightness_after = after[0].r.max(after[0].g).max(after[0].b);
+        assert_eq!(
+            brightness_before, brightness_after,
+            "phase should be unchanged after set_color"
+        );
+        assert_ne!(before[0], after[0], "color should have changed");
     }
 
     #[test]
