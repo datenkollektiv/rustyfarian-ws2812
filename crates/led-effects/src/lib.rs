@@ -7,7 +7,7 @@
 //! # StatusLed Trait
 //!
 //! The `StatusLed` trait provides a common interface for LED drivers that can
-//! display status colors. This enables crates like `esp32-wifi-manager` to
+//! display status colors. This enables crates like `rustyfarian-network` to
 //! show connection status without depending on a specific LED implementation.
 //!
 //! # SimpleLed (requires `hal` feature, enabled by default)
@@ -58,7 +58,7 @@ impl core::fmt::Display for PulseEffectError {
 /// Trait for LED status indicators.
 ///
 /// Implement this trait for your LED driver to enable status feedback
-/// in other crates like `esp32-wifi-manager`.
+/// in other crates like `rustyfarian-network`.
 ///
 /// # Example
 ///

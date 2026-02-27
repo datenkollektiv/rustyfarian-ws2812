@@ -1,0 +1,62 @@
+# Project Vision
+
+## North Star
+
+Provide reusable, sans-io WS2812 LED crates for embedded Rust developers —
+pure logic first, hardware wrappers thin, everything testable without hardware.
+
+## Long-Term Goals
+
+- **Animation vocabulary on demand.**
+  Cover the animation and effect primitives that downstream users actually need.
+  The set is not predefined — it grows in response to real requests.
+  "Done" is the state where users consistently find what they need without forking.
+
+- **Complete no_std / embassy support.**
+  Finish the `rustyfarian-esp-hal-ws2812` driver so downstream projects can
+  adopt `no_std` / embassy without losing WS2812 support.
+  This is the single most strategically important pending item.
+
+- **Ecosystem currency.**
+  Timely adoption of new ESP32 chip variants, HAL updates, and toolchain changes.
+  The embedded Rust ecosystem moves fast; the crates must keep pace.
+
+- **Preserve the sans-io discipline.**
+  All pure logic stays in `no_std`-compatible, hardware-free crates.
+  Hardware wrappers remain thin.
+  No new crate or feature should break this separation.
+
+## Target Beneficiaries
+
+Embedded Rust developers building WS2812-based LED projects on ESP32 (or compatible platforms),
+who want testable, composable building blocks rather than monolithic driver crates.
+
+Primary today: the maintainer's own downstream project(s).
+Secondary: any embedded developer who discovers and adopts the crates.
+
+## Non-Goals
+
+- Application code, binaries, or example apps (library-only).
+- Predefined exhaustive animation catalogues — effects are added on demand, not speculatively.
+- Random stray functionality that does not serve the embedded WS2812 use case.
+- Scope is open to non-ESP targets or non-WS2812 LEDs *if* a genuine use case arises,
+  but not pursued proactively.
+
+## Success Signals
+
+- Downstream users find the animation or effect they need without forking or copying code.
+- `rustyfarian-esp-hal-ws2812` is complete and in use by at least one `no_std` / embassy project.
+- New ESP32 chip variants and HAL releases are adopted within a reasonable window of their release.
+- All pure logic remains fully unit-testable on a laptop without ESP toolchain or hardware.
+
+## Open Questions
+
+- At what point should crates be published to crates.io?
+  Currently consumed via git; publishing would increase visibility but adds release overhead.
+- If third-party users arrive (issues, forks), how should the demand-driven animation model scale?
+  The current informal loop works while the primary consumer is the maintainer.
+
+## Vision History
+
+- 2026-02-25 — Initial vision created during the first Vision Validator session.
+  Identified esp-hal driver completion as the most strategically important missing roadmap item.

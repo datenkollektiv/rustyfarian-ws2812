@@ -14,7 +14,7 @@ It outlines features that might be implemented in future versions, if any.
 struct NoLed;
 
 impl StatusLed for NoLed {
-    type Error = std::convert::Infallible;
+    type Error = core::convert::Infallible;
     fn set_color(&mut self, _color: rgb::RGB8) -> Result<(), Self::Error> {
         Ok(())
     }
