@@ -101,6 +101,20 @@ impl RainbowEffect {
         self
     }
 
+    /// Sets the initial hue offset (builder).
+    pub fn with_hue_offset(mut self, offset: u8) -> Self {
+        self.hue_offset = offset;
+        self
+    }
+
+    /// Sets the hue offset without resetting the animation.
+    ///
+    /// Use this to shift the rainbow color live (e.g., from a rotary encoder)
+    /// without restarting the rotation cycle.
+    pub fn set_hue_offset(&mut self, offset: u8) {
+        self.hue_offset = offset;
+    }
+
     /// Returns the number of LEDs this effect is configured for.
     pub fn num_leds(&self) -> usize {
         self.num_leds
@@ -398,6 +412,48 @@ mod tests {
         effect_ref.update(&mut buffer2).unwrap();
 
         assert_ne!(buffer1[0], buffer2[0], "trait update should advance state");
+    }
+
+    #[test]
+    fn test_with_hue_offset_changes_initial_colors() {
+        let effect_zero = RainbowEffect::new(6).unwrap();
+        let effect_offset = RainbowEffect::new(6).unwrap().with_hue_offset(128);
+
+        let mut buf_zero = [RGB8::default(); 6];
+        let mut buf_offset = [RGB8::default(); 6];
+
+        effect_zero.current(&mut buf_zero).unwrap();
+        effect_offset.current(&mut buf_offset).unwrap();
+
+        assert_ne!(
+            buf_zero[0], buf_offset[0],
+            "different hue offsets should produce different colors"
+        );
+    }
+
+    #[test]
+    fn test_set_hue_offset_changes_output_without_reset() {
+        let mut effect = RainbowEffect::new(6).unwrap().with_speed(10).unwrap();
+        let mut buffer = [RGB8::default(); 6];
+
+        // Advance a few ticks so animation is in progress
+        for _ in 0..5 {
+            effect.update(&mut buffer).unwrap();
+        }
+
+        // Capture colors before and after set_hue_offset
+        let mut before = [RGB8::default(); 6];
+        effect.current(&mut before).unwrap();
+
+        effect.set_hue_offset(200);
+
+        let mut after = [RGB8::default(); 6];
+        effect.current(&mut after).unwrap();
+
+        assert_ne!(
+            before[0], after[0],
+            "set_hue_offset should change rendered colors"
+        );
     }
 
     #[test]

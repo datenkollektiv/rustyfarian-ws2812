@@ -97,6 +97,14 @@ impl SpinnerEffect {
         self
     }
 
+    /// Sets the spinner color without resetting the animation position.
+    ///
+    /// Use this to change the color live (e.g., from a rotary encoder)
+    /// without restarting the spin cycle.
+    pub fn set_color(&mut self, color: RGB8) {
+        self.color = color;
+    }
+
     /// Returns the number of LEDs this effect is configured for.
     pub fn num_leds(&self) -> usize {
         self.num_leds
@@ -352,6 +360,46 @@ mod tests {
         effect_ref.update(&mut buf2).unwrap();
 
         assert_ne!(buf1, buf2, "spinner should advance between updates");
+    }
+
+    #[test]
+    fn test_set_color_does_not_reset_position() {
+        let mut effect = SpinnerEffect::new(8)
+            .unwrap()
+            .with_color(RGB8::new(255, 0, 0))
+            .with_tail_length(0)
+            .with_speed(3)
+            .unwrap();
+
+        let mut buffer = [RGB8::default(); 8];
+
+        // Advance to a non-zero position
+        for _ in 0..3 {
+            effect.update(&mut buffer).unwrap();
+        }
+
+        // Capture position by reading which LED is the head
+        let mut before = [RGB8::default(); 8];
+        effect.current(&mut before).unwrap();
+        let head_pos_before = before
+            .iter()
+            .position(|led| *led != RGB8::default())
+            .unwrap();
+
+        // Change color — should not reset position
+        effect.set_color(RGB8::new(0, 0, 255));
+
+        let mut after = [RGB8::default(); 8];
+        effect.current(&mut after).unwrap();
+        let head_pos_after = after
+            .iter()
+            .position(|led| *led != RGB8::default())
+            .unwrap();
+
+        assert_eq!(
+            head_pos_before, head_pos_after,
+            "position should be unchanged after set_color"
+        );
     }
 
     // --- Tests for with_tail_length clamping ---

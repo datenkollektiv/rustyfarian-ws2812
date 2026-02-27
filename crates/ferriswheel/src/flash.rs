@@ -75,6 +75,13 @@ impl FlashEffect {
         self
     }
 
+    /// Sets the on-phase color without resetting the tick counter.
+    ///
+    /// Use this to change the flash color live without restarting the duty cycle.
+    pub fn set_color(&mut self, color: RGB8) {
+        self.color = color;
+    }
+
     /// Sets the duty cycle as on/off tick counts.
     ///
     /// # Errors
@@ -275,6 +282,33 @@ mod tests {
 
         // Initial state: counter=0, on_ticks=3, so is_on
         assert!(effect.is_on());
+    }
+
+    #[test]
+    fn test_set_color_does_not_reset_counter() {
+        let mut effect = FlashEffect::new(4)
+            .unwrap()
+            .with_color(RGB8::new(255, 0, 0))
+            .with_duty(4, 4)
+            .unwrap();
+
+        let mut buffer = [RGB8::default(); 4];
+
+        // Advance counter partway through the on phase
+        effect.update(&mut buffer).unwrap();
+        effect.update(&mut buffer).unwrap();
+
+        // Change color — counter should be unchanged (still in on phase)
+        effect.set_color(RGB8::new(0, 255, 0));
+
+        effect.current(&mut buffer).unwrap();
+        for pixel in &buffer {
+            assert_eq!(
+                *pixel,
+                RGB8::new(0, 255, 0),
+                "new color should show without phase reset"
+            );
+        }
     }
 
     #[test]
