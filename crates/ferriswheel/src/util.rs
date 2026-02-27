@@ -7,7 +7,8 @@ use rgb::RGB8;
 /// 256-entry sine lookup table.
 ///
 /// Maps a phase angle (0–255) to amplitude (0–255).
-/// Phase 0 = 0, phase 64 = 255, phase 128 = 0, phase 192 = 0 (clamped).
+/// Phase 0 = 0, peak (~255) at phase ~113–115, descends to 0 around phase 230,
+/// then stays 0 through phase 255 (half-wave rectified).
 /// Values from rustyfarian-knob, tested on hardware.
 #[rustfmt::skip]
 const SINE_TABLE: [u8; 256] = [
@@ -32,8 +33,9 @@ const SINE_TABLE: [u8; 256] = [
 /// Returns a sine-wave value for the given phase.
 ///
 /// The phase maps a full cycle (0–255) to an output amplitude (0–255).
-/// The first half (0–127) produces a smooth sine hump; the second half
-/// (128–255) returns 0 (half-wave rectified).
+/// Values rise from 0 at phase 0 to a peak of 255 around phase 113–115,
+/// then fall back toward 0 around phase 230, staying at 0 through phase 255
+/// (half-wave rectified).
 ///
 /// This is useful for breathing/pulsing effects.
 pub fn sine_wave(phase: u8) -> u8 {
