@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `NoLed` stub in `led-effects`: a zero-size `StatusLed` implementor with `type Error = Infallible` for use when no physical LED is present
 - `RainbowEffect::with_hue_offset(u8)` builder for setting the initial hue offset
 - `RainbowEffect::set_hue_offset(&mut self, u8)` for live hue adjustment without resetting the rotation cycle
 - `PulseEffect::set_color(&mut self, RGB8)` for changing color without resetting the breathing phase

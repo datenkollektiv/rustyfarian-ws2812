@@ -1,9 +1,10 @@
 # Roadmap
 
-*Last updated: February 2026*
+*Last updated: March 2026*
 
 This roadmap is informed by the [ecosystem comparison](ecosystem-comparison.md) conducted in February 2026.
 Items are grouped by theme and ordered roughly by impact and dependency.
+Vision review (March 2026) refocused near-term priority on `NoLed` → `esp-hal` driver → ecosystem integration.
 
 ```mermaid
 %%{init: {
@@ -22,11 +23,12 @@ timeline
     title Fuzzy Rustyfarian WS2812 Roadmap
 
     Near term : NoLed stub in led-effects
-              : SmartLedsWrite in hw wrappers (after NoLed)
-              : Adopt smart-leds color types (after SmartLedsWrite)
-              : Breathe effect (after SmartLedsWrite)
+              : esp-hal driver implementation (after NoLed)
+              : Breathe effect
 
-    Mid term  : Compile-time buffer sizing (HAL) (after NoLed)
+    Mid term  : SmartLedsWrite in hw wrappers (after esp-hal driver)
+              : Compile-time buffer sizing (HAL) (after SmartLedsWrite)
+              : Adopt smart-leds color types (after SmartLedsWrite)
               : Meteor / comet effect (after Breathe)
               : Twinkle / sparkle effect (after Meteor)
               : Fire effect (after Twinkle)
@@ -59,6 +61,18 @@ Dependency: `SmartLedsWrite` implementation above.
 ---
 
 ## Hardware Driver Improvements
+
+### Implement `rustyfarian-esp-hal-ws2812` driver
+
+The `rustyfarian-esp-hal-ws2812` crate currently exists as a skeleton with `todo!()` bodies.
+Completing it is the single most strategically important pending item in the project —
+it enables `no_std` / embassy projects to use the full WS2812 stack without the ESP-IDF std runtime.
+
+Implementation should follow the same shape as `rustyfarian-esp-idf-ws2812`:
+a thin RMT peripheral wrapper that delegates all color logic to `ws2812-pure`.
+Reference: the `esp-hal` RMT API and the `kleinesfilmroellchen/esp-hal-smartled` fork for patterns.
+
+Dependency: `NoLed` stub (unblocks the led-effects side; the driver itself has no code dependency on NoLed).
 
 ### Compile-time buffer sizing in the ESP-HAL wrapper
 
