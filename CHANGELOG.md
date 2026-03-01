@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `PulseEffect::new()` doc comment now correctly states the default `min_brightness` is `2`, not `0`
+- `SpinnerEffect` tail brightness calculation now uses `u16` arithmetic with `.max(1)` instead of a separate zero-floor branch, removing a redundant `let mut`
+
 ### Added
 
 - `RainbowEffect::with_hue_offset(u8)` builder for setting the initial hue offset
