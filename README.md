@@ -8,7 +8,23 @@
 Library-only workspace providing WS2812 (NeoPixel) LED support for ESP32 and `no_std` embedded Rust projects.
 No application code—just reusable, composable crates.
 
-## Philosophy
+## Vision
+
+> Provide reusable, sans-io WS2812 LED crates for embedded Rust developers —
+> pure logic first, hardware wrappers thin, everything testable without hardware.
+
+**We are building this for:** Embedded Rust developers building WS2812-based LED projects on ESP32 who want testable, composable building blocks rather than monolithic driver crates.
+
+**Long-term goals:**
+- Animation vocabulary on demand — users find what they need without forking
+- Complete `no_std` / embassy support via `rustyfarian-esp-hal-ws2812`
+- Ecosystem currency — timely adoption of new ESP32 chip variants and HAL updates
+
+**Out of scope:** Application code, exhaustive pre-built animation catalogues, and anything that doesn't serve the embedded WS2812 use case.
+
+*Full vision, success signals, and open questions: [VISION.md](./VISION.md)*
+
+## Rustyfarian Philosophy
 
 This library embodies the principle of **extracting testable pure logic from hardware-specific code**—a pattern common in application development but rare in embedded Rust.
 

@@ -60,3 +60,7 @@ Secondary: any embedded developer who discovers and adopts the crates.
 
 - 2026-02-25 — Initial vision created during the first Vision Validator session.
   Identified esp-hal driver completion as the most strategically important missing roadmap item.
+- 2026-03-01 — Vision review confirmed goals are sound; no_std/embassy driver completion was missing from
+  the roadmap despite being the stated top priority.
+  Refocused near-term order: `NoLed` stub first (simple, unblocks downstream), then `esp-hal` driver,
+  then ecosystem integration (`SmartLedsWrite`, `smart-leds` color types) behind it.
