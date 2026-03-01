@@ -63,9 +63,17 @@ doc:
 doc-open:
     cargo doc {{ pure_crates }} --target {{ host_target }} --no-deps --open
 
+# install required development tooling (cargo-deny, cargo-audit, cargo-watch)
+setup:
+    cargo install cargo-deny cargo-audit cargo-watch
+
 # check dependency licenses, advisories, and bans
 deny:
     cargo deny check
+
+# check dependencies for known security vulnerabilities (requires cargo-audit)
+audit:
+    cargo audit
 
 # update dependencies
 update:
