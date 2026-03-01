@@ -10,6 +10,11 @@
 //! display status colors. This enables crates like `rustyfarian-network` to
 //! show connection status without depending on a specific LED implementation.
 //!
+//! # NoLed
+//!
+//! [`NoLed`] is a zero-size stub that implements `StatusLed` with an `Infallible` error type.
+//! Use it when a type parameter requires a `StatusLed` but no physical LED is present.
+//!
 //! # SimpleLed (requires `hal` feature, enabled by default)
 //!
 //! For simple on/off GPIO LEDs (not RGB), use the [`SimpleLed`] adapter which
@@ -22,6 +27,9 @@
 //! The [`PulseEffect`] creates smooth pulsing brightness animations.
 
 use rgb::RGB8;
+
+mod no_led;
+pub use no_led::NoLed;
 
 #[cfg(feature = "hal")]
 mod simple_led;
