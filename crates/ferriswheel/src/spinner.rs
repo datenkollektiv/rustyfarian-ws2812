@@ -126,7 +126,8 @@ impl SpinnerEffect {
         buffer[head] = self.color;
 
         // Tail with linearly decreasing brightness.
-        // Cap to n-1 so the tail never overwrites the head or wraps the ring twice.
+        // Cap to n-1: with tail_length = n we'd have n + 1 LEDs total (head + n tail),
+        // so the last tail LED would land back on the head position.
         let effective_tail = (self.tail_length as usize).min(n.saturating_sub(1));
         let total = effective_tail + 1; // head + effective tail LEDs
         for i in 1..=effective_tail {
@@ -135,12 +136,9 @@ impl SpinnerEffect {
                 Direction::CounterClockwise => (head + i) % n,
             };
             // Linear fade: tail LED 1 is brightest, last is dimmest.
-            // Invariant: every tail LED remains visibly lit (brightness ≥ 1).
-            // Without the floor, integer division truncates to 0 for very long tails.
-            let mut brightness = (255 * (total - i) / total) as u8;
-            if brightness == 0 {
-                brightness = 1;
-            }
+            // Use u16 arithmetic to avoid truncation, then clamp to at least 1 so every
+            // tail LED stays visibly lit regardless of tail length.
+            let brightness = ((255u16 * (total - i) as u16) / total as u16).max(1) as u8;
             buffer[tail_idx] = scale_brightness(self.color, brightness);
         }
 

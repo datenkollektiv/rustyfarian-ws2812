@@ -159,7 +159,7 @@ impl Default for PulseEffect {
 impl PulseEffect {
     /// Creates a new pulse effect with default parameters.
     ///
-    /// Default range: 0-30 brightness, step size: 2
+    /// Default range: 2-30 brightness, step size: 2
     pub fn new() -> Self {
         Self {
             brightness: 0,
