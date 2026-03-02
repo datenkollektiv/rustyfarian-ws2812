@@ -22,12 +22,12 @@ Vision review (March 2026) refocused near-term priority on `NoLed` → `esp-hal`
 timeline
     title Fuzzy Rustyfarian WS2812 Roadmap
 
-    Near term : NoLed stub in led-effects
-              : esp-hal driver implementation (after NoLed)
+    Near term : NoLed stub in led-effects (done v0.2.0)
+              : esp-hal driver implementation (done v0.3.0)
               : Breathe effect
 
     Mid term  : SmartLedsWrite in hw wrappers (after esp-hal driver)
-              : Compile-time buffer sizing (HAL) (after SmartLedsWrite)
+              : Compile-time buffer sizing (HAL) (absorbed into esp-hal driver, done v0.3.0)
               : Adopt smart-leds color types (after SmartLedsWrite)
               : Meteor / comet effect (after Breathe)
               : Twinkle / sparkle effect (after Meteor)
@@ -62,26 +62,17 @@ Dependency: `SmartLedsWrite` implementation above.
 
 ## Hardware Driver Improvements
 
-### Implement `rustyfarian-esp-hal-ws2812` driver
+### Implement `rustyfarian-esp-hal-ws2812` driver ✓ done (v0.3.0)
 
-The `rustyfarian-esp-hal-ws2812` crate currently exists as a skeleton with `todo!()` bodies.
-Completing it is the single most strategically important pending item in the project —
-it enables `no_std` / embassy projects to use the full WS2812 stack without the ESP-IDF std runtime.
+The `rustyfarian-esp-hal-ws2812` crate implements a full WS2812 RMT driver using `esp-hal 1.0.0`.
+It targets ESP32-C6 (RISC-V, `riscv32imac-unknown-none-elf`) and is bare-metal `no_std`.
+All color logic delegates to `ws2812-pure`; the const-generic `N` buffer sizing was absorbed from the item below.
 
-Implementation should follow the same shape as `rustyfarian-esp-idf-ws2812`:
-a thin RMT peripheral wrapper that delegates all color logic to `ws2812-pure`.
-Reference: the `esp-hal` RMT API and the `kleinesfilmroellchen/esp-hal-smartled` fork for patterns.
+### Compile-time buffer sizing in the ESP-HAL wrapper ✓ absorbed into driver (v0.3.0)
 
-Dependency: `NoLed` stub (unblocks the led-effects side; the driver itself has no code dependency on NoLed).
-
-### Compile-time buffer sizing in the ESP-HAL wrapper
-
-The `kleinesfilmroellchen/esp-hal-smartled` fork introduced a `buffer_size::<Color>(N)` helper
-that calculates the correct RMT buffer size at compile time for a given color type and LED count.
-This catches sizing errors at compile time rather than producing silent runtime bugs.
-Adopt this pattern in `rustyfarian-esp-hal-ws2812`.
-
-Dependency: none.
+The `rustyfarian-esp-hal-ws2812` driver ships with a `buffer_size(num_leds)` const helper
+and a `const N: usize` generic parameter, catching sizing errors at compile time.
+This item is fully implemented as part of the driver.
 
 ### Implement `NoLed` stub in `led-effects`
 
