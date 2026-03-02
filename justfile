@@ -6,6 +6,8 @@
 
 host_target := `host=$(rustc -vV 2>/dev/null | grep '^host:' | awk '{print $2}'); if [ -z "$host" ]; then printf 'Error: Failed to determine rustc host target.\n' >&2; exit 1; fi; echo "$host"`
 pure_crates := "-p ws2812-pure -p ferriswheel -p led-effects"
+hal_target := "riscv32imac-unknown-none-elf"
+hal_crate := "-p rustyfarian-esp-hal-ws2812"
 
 # list available recipes (default)
 _default:
@@ -23,17 +25,25 @@ build-all:
 check:
     cargo check {{ pure_crates }} --target {{ host_target }}
 
-# check all crates including ESP-IDF (requires espup)
+# check all crates including ESP-IDF (requires espup; does NOT cover rustyfarian-esp-hal-ws2812 — use check-hal)
 check-all:
     cargo check
+
+# check the esp-hal bare-metal driver (requires: rustup target add riscv32imac-unknown-none-elf)
+check-hal:
+    cargo check {{ hal_crate }} --target {{ hal_target }}
 
 # run clippy on platform-independent crates
 clippy:
     cargo clippy {{ pure_crates }} --target {{ host_target }} -- -D warnings
 
-# run clippy on all crates including ESP-IDF (requires espup)
+# run clippy on all crates including ESP-IDF (requires espup; does NOT cover rustyfarian-esp-hal-ws2812 — use clippy-hal)
 clippy-all:
     cargo clippy -- -D warnings
+
+# run clippy on the esp-hal bare-metal driver (requires: rustup target add riscv32imac-unknown-none-elf)
+clippy-hal:
+    cargo clippy {{ hal_crate }} --target {{ hal_target }} -- -D warnings
 
 # run unit and doc tests
 test:

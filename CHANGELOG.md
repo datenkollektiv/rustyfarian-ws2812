@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- `rustyfarian-esp-hal-ws2812`: chip and `unstable` feature selection moved from the workspace root into the driver crate's own `[features]` (`esp32c6`, `unstable`);
+  the workspace only pins the version now, making the crate self-describing and easier to extend for future chips
+
+### Added
+
+- `rustyfarian-esp-hal-ws2812`: full WS2812 RMT driver implementation for ESP32-C6 using `esp-hal 1.0.0`
+  (bare-metal, `no_std`); const-generic buffer size `N = num_leds * 24 + 1`
+- `buffer_size(num_leds)` const helper in `rustyfarian-esp-hal-ws2812` to compute the correct `N` at compile time
+- `RMT_CLK_DIV` constant (`8`) exported from `rustyfarian-esp-hal-ws2812` for correct 10 MHz RMT clock configuration
+- `just check-hal` recipe: checks the bare-metal crate without the ESP-IDF toolchain
+  (requires `rustup target add riscv32imac-unknown-none-elf`)
+- `just clippy-hal` recipe: runs clippy with `-D warnings` on the bare-metal crate
+
 ## [0.2.0] - 2026-03-01
 
 ### Fixed

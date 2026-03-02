@@ -20,3 +20,7 @@ ws2812-pure = { path = "crates/ws2812-pure" }
 
 # ESP32 dependencies
 esp-idf-hal = { version = "0.45", features = ["rmt-legacy"] }
+# Pinned to exact 1.0.0: the "unstable" feature gate covers RMT and the GPIO
+# matrix APIs we rely on; patch bumps can break that surface silently.
+# Chip selection and "unstable" are forwarded via features in the driver crate.
+esp-hal = { version = "1.0.0" }

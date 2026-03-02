@@ -10,10 +10,13 @@ keywords = ["ws2812", "neopixel", "esp-hal", "rmt", "led"]
 categories = ["embedded", "hardware-support", "no-std"]
 
 [dependencies]
+esp-hal.workspace = true
 rgb.workspace = true
 ws2812-pure.workspace = true
 led-effects = { workspace = true, optional = true }
 
 [features]
-default = ["led-effects"]
+default = ["esp32c6", "unstable", "led-effects"]
+esp32c6 = ["esp-hal/esp32c6"]
+unstable = ["esp-hal/unstable"]
 led-effects = ["dep:led-effects"]
