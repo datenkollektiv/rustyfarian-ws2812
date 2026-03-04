@@ -11,12 +11,34 @@ categories = ["embedded", "hardware-support", "no-std"]
 
 [dependencies]
 esp-hal.workspace = true
+esp-bootloader-esp-idf.workspace = true
 rgb.workspace = true
 ws2812-pure.workspace = true
 led-effects = { workspace = true, optional = true }
 
+[dev-dependencies]
+ferriswheel = { workspace = true }
+# esp-println is used only in hal_c6_pulse.rs; the esp32c6 feature is intentional.
+# Other examples (c3, esp32) do not import esp_println, so this does not affect them.
+esp-println = { workspace = true, features = ["esp32c6", "jtag-serial"] }
+
 [features]
 default = ["esp32c6", "unstable", "led-effects"]
-esp32c6 = ["esp-hal/esp32c6"]
+esp32c6 = ["esp-hal/esp32c6", "esp-bootloader-esp-idf/esp32c6"]
+esp32c3 = ["esp-hal/esp32c3", "esp-bootloader-esp-idf/esp32c3"]
+esp32   = ["esp-hal/esp32",   "esp-bootloader-esp-idf/esp32"]
 unstable = ["esp-hal/unstable"]
 led-effects = ["dep:led-effects"]
+rt = ["esp-hal/rt"]
+
+[[example]]
+name = "hal_c3_pulse"
+required-features = ["esp32c3", "rt"]
+
+[[example]]
+name = "hal_c6_pulse"
+required-features = ["esp32c6", "rt"]
+
+[[example]]
+name = "hal_esp32_pulse"
+required-features = ["esp32", "rt"]

@@ -9,6 +9,12 @@ description = "WS2812 (NeoPixel) LED driver using ESP-IDF RMT peripheral"
 keywords = ["ws2812", "neopixel", "esp-idf", "rmt", "led"]
 categories = ["embedded", "hardware-support"]
 
+[build-dependencies]
+embuild = "0.33"
+
+[dev-dependencies]
+ferriswheel = { workspace = true }
+
 [dependencies]
 anyhow.workspace = true
 esp-idf-hal.workspace = true
@@ -19,3 +25,12 @@ ws2812-pure.workspace = true
 [features]
 default = ["led-effects"]
 led-effects = ["dep:led-effects"]
+
+[[example]]
+name = "idf_c3_rainbow"
+
+[[example]]
+name = "idf_c6_rainbow"
+
+[[example]]
+name = "idf_esp32_rainbow"
