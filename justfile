@@ -13,6 +13,8 @@ hal_crate := "-p rustyfarian-esp-hal-ws2812"
 _default:
     @just --list
 
+# --- Build & Check --------------------------------------------------------
+
 # build platform-independent crates
 build:
     cargo build {{ pure_crates }} --target {{ host_target }}
@@ -32,6 +34,61 @@ check-all:
 # check the esp-hal bare-metal driver (requires: rustup target add riscv32imac-unknown-none-elf)
 check-hal:
     cargo check {{ hal_crate }} --target {{ hal_target }}
+
+# --- Examples -------------------------------------------------------------
+
+# build a driver example; driver and chip inferred from {driver}_{chip}_{name} prefix
+build-example crate_alias example:
+    scripts/build-example.sh "{{ crate_alias }}" "{{ example }}"
+
+# build the ESP32-C3 pulse example (alias for: just build-example hal-ws2812 hal_c3_pulse)
+build-example-c3: (build-example "hal-ws2812" "hal_c3_pulse")
+
+# build the ESP32-C6 pulse example (alias for: just build-example hal-ws2812 hal_c6_pulse)
+build-example-c6: (build-example "hal-ws2812" "hal_c6_pulse")
+
+# build the Adafruit Feather ESP32 V2 rainbow example (alias for: just build-example idf-ws2812 idf_esp32_rainbow)
+build-example-esp32: (build-example "idf-ws2812" "idf_esp32_rainbow")
+
+# build the ESP32-WROOM pulse example (alias for: just build-example hal-ws2812 hal_esp32_pulse)
+build-example-esp32-hal: (build-example "hal-ws2812" "hal_esp32_pulse")
+
+# ensure the IDF-built v5.3.3 bootloader is in the build cache for the given chip (c3 or c6)
+ensure-bootloader chip:
+    scripts/ensure-bootloader.sh "{{ chip }}"
+
+# build and flash a driver example; driver and chip inferred from {driver}_{chip}_{name} prefix
+run-example crate_alias example:
+    scripts/run-example.sh "{{ crate_alias }}" "{{ example }}"
+
+# --- Flash & Monitor ------------------------------------------------------
+
+# build and flash any example; crate auto-detected from name prefix (hal_* or idf_*)
+flash example:
+    scripts/flash.sh "{{ example }}"
+
+# build, flash, and open serial monitor — the human workflow
+run example: (flash example)
+    espflash monitor
+
+# open serial monitor on the connected ESP board (requires espflash)
+monitor:
+    espflash monitor
+
+# erase the connected ESP device's flash completely (use before reflashing on boot failures)
+[confirm]
+erase-flash:
+    espflash erase-flash
+
+# --- Code Quality ---------------------------------------------------------
+
+# format all code
+fmt:
+    cargo fmt
+
+# check formatting without modifying files
+fmt-check:
+    cargo fmt -- --check
 
 # run clippy on platform-independent crates
 clippy:
@@ -57,13 +114,7 @@ test-verbose:
 test-crate crate:
     cargo test -p {{ crate }} --target {{ host_target }}
 
-# format all code
-fmt:
-    cargo fmt
-
-# check formatting without modifying files
-fmt-check:
-    cargo fmt -- --check
+# --- Documentation --------------------------------------------------------
 
 # build rustdoc for platform-independent crates
 doc:
@@ -72,6 +123,8 @@ doc:
 # build and open docs in browser
 doc-open:
     cargo doc {{ pure_crates }} --target {{ host_target }} --no-deps --open
+
+# --- Maintenance ----------------------------------------------------------
 
 # install required development tooling (cargo-deny, cargo-audit, cargo-watch)
 setup:
@@ -93,9 +146,17 @@ update:
 clean:
     cargo clean
 
+# clean only the ESP-IDF crate's build artifacts; also removes esp-idf-sys incremental artifacts (needed after sdkconfig.defaults changes)
+clean-idf:
+    cargo clean -p rustyfarian-esp-idf-ws2812
+    rm -rf target/riscv32imac-esp-espidf/debug/build/esp-idf-sys-*/
+    rm -rf target/riscv32imc-esp-espidf/debug/build/esp-idf-sys-*/
+
 # watch and re-run tests on file changes (requires cargo-watch)
 watch:
     cargo watch -x "test {{ pure_crates }} --target {{ host_target }}"
+
+# --- Composite ------------------------------------------------------------
 
 # full pre-commit verification: format, check, lint, test (modifies files — local use only)
 pre-commit: fmt check clippy test

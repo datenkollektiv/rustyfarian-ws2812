@@ -51,6 +51,42 @@ See [Why Yet Another WS2812 Crate?](docs/why-yet-another-ws2812-crate.md) for th
 | [`rustyfarian-esp-idf-ws2812`](crates/rustyfarian-esp-idf-ws2812) | WS2812 driver using ESP-IDF RMT peripheral                                          | ESP-IDF (std)       |
 | [`rustyfarian-esp-hal-ws2812`](crates/rustyfarian-esp-hal-ws2812) | WS2812 driver using esp-hal RMT peripheral                                          | esp-hal (no_std)    |
 
+## Examples
+
+The project includes ready-to-run examples for ESP32-C3 and ESP32-C6 using both drivers.
+Each example name encodes the driver, chip, and effect: `{driver}_{chip}_{effect}`.
+
+| Example             | Driver           | Board / Chip              | Effect     | Data GPIO | Notes                |
+|:--------------------|:-----------------|:--------------------------|:-----------|:----------|:---------------------|
+| `hal_c3_pulse`      | esp-hal (no_std) | ESP32-C3                  | Blue Pulse | GPIO4     |                      |
+| `hal_c6_pulse`      | esp-hal (no_std) | ESP32-C6                  | Blue Pulse | GPIO18    |                      |
+| `hal_esp32_pulse`   | esp-hal (no_std) | ESP32-WROOM-32            | Blue Pulse | GPIO4     |                      |
+| `idf_c3_rainbow`    | ESP-IDF (std)    | ESP32-C3                  | Rainbow    | GPIO4     |                      |
+| `idf_c6_rainbow`    | ESP-IDF (std)    | ESP32-C6                  | Rainbow    | GPIO18    |                      |
+| `idf_esp32_rainbow` | ESP-IDF (std)    | Adafruit Feather ESP32 V2 | Rainbow    | GPIO0     | GPIO2 = power enable |
+
+Flash and open the serial monitor on a connected board:
+
+```sh
+just run hal_c6_pulse
+```
+
+Build only (no board required):
+
+```sh
+just build-example hal-ws2812 hal_c6_pulse
+just build-example idf-ws2812 idf_c3_rainbow
+```
+
+HAL examples (`hal_*`) require the bare-metal target:
+
+```sh
+rustup target add riscv32imac-unknown-none-elf
+```
+
+IDF examples (`idf_*`) require `cargo +esp` (install via `espup`).
+The Feather ESP32 V2 examples additionally use the Xtensa toolchain (`+esp`) with target `xtensa-esp32-espidf`.
+
 ## Usage
 
 Add to your `Cargo.toml`:
@@ -140,6 +176,17 @@ just pre-commit
 ```sh
 just ci
 ```
+
+### IDF Troubleshooting
+
+If `sdkconfig.defaults` changes have no effect after a rebuild, `esp-idf-sys` may not have re-run its build script.
+Clear the stale cache with:
+
+```sh
+just clean-idf
+```
+
+Then rebuild the IDF example to repopulate build artifacts before flashing.
 
 ## License
 

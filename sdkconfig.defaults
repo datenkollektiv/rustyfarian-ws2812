@@ -1,0 +1,7 @@
+# ESP-IDF project defaults for rustyfarian-ws2812
+#
+# CONFIG_ESP_MAIN_TASK_STACK_SIZE: The default 3584 bytes overflows in debug
+# builds when set_pixels_slice iterates over 12 LEDs — color_to_pulses returns
+# [Pulse; 48] (~192 bytes) on the stack per iteration.  8192 bytes gives
+# comfortable headroom for both debug and release builds.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
