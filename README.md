@@ -116,7 +116,7 @@ use rgb::RGB8;
 let mut driver = WS2812RMT::new(gpio_pin, rmt_channel)?;
 
 // Set a single pixel
-driver.set_pixel(0, RGB8::new(255, 0, 0))?;
+driver.set_pixel(RGB8::new(255, 0, 0))?;
 
 // Use pulse animation
 let mut pulse = PulseEffect::new();

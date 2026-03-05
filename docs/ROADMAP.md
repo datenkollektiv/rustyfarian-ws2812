@@ -74,11 +74,14 @@ The `rustyfarian-esp-hal-ws2812` driver ships with a `buffer_size(num_leds)` con
 and a `const N: usize` generic parameter, catching sizing errors at compile time.
 This item is fully implemented as part of the driver.
 
-### Implement `NoLed` stub in `led-effects` ✓ done (v0.2.0)
+<details>
+<summary><strong>Implement <code>NoLed</code> stub in <code>led-effects</code> ✓ done (v0.2.0)</strong></summary>
 
 `NoLed` is a zero-size `StatusLed` implementor with `type Error = Infallible`,
 satisfying the trait in applications that have no physical status LED.
 See the v0.2.0 CHANGELOG entry for details.
+
+</details>
 
 ---
 

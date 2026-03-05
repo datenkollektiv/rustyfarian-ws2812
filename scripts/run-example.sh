@@ -47,7 +47,7 @@ case "$prefix" in
                 if [ -n "$xtensa_bin" ]; then
                     export PATH="$xtensa_bin:$PATH"
                 else
-                    printf 'Error: xtensa-esp32-elf-gcc not found. Run: . ~/export-esp.sh\n' >&2
+                    printf 'Error: xtensa-esp32-elf-gcc not found. Source your ESP toolchain environment script (e.g. ". ~/export-esp.sh"; actual path may vary by installation).\n' >&2
                     exit 1
                 fi
             fi
