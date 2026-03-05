@@ -151,6 +151,7 @@ clean-idf:
     cargo clean -p rustyfarian-esp-idf-ws2812
     rm -rf target/riscv32imac-esp-espidf/debug/build/esp-idf-sys-*/
     rm -rf target/riscv32imc-esp-espidf/debug/build/esp-idf-sys-*/
+    rm -rf target/xtensa-esp32-espidf/debug/build/esp-idf-sys-*/
 
 # watch and re-run tests on file changes (requires cargo-watch)
 watch:

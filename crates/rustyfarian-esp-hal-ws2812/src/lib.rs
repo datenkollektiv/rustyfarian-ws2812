@@ -39,7 +39,7 @@
 //! let config = TxChannelConfig::default()
 //!     .with_clk_divider(RMT_CLK_DIV)
 //!     .with_idle_output_level(Level::Low)
-//!     .with_idle_output(false)
+//!     .with_idle_output(true)
 //!     .with_carrier_modulation(false);
 //! let channel = rmt.channel0.configure_tx(peripherals.GPIO8, config).unwrap();
 //!
@@ -73,7 +73,7 @@ const T1L: u16 = 6; // ~600 ns  (spec: 600 ns ± 150 ns)
 
 /// Returns the required buffer size (in [`PulseCode`]s) for `num_leds` WS2812 LEDs.
 ///
-/// Formula: `num_leds * 24 + 1` — 24 bits per LED (GRB order), plus one end-of-stream marker.
+/// Formula: `num_leds * 24 + 1` — 24 bits of color data per LED, plus one end-of-stream marker.
 ///
 /// Use this as the const generic `N` for [`Ws2812Rmt`]:
 ///
@@ -218,7 +218,8 @@ impl<'d, const N: usize> Ws2812Rmt<'d, N> {
     /// Encodes one RGB pixel into 24 consecutive [`PulseCode`] slots (GRB bit order, MSB first).
     fn encode_color(rgb: RGB8, buf: &mut [PulseCode]) {
         let grb = rgb_to_grb(rgb);
-        for (i, slot) in buf.iter_mut().enumerate().take(24) {
+        debug_assert_eq!(buf.len(), 24);
+        for (i, slot) in buf.iter_mut().enumerate() {
             let bit = (grb >> (23 - i)) & 1 != 0;
             *slot = if bit {
                 PulseCode::new(Level::High, T1H, Level::Low, T1L)
