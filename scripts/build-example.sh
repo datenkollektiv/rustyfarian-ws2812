@@ -5,6 +5,7 @@ set -euo pipefail
 #   crate_alias: hal-ws2812 | idf-ws2812
 #   example:     {driver}_{chip}_{name}  e.g. hal_c6_rainbow, idf_c3_rainbow
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 crate_alias="$1"
 example="$2"
 
@@ -34,23 +35,8 @@ case "$prefix" in
         printf 'Building %s for %s...\n' "$example" "$target"
         if [ "$chip" = "esp32" ]; then
             # Xtensa requires +esp toolchain and xtensa-esp-elf GCC.
-            # If not in PATH, try the esp rustup toolchain or .espressif install.
-            if ! command -v xtensa-esp32-elf-gcc >/dev/null 2>&1; then
-                xtensa_bin=$(ls -td \
-                    "$HOME/.rustup/toolchains/esp/xtensa-esp-elf/"*/xtensa-esp-elf/bin \
-                    2>/dev/null | head -1 || true)
-                if [ -z "$xtensa_bin" ]; then
-                    xtensa_bin=$(ls -td \
-                        "$HOME/.espressif/tools/xtensa-esp-elf/"*/xtensa-esp-elf/bin \
-                        2>/dev/null | head -1 || true)
-                fi
-                if [ -n "$xtensa_bin" ]; then
-                    export PATH="$xtensa_bin:$PATH"
-                else
-                    printf 'Error: xtensa-esp32-elf-gcc not found. Source your ESP toolchain environment script (e.g. ". ~/export-esp.sh"; actual path may vary by installation).\n' >&2
-                    exit 1
-                fi
-            fi
+            . "$SCRIPT_DIR/xtensa-toolchain.sh"
+            setup_xtensa_toolchain
             cargo +esp build --release -Zbuild-std=core \
                 --target "$target" \
                 --no-default-features \
