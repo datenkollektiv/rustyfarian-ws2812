@@ -35,22 +35,8 @@ case "$prefix" in
         "$SCRIPT_DIR/ensure-bootloader.sh" "$chip"
         if [ "$chip" = "esp32" ]; then
             # Xtensa requires +esp toolchain and xtensa-esp-elf GCC.
-            if ! command -v xtensa-esp32-elf-gcc >/dev/null 2>&1; then
-                xtensa_bin=$(ls -td \
-                    "$HOME/.rustup/toolchains/esp/xtensa-esp-elf/"*/xtensa-esp-elf/bin \
-                    2>/dev/null | head -1 || true)
-                if [ -z "$xtensa_bin" ]; then
-                    xtensa_bin=$(ls -td \
-                        "$HOME/.espressif/tools/xtensa-esp-elf/"*/xtensa-esp-elf/bin \
-                        2>/dev/null | head -1 || true)
-                fi
-                if [ -n "$xtensa_bin" ]; then
-                    export PATH="$xtensa_bin:$PATH"
-                else
-                    printf 'Error: xtensa-esp32-elf-gcc not found. Source your ESP toolchain environment script (e.g. ". ~/export-esp.sh"; actual path may vary by installation).\n' >&2
-                    exit 1
-                fi
-            fi
+            . "$SCRIPT_DIR/xtensa-toolchain.sh"
+            setup_xtensa_toolchain
             cargo +esp build --release -Zbuild-std=core \
                 --target "$hal_target" \
                 --no-default-features \
@@ -67,7 +53,7 @@ case "$prefix" in
         fi
         bl=$(ls -t "$PWD/target/$idf_target/debug/build/esp-idf-sys-"*/out/build/bootloader/bootloader.bin 2>/dev/null | head -1 || true)
         if [ -z "$bl" ]; then
-            printf 'Error: bootloader not found after ensure-bootloader — try: just clean-idf && just build-example idf-ws2812 idf_%s_*\n' "$chip" >&2
+            printf 'Error: HAL examples require the IDF-built v5.3.3 bootloader; rebuild an IDF example to populate it: just build-example idf-ws2812 idf_%s_rainbow\n' "$chip" >&2
             exit 1
         fi
         printf 'Flashing %s with bootloader %s...\n' "$example" "$bl"

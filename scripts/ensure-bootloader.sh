@@ -19,6 +19,6 @@ esac
 
 bl=$(ls -t "$PWD/target/$idf_target/debug/build/esp-idf-sys-"*/out/build/bootloader/bootloader.bin 2>/dev/null | head -1 || true)
 if [ -z "$bl" ]; then
-    printf 'IDF bootloader not cached for esp32%s — building IDF example to populate it (requires cargo +esp)...\n' "$chip" >&2
+    printf 'IDF bootloader not cached for esp32%s -- building IDF example to populate it (requires cargo +esp)...\n' "$chip" >&2
     "$SCRIPT_DIR/build-example.sh" idf-ws2812 "$idf_example"
 fi
