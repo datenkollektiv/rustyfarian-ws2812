@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `rustyfarian-esp-hal-ws2812`: `smart_leds_trait::SmartLedsWrite` trait implementation with zero-allocation buffer-draining iterator support; error type is crate's `Error` enum, color type is `smart_leds_trait::RGB8`
+- `rustyfarian-esp-idf-ws2812`: `smart_leds_trait::SmartLedsWrite` trait implementation enabling use within the `smart-leds` ecosystem; error type is `anyhow::Error`, color type is `smart_leds_trait::RGB8`
 - `README.md`: IDF troubleshooting tip documenting `just clean-idf` for stale `sdkconfig.defaults` cache
 - `scripts/build-example.sh`, `scripts/run-example.sh`: progress output (`Building <example> for <target>...` / `Flashing <example> with bootloader <path>...`) so users can see what the script is doing at each step
 - `rustyfarian-esp-hal-ws2812`: `esp32` feature and `hal_esp32_pulse` bare-metal example for the ESP32-WROOM-32 (Xtensa LX6), using GPIO4 and the `xtensa-esp32-none-elf` target

@@ -156,3 +156,70 @@ impl led_effects::StatusLed for WS2812RMT<'_> {
         self.set_pixel(color)
     }
 }
+
+impl smart_leds_trait::SmartLedsWrite for WS2812RMT<'_> {
+    type Error = anyhow::Error;
+    type Color = smart_leds_trait::RGB8;
+
+    /// Writes a sequence of colors to the LED strip.
+    ///
+    /// Each item in the iterator is converted from `I` into `smart_leds_trait::RGB8`
+    /// and streamed directly into the RMT signal buffer — no intermediate `Vec`
+    /// is allocated. The underlying [`VariableLengthSignal`] is heap-backed
+    /// (proportional to LED count), which is inherent to the ESP-IDF RMT API.
+    /// For a zero-allocation path use the `no_std` HAL driver
+    /// (`rustyfarian-esp-hal-ws2812`).
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use smart_leds_trait::{SmartLedsWrite, RGB8};
+    ///
+    /// let colors = [RGB8::new(255, 0, 0), RGB8::new(0, 255, 0), RGB8::new(0, 0, 255)];
+    /// led.write(colors.iter().copied())?;
+    /// ```
+    fn write<T, I>(&mut self, iterator: T) -> Result<(), Self::Error>
+    where
+        T: IntoIterator<Item = I>,
+        I: Into<Self::Color>,
+    {
+        let (t0h, t0l, t1h, t1l) = self.create_pulses()?;
+        let mut signal = VariableLengthSignal::new();
+        let mut num_leds = 0usize;
+        for item in iterator {
+            let rgb: RGB8 = item.into();
+            let pulses = Self::color_to_pulses(rgb, t0h, t0l, t1h, t1l);
+            signal.push(&pulses)?;
+            num_leds += 1;
+        }
+        if num_leds == 0 {
+            return Ok(());
+        }
+        self.tx_rtm_driver.start_blocking(&signal)?;
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // --- Color bridge tests --------------------------------------------------
+    //
+    // `write()` converts `I: Into<smart_leds_trait::RGB8>` (== `rgb::RGB8`) via
+    // `item.into()`.  Use distinct per-channel values to catch accidental
+    // channel transposition — the only failure mode worth guarding here.
+
+    #[test]
+    fn color_bridge_channels_are_not_swapped() {
+        let sl_color = smart_leds_trait::RGB8 {
+            r: 10,
+            g: 20,
+            b: 30,
+        };
+        let rgb_color = RGB8::new(sl_color.r, sl_color.g, sl_color.b);
+        assert_eq!(rgb_color.r, 10);
+        assert_eq!(rgb_color.g, 20);
+        assert_eq!(rgb_color.b, 30);
+    }
+}

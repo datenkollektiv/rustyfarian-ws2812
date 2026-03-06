@@ -14,7 +14,9 @@ esp-hal.workspace = true
 esp-bootloader-esp-idf.workspace = true
 rgb.workspace = true
 ws2812-pure.workspace = true
+smart-leds-trait = { workspace = true, default-features = false }
 led-effects = { workspace = true, optional = true }
+smart-leds = { workspace = true, optional = true }
 
 [dev-dependencies]
 ferriswheel = { workspace = true }
@@ -29,6 +31,7 @@ esp32c3 = ["esp-hal/esp32c3", "esp-bootloader-esp-idf/esp32c3"]
 esp32   = ["esp-hal/esp32",   "esp-bootloader-esp-idf/esp32"]
 unstable = ["esp-hal/unstable"]
 led-effects = ["dep:led-effects"]
+smart-leds = ["dep:smart-leds"]
 rt = ["esp-hal/rt"]
 
 [[example]]
@@ -42,3 +45,7 @@ required-features = ["esp32c6", "rt"]
 [[example]]
 name = "hal_esp32_pulse"
 required-features = ["esp32", "rt"]
+
+[[example]]
+name = "hal_c6_smart_leds"
+required-features = ["esp32c6", "rt", "smart-leds"]

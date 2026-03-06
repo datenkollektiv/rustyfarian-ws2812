@@ -5,6 +5,7 @@
 This roadmap is informed by the [ecosystem comparison](ecosystem-comparison.md) conducted in February 2026.
 Items are grouped by theme and ordered roughly by impact and dependency.
 Vision review (March 2026) refocused near-term priority on `NoLed` → `esp-hal` driver → ecosystem integration.
+`NoLed`, the `esp-hal` driver, and `SmartLedsWrite` are now complete; near-term focus has shifted to the `Breathe` effect.
 
 ```mermaid
 %%{init: {
@@ -22,13 +23,10 @@ Vision review (March 2026) refocused near-term priority on `NoLed` → `esp-hal`
 timeline
     title Fuzzy Rustyfarian WS2812 Roadmap
 
-    Near term : NoLed stub in led-effects (done v0.2.0)
-              : esp-hal driver implementation (done v0.3.0)
+    Near term : SmartLedsWrite in hw wrappers (done)
               : Breathe effect
 
-    Mid term  : SmartLedsWrite in hw wrappers (after esp-hal driver)
-              : Compile-time buffer sizing (HAL) (absorbed into esp-hal driver, done v0.3.0)
-              : Adopt smart-leds color types (after SmartLedsWrite)
+    Mid term  : Adopt smart-leds color types (after SmartLedsWrite)
               : Meteor / comet effect (after Breathe)
               : Twinkle / sparkle effect (after Meteor)
               : Fire effect (after Twinkle)
@@ -40,16 +38,14 @@ timeline
 
 ## Ecosystem Integration
 
-### Implement `SmartLedsWrite` in hardware wrapper crates
+<details>
+<summary><strong>Implement <code>SmartLedsWrite</code> in hardware wrapper crates ✓ done</strong></summary>
 
-The `smart-leds-trait` crate is the de-facto ecosystem standard.
-Implementing `SmartLedsWrite` (and `SmartLedsWriteAsync`) in `rustyfarian-esp-idf-ws2812` and `rustyfarian-esp-hal-ws2812` would:
+`SmartLedsWrite` is now implemented in both `rustyfarian-esp-hal-ws2812` and `rustyfarian-esp-idf-ws2812`,
+enabling use of the `brightness()` and `gamma()` iterator adapters from the `smart-leds` crate without any conversion code.
+See the [Unreleased] CHANGELOG entry for details.
 
-- Let consumers use the `brightness()` and `gamma()` iterators from `smart-leds` without any conversion code
-- Make the hardware wrappers composable with any other `smart-leds`-based effect crate
-- Align the project with the wider embedded Rust LED ecosystem
-
-Dependency: none.
+</details>
 
 ### Adopt `smart-leds-trait` color types in pure crates
 
@@ -62,20 +58,20 @@ Dependency: `SmartLedsWrite` implementation above.
 
 ## Hardware Driver Improvements
 
-### Implement `rustyfarian-esp-hal-ws2812` driver ✓ done (v0.3.0)
-
-The `rustyfarian-esp-hal-ws2812` crate implements a full WS2812 RMT driver using `esp-hal 1.0.0`.
-It targets ESP32-C6 (RISC-V, `riscv32imac-unknown-none-elf`) and is bare-metal `no_std`.
-All color logic delegates to `ws2812-pure`; the const-generic `N` buffer sizing was absorbed from the item below.
-
-### Compile-time buffer sizing in the ESP-HAL wrapper ✓ absorbed into driver (v0.3.0)
-
-The `rustyfarian-esp-hal-ws2812` driver ships with a `buffer_size(num_leds)` const helper
-and a `const N: usize` generic parameter, catching sizing errors at compile time.
-This item is fully implemented as part of the driver.
-
 <details>
-<summary><strong>Implement <code>NoLed</code> stub in <code>led-effects</code> ✓ done (v0.2.0)</strong></summary>
+<summary><strong>Completed hardware driver items (v0.2.0 – v0.3.0)</strong></summary>
+
+**Implement `rustyfarian-esp-hal-ws2812` driver ✓ done (v0.3.0)**
+
+Full WS2812 RMT driver using `esp-hal 1.0.0`, targeting ESP32-C6 (RISC-V, `riscv32imac-unknown-none-elf`), bare-metal `no_std`.
+All color logic delegates to `ws2812-pure`; const-generic `N` buffer sizing was absorbed from the compile-time sizing item.
+
+**Compile-time buffer sizing in the ESP-HAL wrapper ✓ absorbed into driver (v0.3.0)**
+
+`buffer_size(num_leds)` const helper and `const N: usize` generic parameter ship as part of the driver.
+Sizing errors are caught at compile time.
+
+**Implement `NoLed` stub in `led-effects` ✓ done (v0.2.0)**
 
 `NoLed` is a zero-size `StatusLed` implementor with `type Error = Infallible`,
 satisfying the trait in applications that have no physical status LED.
