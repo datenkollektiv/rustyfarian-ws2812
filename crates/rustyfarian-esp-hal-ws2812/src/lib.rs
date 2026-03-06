@@ -56,6 +56,7 @@ use esp_hal::{
     Blocking,
 };
 use rgb::RGB8;
+use smart_leds_trait::SmartLedsWrite;
 use ws2812_pure::rgb_to_grb;
 
 /// Clock divider for the RMT peripheral to achieve the required 10 MHz timing clock.
@@ -161,7 +162,7 @@ impl<'d, const N: usize> Ws2812Rmt<'d, N> {
     /// let config = TxChannelConfig::default()
     ///     .with_clk_divider(RMT_CLK_DIV)
     ///     .with_idle_output_level(Level::Low)
-    ///     .with_idle_output(false)
+    ///     .with_idle_output(true)
     ///     .with_carrier_modulation(false);
     /// let channel = rmt.channel0.configure_tx(peripherals.GPIO8, config).unwrap();
     ///
@@ -253,11 +254,115 @@ impl<'d, const N: usize> Ws2812Rmt<'d, N> {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    extern crate std;
+
+    use super::*;
+    use std::string::ToString;
+
+    // --- buffer_size tests ---------------------------------------------------
+
+    #[test]
+    fn buffer_size_formula() {
+        // Verify the documented formula: num_leds * 24 + 1
+        // Includes edge cases: 0 LEDs (end-marker only), common ring sizes.
+        for n in [0usize, 1, 4, 8, 12, 16, 60] {
+            assert_eq!(buffer_size(n), n * 24 + 1, "buffer_size({n}) mismatch");
+        }
+    }
+
+    // --- max_leds capacity edge case -----------------------------------------
+
+    #[test]
+    fn max_leds_formula_n1_yields_zero() {
+        // N=1: only the end-of-stream marker fits; no LED data can be stored.
+        let max = (1usize.saturating_sub(1)) / 24;
+        assert_eq!(max, 0);
+    }
+
+    // --- Error Display tests -------------------------------------------------
+
+    #[test]
+    fn error_display_rmt_config_message() {
+        assert_eq!(
+            Error::RmtConfig.to_string(),
+            "RMT peripheral configuration failed"
+        );
+    }
+
+    #[test]
+    fn error_display_transmit_message() {
+        assert_eq!(Error::Transmit.to_string(), "RMT transmission failed");
+    }
+
+    #[test]
+    fn error_display_buffer_too_small_message() {
+        assert_eq!(
+            Error::BufferTooSmall.to_string(),
+            "pixel count exceeds buffer capacity"
+        );
+    }
+}
+
 #[cfg(feature = "led-effects")]
 impl<'d, const N: usize> led_effects::StatusLed for Ws2812Rmt<'d, N> {
     type Error = Error;
 
     fn set_color(&mut self, color: RGB8) -> Result<(), Self::Error> {
         self.set_pixel(color)
+    }
+}
+
+/// `SmartLedsWrite` implementation for [`Ws2812Rmt`].
+///
+/// Allows the driver to be used with any crate in the `smart-leds` ecosystem
+/// (e.g. `smart-leds`, brightness adapters, gamma correction).
+///
+/// The iterator is drained directly into the pre-allocated pulse-code buffer —
+/// no heap allocation occurs. If the iterator yields more colors than the buffer
+/// can hold (`(N - 1) / 24` LEDs), transmission is aborted and
+/// [`Error::BufferTooSmall`] is returned before any data is sent.
+///
+/// If the iterator is empty, `Ok(())` is returned immediately — no reset pulse
+/// or blank frame is sent. Hardware that requires an explicit blank to turn off
+/// LEDs should send a zeroed color slice instead.
+///
+/// # Example
+///
+/// ```ignore
+/// use smart_leds_trait::{SmartLedsWrite, RGB8};
+///
+/// let colors = [RGB8 { r: 255, g: 0, b: 0 }; 8];
+/// led.write(colors.iter().cloned()).unwrap();
+/// ```
+impl<'d, const N: usize> SmartLedsWrite for Ws2812Rmt<'d, N> {
+    type Error = Error;
+    type Color = smart_leds_trait::RGB8;
+
+    fn write<T, I>(&mut self, iterator: T) -> Result<(), Self::Error>
+    where
+        T: IntoIterator<Item = I>,
+        I: Into<smart_leds_trait::RGB8>,
+    {
+        let max_leds = (N.saturating_sub(1)) / 24;
+        let mut num_leds = 0usize;
+
+        for item in iterator {
+            if num_leds >= max_leds {
+                return Err(Error::BufferTooSmall);
+            }
+            let rgb: RGB8 = item.into();
+            let start = num_leds * 24;
+            Self::encode_color(rgb, &mut self.buffer[start..start + 24]);
+            num_leds += 1;
+        }
+
+        if num_leds == 0 {
+            return Ok(());
+        }
+
+        self.buffer[num_leds * 24] = PulseCode::end_marker();
+        self.do_transmit(num_leds * 24 + 1)
     }
 }

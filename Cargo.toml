@@ -12,6 +12,8 @@ repository = "https://github.com/datenkollektiv/rustyfarian-ws2812"
 # External dependencies
 anyhow = "1.0"
 rgb = "0.8"
+smart-leds-trait = { version = "^0.3.2", default-features = false }
+smart-leds = "0.4.0"
 
 # Internal crates
 ferriswheel = { path = "crates/ferriswheel" }
