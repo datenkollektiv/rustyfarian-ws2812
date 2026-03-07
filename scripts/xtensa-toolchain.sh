@@ -25,7 +25,7 @@ setup_xtensa_toolchain() {
             printf '  ~/.rustup/toolchains/esp/xtensa-esp-elf/*/xtensa-esp-elf/bin\n' >&2
             printf '  ~/.espressif/tools/xtensa-esp-elf/*/xtensa-esp-elf/bin\n' >&2
             printf 'Source your ESP toolchain environment script (e.g. ". ~/export-esp.sh"; actual path may vary by installation).\n' >&2
-            exit 1
+            return 1
         fi
     fi
 }
