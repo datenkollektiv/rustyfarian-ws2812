@@ -46,7 +46,7 @@ use ws2812_pure::rgb_to_grb;
 /// The RMT peripheral provides precise timing control needed for the
 /// WS2812 protocol without CPU intervention.
 pub struct WS2812RMT<'a> {
-    tx_rtm_driver: TxRmtDriver<'a>,
+    tx_rmt_driver: TxRmtDriver<'a>,
 }
 
 impl<'d> WS2812RMT<'d> {
@@ -68,12 +68,12 @@ impl<'d> WS2812RMT<'d> {
     ) -> Result<Self> {
         let config = TransmitConfig::new().clock_divider(2);
         let tx = TxRmtDriver::new(channel, led, &config)?;
-        Ok(Self { tx_rtm_driver: tx })
+        Ok(Self { tx_rmt_driver: tx })
     }
 
     /// Creates the WS2812 timing pulses for 0 and 1 bits.
     fn create_pulses(&mut self) -> Result<(Pulse, Pulse, Pulse, Pulse)> {
-        let ticks_hz = self.tx_rtm_driver.counter_clock()?;
+        let ticks_hz = self.tx_rmt_driver.counter_clock()?;
         let t0h = Pulse::new_with_duration(ticks_hz, PinState::High, &ns(350))?;
         let t0l = Pulse::new_with_duration(ticks_hz, PinState::Low, &ns(800))?;
         let t1h = Pulse::new_with_duration(ticks_hz, PinState::High, &ns(700))?;
@@ -89,7 +89,7 @@ impl<'d> WS2812RMT<'d> {
         let (t0h, t0l, t1h, t1l) = self.create_pulses()?;
         let mut signal = FixedLengthSignal::<24>::new();
         Self::encode_color_bits(color, &mut signal, 0, t0h, t0l, t1h, t1l)?;
-        self.tx_rtm_driver.start_blocking(&signal)?;
+        self.tx_rmt_driver.start_blocking(&signal)?;
         Ok(())
     }
 
@@ -125,7 +125,7 @@ impl<'d> WS2812RMT<'d> {
             let pulses = Self::color_to_pulses(*rgb, t0h, t0l, t1h, t1l);
             signal.push(&pulses)?;
         }
-        self.tx_rtm_driver.start_blocking(&signal)?;
+        self.tx_rmt_driver.start_blocking(&signal)?;
         Ok(())
     }
 
@@ -195,7 +195,7 @@ impl smart_leds_trait::SmartLedsWrite for WS2812RMT<'_> {
         if num_leds == 0 {
             return Ok(());
         }
-        self.tx_rtm_driver.start_blocking(&signal)?;
+        self.tx_rmt_driver.start_blocking(&signal)?;
         Ok(())
     }
 }
