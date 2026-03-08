@@ -45,6 +45,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- `scripts/run-example.sh`, `scripts/ensure-bootloader.sh`: replaced fragile `ls -t … | head -1` bootloader lookup with a bash array glob that exits with a clear error listing all candidates when multiple `esp-idf-sys-*` build directories exist, preventing silent selection of the wrong bootloader after a `cargo update` or dependency bump
+
 - `hal_c3_rainbow` example: `with_idle_output(false)` corrected to `with_idle_output(true)` to match the C6 example and satisfy the WS2812 reset condition (pin must be actively driven LOW between frames)
 
 - `hal_c3_rainbow` and `hal_c6_rainbow` examples: added `esp-bootloader-esp-idf` dependency and `esp_app_desc!()` invocation so the IDF v5.3.3 bootloader reads a valid app descriptor instead of garbage bytes at that offset;

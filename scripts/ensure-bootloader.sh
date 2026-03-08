@@ -8,6 +8,8 @@ set -euo pipefail
 # format). The v5.3.3 bootloader built by esp-idf-sys works for both.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=./lib.sh
+. "$SCRIPT_DIR/lib.sh"
 
 if [ $# -lt 1 ]; then
     printf 'Usage: %s <chip>\n  chip: c3 | c6 | esp32\n' "$0" >&2
@@ -23,7 +25,7 @@ case "$chip" in
     *) printf 'Unknown chip "%s". Supported: c3, c6, esp32\n' "$chip" >&2; exit 1 ;;
 esac
 
-bl=$(ls -t "$PWD/target/$idf_target/debug/build/esp-idf-sys-"*/out/build/bootloader/bootloader.bin 2>/dev/null | head -1 || true)
+bl=$(find_idf_bootloader "$idf_target")
 if [ -z "$bl" ]; then
     printf 'IDF bootloader not cached for %s -- building IDF example to populate it (requires cargo +esp)...\n' "$mcu" >&2
     "$SCRIPT_DIR/build-example.sh" idf-ws2812 "$idf_example"
