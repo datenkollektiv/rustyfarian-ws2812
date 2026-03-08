@@ -117,7 +117,6 @@ fn main() -> ! {
         // changing the effect or the driver — for example, to run at 25% brightness:
         ws.write(smart_leds::brightness(colors.iter().copied(), 64))
             .ok();
-        // ws.write(colors.iter().copied()).ok();
 
         delay.delay_millis(50u32);
     }
