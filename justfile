@@ -4,7 +4,7 @@
 # .cargo/config.toml, so every recipe that touches platform-independent crates
 # explicitly passes --target to override it.
 
-host_target := `host=$(rustc -vV 2>/dev/null | grep '^host:' | awk '{print $2}'); if [ -z "$host" ]; then printf 'Error: Failed to determine rustc host target.\n' >&2; exit 1; fi; echo "$host"`
+host_target := `scripts/host-target.sh`
 pure_crates := "-p ws2812-pure -p ferriswheel -p led-effects"
 hal_target := "riscv32imac-unknown-none-elf"
 hal_crate := "-p rustyfarian-esp-hal-ws2812"

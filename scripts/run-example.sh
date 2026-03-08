@@ -6,6 +6,8 @@ set -euo pipefail
 #   example:     {driver}_{chip}_{name}  e.g. hal_c6_rainbow, idf_c3_rainbow
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=./lib.sh
+. "$SCRIPT_DIR/lib.sh"
 
 if [ $# -lt 2 ]; then
     printf 'Usage: %s <crate_alias> <example>\n  crate_alias: hal-ws2812 | idf-ws2812\n  example:     {driver}_{chip}_{name}  e.g. hal_c6_pulse, idf_c3_rainbow\n' "$0" >&2
@@ -65,7 +67,7 @@ case "$prefix" in
                 --example "$example" \
                 -p "$pkg"
         fi
-        bl=$(ls -t "$PWD/target/$idf_target/debug/build/esp-idf-sys-"*/out/build/bootloader/bootloader.bin 2>/dev/null | head -1 || true)
+        bl=$(find_idf_bootloader "$idf_target")
         if [ -z "$bl" ]; then
             printf 'Error: HAL examples require the IDF-built v5.3.3 bootloader; rebuild an IDF example to populate it: just build-example idf-ws2812 idf_%s_rainbow\n' "$chip" >&2
             exit 1
@@ -100,7 +102,7 @@ case "$prefix" in
                 --example "$example" \
                 -p "$pkg"
         fi
-        bl=$(ls -t "$PWD/target/$idf_target/debug/build/esp-idf-sys-"*/out/build/bootloader/bootloader.bin 2>/dev/null | head -1 || true)
+        bl=$(find_idf_bootloader "$idf_target")
         if [ -z "$bl" ]; then
             printf 'Warning: built bootloader not found, using espflash default (may fail on page-size mismatch)\n' >&2
             printf 'Flashing %s...\n' "$example"
