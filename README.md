@@ -6,7 +6,13 @@
 [![Last Commit](https://img.shields.io/github/last-commit/datenkollektiv/rustyfarian-ws2812)](https://github.com/datenkollektiv/rustyfarian-ws2812/commits/)
 
 Library-only workspace providing WS2812 (NeoPixel) LED support for ESP32 and `no_std` embedded Rust projects.
-No application code—just reusable, composable crates.
+No application code — just reusable, composable crates.
+
+TL;DR Grab a ESP32-C6 board and check it out:
+
+```sh
+just run idf_c6_effects
+```
 
 ## Vision
 

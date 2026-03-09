@@ -10,7 +10,8 @@
 //! # Available Effects
 //!
 //! - [`RainbowEffect`] — smooth rainbow gradient rotation
-//! - [`PulseEffect`] — sine-wave breathing animation
+//! - [`PulseEffect`] — heartbeat animation: sine-wave brightness with a pause at the floor
+//! - [`BreatheEffect`] — breathing animation: symmetric full-sine brightness with no pause
 //! - [`SpinnerEffect`] — rotating dot with fading tail
 //! - [`ChaseEffect`] — moving a solid segment around the ring
 //! - [`FlashEffect`] — rapid on/off toggle with configurable duty cycle
@@ -21,7 +22,8 @@
 //!
 //! - [`ColorPalette`] — three-color theme for effects
 //! - [`fill_solid`] — fill a buffer with a single color
-//! - [`sine_wave`] — sine lookup for smooth animations
+//! - [`sine_wave`] — half-wave rectified sine lookup (0→255→0 then plateau at 0)
+//! - [`sine_full`] — full symmetric sine lookup (0→255→0, no plateau)
 //! - [`scale_brightness`] — scale an RGB color's brightness
 //! - [`lerp_color`] — linearly interpolate between two colors
 //!
@@ -42,6 +44,7 @@
 //! effect.current(&mut buffer).unwrap();
 //! ```
 
+mod breathe;
 mod chase;
 mod effect;
 mod flash;
@@ -54,6 +57,7 @@ mod section;
 mod spinner;
 mod util;
 
+pub use breathe::BreatheEffect;
 pub use chase::ChaseEffect;
 pub use effect::{Direction, Effect, EffectError, MAX_LEDS};
 pub use flash::FlashEffect;
@@ -64,4 +68,4 @@ pub use pulse::PulseEffect;
 pub use rainbow::RainbowEffect;
 pub use section::{SectionEffect, MAX_SECTIONS};
 pub use spinner::SpinnerEffect;
-pub use util::{fill_solid, lerp_color, scale_brightness, sine_wave};
+pub use util::{fill_solid, lerp_color, scale_brightness, sine_full, sine_wave};
