@@ -15,7 +15,7 @@ use rgb::RGB8;
 ///
 /// ```
 /// use ferriswheel::ColorPalette;
-/// use rgb::RGB8;
+/// use ferriswheel::RGB8;
 ///
 /// let palette = ColorPalette::new(
 ///     RGB8::new(255, 0, 0),

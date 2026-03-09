@@ -18,7 +18,7 @@ use rgb::RGB8;
 ///
 /// ```
 /// use ferriswheel::{SpinnerEffect, Effect, Direction};
-/// use rgb::RGB8;
+/// use ferriswheel::RGB8;
 ///
 /// let mut spinner = SpinnerEffect::new(12).unwrap()
 ///     .with_color(RGB8::new(0, 255, 0))

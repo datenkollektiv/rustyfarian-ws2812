@@ -57,13 +57,10 @@ effect buffer output feeds directly into `SmartLedsWrite::write()` with zero glu
 
 Two small follow-on items are tracked below.
 
-### Re-export `RGB8` from `ferriswheel`
+### Re-export `RGB8` from `ferriswheel` ✓ done
 
-Every user and every example today must write `use rgb::RGB8`, adding `rgb` as an
-explicit dependency even though it is already a transitive dep of `ferriswheel`.
-Re-exporting as `pub use rgb::RGB8` in `ferriswheel::lib` would let callers write
-`use ferriswheel::RGB8` and drop the direct `rgb` entry from their `Cargo.toml`.
-This is a common Rust library courtesy — small, low-risk, and non-breaking.
+`pub use rgb::RGB8` added to `ferriswheel::lib`; callers can now write
+`use ferriswheel::RGB8` without a direct `rgb` dependency.
 
 ### Guard against `rgb` version divergence between `ferriswheel` and `smart-leds-trait`
 

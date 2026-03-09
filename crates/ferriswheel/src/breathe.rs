@@ -28,7 +28,7 @@ use rgb::RGB8;
 ///
 /// ```
 /// use ferriswheel::{BreatheEffect, Effect};
-/// use rgb::RGB8;
+/// use ferriswheel::RGB8;
 ///
 /// let mut breathe = BreatheEffect::new(12).unwrap()
 ///     .with_color(RGB8::new(0, 128, 255));

@@ -95,7 +95,7 @@ pub enum Direction {
 ///
 /// ```
 /// use ferriswheel::{Effect, RainbowEffect};
-/// use rgb::RGB8;
+/// use ferriswheel::RGB8;
 ///
 /// let mut effect = RainbowEffect::new(12).unwrap();
 /// let effect_ref: &dyn Effect = &effect;

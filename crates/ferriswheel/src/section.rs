@@ -25,7 +25,7 @@ pub const MAX_SECTIONS: usize = 8;
 ///
 /// ```
 /// use ferriswheel::{SectionEffect, ColorPalette, Effect};
-/// use rgb::RGB8;
+/// use ferriswheel::RGB8;
 ///
 /// let mut effect = SectionEffect::new(12).unwrap();
 /// let red = ColorPalette::mono(RGB8::new(255, 0, 0));

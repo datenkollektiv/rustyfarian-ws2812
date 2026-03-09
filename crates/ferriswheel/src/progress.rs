@@ -16,7 +16,7 @@ use rgb::RGB8;
 ///
 /// ```
 /// use ferriswheel::{ProgressEffect, Effect};
-/// use rgb::RGB8;
+/// use ferriswheel::RGB8;
 ///
 /// let mut progress = ProgressEffect::new(12).unwrap()
 ///     .with_fill_color(RGB8::new(0, 255, 0));

@@ -18,7 +18,7 @@ use rgb::RGB8;
 ///
 /// ```
 /// use ferriswheel::{ChaseEffect, Effect, Direction};
-/// use rgb::RGB8;
+/// use ferriswheel::RGB8;
 ///
 /// let mut chase = ChaseEffect::new(12).unwrap()
 ///     .with_color(RGB8::new(255, 0, 0))
