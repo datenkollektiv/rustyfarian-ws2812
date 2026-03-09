@@ -12,7 +12,8 @@
 //! - [`RainbowEffect`] — smooth rainbow gradient rotation
 //! - [`PulseEffect`] — heartbeat animation: sine-wave brightness with a pause at the floor
 //! - [`BreatheEffect`] — breathing animation: symmetric full-sine brightness with no pause
-//! - [`SpinnerEffect`] — rotating dot with fading tail
+//! - [`SpinnerEffect`] — rotating dot with fading tail (linear decay, brightness floor)
+//! - [`MeteorEffect`] — meteor / comet: bright head with exponentially-decaying tail
 //! - [`ChaseEffect`] — moving a solid segment around the ring
 //! - [`FlashEffect`] — rapid on/off toggle with configurable duty cycle
 //! - [`ProgressEffect`] — proportional ring fill
@@ -54,6 +55,7 @@ mod chase;
 mod effect;
 mod flash;
 mod hsv;
+mod meteor;
 mod palette;
 mod progress;
 mod pulse;
@@ -69,6 +71,7 @@ pub use chase::ChaseEffect;
 pub use effect::{Direction, Effect, EffectError, MAX_LEDS};
 pub use flash::FlashEffect;
 pub use hsv::hsv_to_rgb;
+pub use meteor::MeteorEffect;
 pub use palette::ColorPalette;
 pub use progress::ProgressEffect;
 pub use pulse::PulseEffect;

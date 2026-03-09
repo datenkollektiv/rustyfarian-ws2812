@@ -27,7 +27,7 @@ timeline
               : Breathe effect (done)
 
     Mid term  : Adopt smart-leds color types (done)
-              : Meteor / comet effect (after Breathe)
+              : Meteor / comet effect (done)
               : Twinkle / sparkle effect (after Meteor)
               : Fire effect (after Twinkle)
               : Cylon / bouncing scanner (after Fire)
@@ -136,15 +136,30 @@ Not blocking, but tracked here to avoid being lost.
   "breathing cycle" even though `BreatheEffect` now owns that term.
   Rename to "pulse cycle" to reduce confusion.
 
+- **`MeteorEffect` decay math: `/255` vs fixed-point `>> 8`** — current `brightness * decay / 255`
+  maps decay values directly to percentages and keeps `decay=0` = instant black.
+  The `* (decay + 1) >> 8` fixed-point variant is marginally faster on bare metal but changes
+  the semantics of `decay=0` (near-zero, not instant black), requiring test updates.
+  Revisit only if a performance need or a `with_decay_pct(f32)` builder is added.
+
+- **`position: u8` hidden constraint in all positional effects** — `SpinnerEffect`, `ChaseEffect`,
+  `RainbowEffect`, and `MeteorEffect` all store `position: u8`; `advance_position` also returns `u8`.
+  With `MAX_LEDS = 256` the cast is lossless today (positions 0–255 map exactly), but raising
+  `MAX_LEDS` above 256 would silently truncate.
+  Fix is crate-wide: change `advance_position` + all four `position` fields to `usize`.
+  Not urgent until `MAX_LEDS` increases.
+
 ### Fire effect
 
 A heat-map simulation with randomised flickering decay from a "hot" base upward through the ring.
 Requires a per-LED temperature buffer and a decay function.
 
-### Meteor / comet effect
+### Meteor / comet effect ✓ done
 
-A bright "head" with a fading tail that travels around the ring.
-Requires wrap-around index arithmetic already established in the ring geometry model.
+A bright head LED travels around the ring with an exponentially-decaying tail
+that fades to black — distinct from `SpinnerEffect`'s linear fade with brightness floor.
+Configurable `decay` factor (0–255 per step), `tail_length`, `speed`, and `direction`.
+`set_color()` updates the color without resetting the travel position.
 
 ### Twinkle / sparkle effect
 
