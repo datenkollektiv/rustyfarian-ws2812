@@ -5,7 +5,7 @@
 This roadmap is informed by the [ecosystem comparison](ecosystem-comparison.md) conducted in February 2026.
 Items are grouped by theme and ordered roughly by impact and dependency.
 Vision review (March 2026) refocused near-term priority on `NoLed` → `esp-hal` driver → ecosystem integration.
-`NoLed`, the `esp-hal` driver, and `SmartLedsWrite` are now complete; near-term focus has shifted to the `Breathe` effect.
+`NoLed`, the `esp-hal` driver, `SmartLedsWrite`, and `BreatheEffect` are now complete; near-term focus has shifted to adopting `smart-leds-trait` color types in the pure crates.
 
 ```mermaid
 %%{init: {
@@ -24,7 +24,7 @@ timeline
     title Fuzzy Rustyfarian WS2812 Roadmap
 
     Near term : SmartLedsWrite in hw wrappers (done)
-              : Breathe effect
+              : Breathe effect (done)
 
     Mid term  : Adopt smart-leds color types (after SmartLedsWrite)
               : Meteor / comet effect (after Breathe)
@@ -83,15 +83,39 @@ See the v0.2.0 CHANGELOG entry for details.
 
 ## Animation Effects (`ferriswheel`)
 
-The current `ferriswheel` crate provides seven well-tested, ring-specific effects:
-`RainbowEffect`, `PulseEffect`, `SpinnerEffect`, `ChaseEffect`, `FlashEffect`, `ProgressEffect`, and `SectionEffect`.
+The current `ferriswheel` crate provides eight well-tested, ring-specific effects:
+`RainbowEffect`, `PulseEffect`, `SpinnerEffect`, `ChaseEffect`, `FlashEffect`, `ProgressEffect`, `SectionEffect`, and `BreatheEffect`.
 The ecosystem survey identified the following as good candidates for the backlog —
 each would need ring-geometry-aware implementation and full test coverage.
 
-### Breathe effect
+### Breathe effect ✓ done
 
-A smooth sinusoidal brightness envelope applied to a solid color.
-Similar to the existing `PulseEffect` but operates on a configurable base color rather than a hue cycle.
+A smooth, symmetric sinusoidal brightness envelope applied to a solid color.
+`BreatheEffect` uses a full-wave sine: brightness rises continuously to the peak and descends symmetrically back to the minimum with no pause at the floor.
+`PulseEffect` uses a half-wave rectified sine, which produces a heartbeat character — brightness rises to the peak, falls to zero, then *pauses at zero* for roughly a quarter of the cycle before rising again.
+
+### Deferred follow-ups from BreatheEffect review
+
+Small improvements deferred during the BreatheEffect review.
+Not blocking, but tracked here to avoid being lost.
+
+- **`current_brightness` underflow when `min > max`** ✓ done — `BreatheEffect` and `PulseEffect`
+  now clamp via `u8::min`/`u8::max` before the range arithmetic; inverted ranges are
+  treated identically to the correct order.
+
+- **`PartialEq` derive on effect structs** — `BreatheEffect` (and `PulseEffect`) do not derive
+  `PartialEq`, making test assertions verbose.
+  Low priority; consistent with current `PulseEffect` behaviour; fix both at the same time.
+
+- **Oversized-buffer acceptance test** — all effects silently accept buffers larger than
+  `num_leds` and write only the first `num_leds` entries.
+  This is intentional but untested.
+  Add a shared contract test (or per-effect test) that confirms oversized buffers are accepted
+  and only the required LEDs are written.
+
+- **`PulseEffect` doc says "breathing cycle"** — the `PulseEffect` rustdoc uses the phrase
+  "breathing cycle" even though `BreatheEffect` now owns that term.
+  Rename to "pulse cycle" to reduce confusion.
 
 ### Fire effect
 

@@ -42,6 +42,49 @@ pub fn sine_wave(phase: u8) -> u8 {
     SINE_TABLE[phase as usize]
 }
 
+/// Returns a full symmetric sine-wave value for the given phase.
+///
+/// Maps a full cycle (0–255) to an output amplitude (0–255) with no plateau
+/// at zero. The wave rises from 0 at phase 0 to a peak of 255 at phase 128,
+/// then falls symmetrically back to 0 at phase 255.
+///
+/// Unlike [`sine_wave`], which is half-wave rectified and stays at 0 for
+/// roughly a quarter of the cycle, `sine_full` gives a smooth continuous
+/// oscillation — useful for breathing effects where the brightness should
+/// rise and fall without any pause at the floor.
+///
+/// # Example
+///
+/// ```
+/// use ferriswheel::sine_full;
+///
+/// assert_eq!(sine_full(0), 0);
+/// assert_eq!(sine_full(128), 255);
+/// assert_eq!(sine_full(255), 0);
+/// ```
+pub fn sine_full(phase: u8) -> u8 {
+    // Use only the strictly rising window of SINE_TABLE: indices 0..=113.
+    // Index 113 is the first entry that reaches 255 (the peak); entries beyond
+    // it are plateau (255) or falling, so stopping here keeps the window monotone.
+    //
+    // Both half-cycles are mapped onto this 114-entry window:
+    //   rising  (phase   0..=127): index = phase * 114 / 128  →  0..=113
+    //   falling (phase 128..=255): index = 113 - (phase-128) * 114 / 128  →  113..=0
+    //
+    // 128  = half-cycle length (256 / 2)
+    // 114  = number of table entries in the window (indices 0 through 113, inclusive),
+    //        chosen so that phase=127 maps to index 113 and phase=255 maps back to 0.
+    if phase < 128 {
+        sine_wave((phase as u16 * 114 / 128) as u8)
+    } else {
+        // (phase - 128) is 0..=127; scaled by 114/128 it stays within 0..=113,
+        // so the subtraction from 113 is always non-negative.
+        let offset = ((phase - 128) as u16 * 114 / 128) as u8;
+        debug_assert!(offset <= 113, "offset {offset} exceeds window bound 113");
+        sine_wave(113u8 - offset)
+    }
+}
+
 /// Scales a single color channel by a brightness factor (0–255).
 ///
 /// Uses integer math: `(channel * brightness) / 255`.
@@ -134,6 +177,83 @@ mod tests {
                 sine_wave(i),
                 i + 1,
                 sine_wave(i + 1)
+            );
+        }
+    }
+
+    #[test]
+    fn test_sine_full_zero_at_start_and_end() {
+        assert_eq!(sine_full(0), 0);
+        assert_eq!(sine_full(255), 0);
+    }
+
+    #[test]
+    fn test_sine_full_peak_at_midpoint() {
+        assert_eq!(sine_full(128), 255);
+    }
+
+    #[test]
+    fn test_sine_full_symmetric() {
+        // The curve should be roughly symmetric around the peak at phase 128.
+        // Allow ±1 tolerance for integer rounding across the rising/falling mapping.
+        for offset in 1u8..=60 {
+            let rise = sine_full(128u8.saturating_sub(offset));
+            let fall = sine_full(128u8.saturating_add(offset));
+            let diff = (rise as i16 - fall as i16).unsigned_abs();
+            assert!(
+                diff <= 1,
+                "sine_full({}) = {} vs sine_full({}) = {}, diff {}",
+                128 - offset,
+                rise,
+                128 + offset as u16,
+                fall,
+                diff
+            );
+        }
+    }
+
+    #[test]
+    fn test_sine_full_no_extended_plateau() {
+        // Count how many phases give a zero output.
+        // PulseEffect's half-wave sine has ~26 zero phases; sine_full should have at most 3.
+        let zero_count = (0u16..=255).filter(|&p| sine_full(p as u8) == 0).count();
+        assert!(
+            zero_count <= 3,
+            "expected at most 3 zero phases, got {}",
+            zero_count
+        );
+    }
+
+    #[test]
+    fn test_sine_full_monotonic_rise() {
+        // Should be non-decreasing from phase 0 to the peak at 128.
+        for i in 1u8..128 {
+            let prev = sine_full(i - 1);
+            let curr = sine_full(i);
+            assert!(
+                curr >= prev,
+                "sine_full({}) = {} < sine_full({}) = {}",
+                i,
+                curr,
+                i - 1,
+                prev
+            );
+        }
+    }
+
+    #[test]
+    fn test_sine_full_monotonic_fall() {
+        // Should be non-increasing from the peak at 128 to phase 255.
+        for i in 129u8..=255 {
+            let prev = sine_full(i - 1);
+            let curr = sine_full(i);
+            assert!(
+                curr <= prev,
+                "sine_full({}) = {} > sine_full({}) = {}",
+                i,
+                curr,
+                i - 1,
+                prev
             );
         }
     }
