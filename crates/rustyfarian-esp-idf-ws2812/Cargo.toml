@@ -45,5 +45,8 @@ name = "idf_c6_breathe_color"
 name = "idf_c6_effects"
 
 [[example]]
+name = "idf_c6_meteor"
+
+[[example]]
 name = "idf_c6_smart_leds"
 required-features = ["smart-leds"]

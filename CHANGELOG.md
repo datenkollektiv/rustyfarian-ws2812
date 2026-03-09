@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `ferriswheel`: `MeteorEffect` — meteor / comet animation; a bright head LED travels around the ring with an exponentially-decaying tail that fades to black; configurable tail length, per-step `decay` factor, speed, direction, and live `set_color()`
+- `rustyfarian-esp-hal-ws2812`: `hal_c6_meteor` bare-metal example for ESP32-C6 (amber comet, GPIO18)
+- `rustyfarian-esp-idf-ws2812`: `idf_c6_meteor` IDF example for ESP32-C6 (amber comet, GPIO18)
  - `ferriswheel`: `RGB8` re-exported as `ferriswheel::RGB8`; downstream crates no longer need a direct `rgb` dependency
 - `ferriswheel`: `BreatheEffect` — smooth breathing animation using a full symmetric sine wave; brightness rises to the peak and descends without any pause at the floor, giving a continuous in-out rhythm distinct from `PulseEffect`'s heartbeat character
 - `ferriswheel`: `sine_full(phase: u8) -> u8` utility — full symmetric sine lookup (0→255→0 over the full 256-phase cycle, no zero plateau); exported alongside `sine_wave`
