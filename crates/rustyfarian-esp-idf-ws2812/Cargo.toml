@@ -48,5 +48,8 @@ name = "idf_c6_effects"
 name = "idf_c6_meteor"
 
 [[example]]
+name = "idf_c6_twinkle"
+
+[[example]]
 name = "idf_c6_smart_leds"
 required-features = ["smart-leds"]

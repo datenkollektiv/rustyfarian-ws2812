@@ -84,6 +84,10 @@ The v5.3.3 bootloader (from any IDF example build artifact) works for both IDF a
 The `run-example` justfile recipe handles this automatically; `ensure-bootloader chip` builds the IDF cache on demand if missing.
 Note: this workaround is version-specific (espflash 4.3.0, ESP-IDF v5.3.3 vs v5.5.1); re-verify if upgrading either.
 
+**Any edit to `Cargo.toml` (e.g. adding a new `[[example]]` entry) can cause Cargo to assign a new hash to the `esp-idf-sys` build directory, leaving two bootloader artifacts that the flash script refuses to resolve silently.**
+`ensure-bootloader.sh` intentionally errors with `multiple IDF-built bootloaders found` rather than picking one arbitrarily, because choosing the wrong bootloader produces a silent boot-loop.
+Fix: `cargo clean -p esp-idf-sys`, then re-run the flash command — the correct bootloader is rebuilt from scratch.
+
 ---
 
 ## Example GPIO Pins
@@ -114,6 +118,15 @@ Fix: add `sdkconfig.defaults` at the workspace root with `CONFIG_ESP_MAIN_TASK_S
 The failure is invisible: the script exits with code 1 and no output, so the parent script and `just` recipe fail with only a line number.
 This was the root cause of `just run hal_c3_pulse` failing on line 65 — `ensure-bootloader.sh` was silently aborting at the bootloader-cache lookup, never reaching the IDF build that populates the cache.
 Fix: append `|| true` to the pipeline: `var=$(ls glob 2>/dev/null | head -1 || true)`.
+
+---
+
+## Rust Syntax Gotchas
+
+**`rustfmt` refuses to parse a file that contains `(expr) as u8 < rhs` — it misreads `u8 < rhs` as the start of a generic argument list.**
+The error is: `` `<` is interpreted as a start of generic arguments for `u8`, not a comparison ``.
+This causes `cargo fmt` to exit non-zero and refuse to format any file in the crate, blocking the whole `pre-commit` pipeline.
+Fix: add a second pair of parentheses: `((expr) as u8) < rhs`; the inner cast is unambiguous with its own grouping.
 
 ---
 

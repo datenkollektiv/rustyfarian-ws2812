@@ -28,7 +28,7 @@ timeline
 
     Mid term  : Adopt smart-leds color types (done)
               : Meteor / comet effect (done)
-              : Twinkle / sparkle effect (after Meteor)
+              : Twinkle / sparkle effect (done)
               : Fire effect (after Twinkle)
               : Cylon / bouncing scanner (after Fire)
 
@@ -102,8 +102,8 @@ See the v0.2.0 CHANGELOG entry for details.
 
 ## Animation Effects (`ferriswheel`)
 
-The current `ferriswheel` crate provides eight well-tested, ring-specific effects:
-`RainbowEffect`, `PulseEffect`, `SpinnerEffect`, `ChaseEffect`, `FlashEffect`, `ProgressEffect`, `SectionEffect`, and `BreatheEffect`.
+The current `ferriswheel` crate provides ten well-tested, ring-specific effects:
+`RainbowEffect`, `PulseEffect`, `BreatheEffect`, `SpinnerEffect`, `MeteorEffect`, `TwinkleEffect`, `ChaseEffect`, `FlashEffect`, `ProgressEffect`, and `SectionEffect`.
 The ecosystem survey identified the following as good candidates for the backlog —
 each would need ring-geometry-aware implementation and full test coverage.
 
@@ -161,10 +161,12 @@ that fades to black — distinct from `SpinnerEffect`'s linear fade with brightn
 Configurable `decay` factor (0–255 per step), `tail_length`, `speed`, and `direction`.
 `set_color()` updates the color without resetting the travel position.
 
-### Twinkle / sparkle effect
+### Twinkle / sparkle effect ✓ done
 
 Random LEDs briefly illuminate at peak brightness then decay.
 Good for ambient/idle states.
+`TwinkleEffect` uses a built-in xorshift32 PRNG (no external dependency) to select which LED fires each tick.
+Configurable `spawn_chance` (0 = never, 255 = always, 1–254 = probabilistic), `decay`, `max_brightness`, and PRNG `seed` for reproducible sequences.
 
 ### Cylon / bouncing scanner effect
 

@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `ferriswheel`: `TwinkleEffect` — ambient sparkle / starfield animation; random LEDs flash to peak brightness and decay independently each tick; configurable color, `max_brightness`, per-tick `decay`, `spawn_chance` (0 = never, 255 = always, 1–254 = probabilistic), and deterministic PRNG seed via `with_seed()`
+- `rustyfarian-esp-hal-ws2812`: `hal_c6_twinkle` bare-metal example for ESP32-C6 (blue-white starfield, GPIO18)
+- `rustyfarian-esp-idf-ws2812`: `idf_c6_twinkle` IDF example for ESP32-C6 (blue-white starfield, GPIO18)
 - `ferriswheel`: `MeteorEffect` — meteor / comet animation; a bright head LED travels around the ring with an exponentially-decaying tail that fades to black; configurable tail length, per-step `decay` factor, speed, direction, and live `set_color()`
 - `rustyfarian-esp-hal-ws2812`: `hal_c6_meteor` bare-metal example for ESP32-C6 (amber comet, GPIO18)
 - `rustyfarian-esp-idf-ws2812`: `idf_c6_meteor` IDF example for ESP32-C6 (amber comet, GPIO18)
