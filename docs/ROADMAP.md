@@ -26,7 +26,7 @@ timeline
     Near term : SmartLedsWrite in hw wrappers (done)
               : Breathe effect (done)
 
-    Mid term  : Adopt smart-leds color types (after SmartLedsWrite)
+    Mid term  : Adopt smart-leds color types (done)
               : Meteor / comet effect (after Breathe)
               : Twinkle / sparkle effect (after Meteor)
               : Fire effect (after Twinkle)
@@ -47,12 +47,34 @@ See the [Unreleased] CHANGELOG entry for details.
 
 </details>
 
-### Adopt `smart-leds-trait` color types in pure crates
+### Adopt `smart-leds-trait` color types in pure crates ✓ done
 
-`smart-leds-trait` re-exports `rgb::RGB8`, `rgb::RGBW`, and related types.
-Aligning `ws2812-pure` and `ferriswheel` with these types (or providing `From`/`Into` conversions) would make effect output directly consumable by any `SmartLedsWrite` driver without manual mapping.
+`smart-leds-trait v0.3.2` and `ferriswheel` both depend on `rgb v0.8` — the same
+crate at the same version — so `rgb::RGB8` is already the same type on both sides.
+No conversion or adapter code is needed.
+The `idf_c6_smart_leds` and `hal_c6_smart_leds` examples confirm this empirically:
+effect buffer output feeds directly into `SmartLedsWrite::write()` with zero glue.
 
-Dependency: `SmartLedsWrite` implementation above.
+Two small follow-on items are tracked below.
+
+### Re-export `RGB8` from `ferriswheel`
+
+Every user and every example today must write `use rgb::RGB8`, adding `rgb` as an
+explicit dependency even though it is already a transitive dep of `ferriswheel`.
+Re-exporting as `pub use rgb::RGB8` in `ferriswheel::lib` would let callers write
+`use ferriswheel::RGB8` and drop the direct `rgb` entry from their `Cargo.toml`.
+This is a common Rust library courtesy — small, low-risk, and non-breaking.
+
+### Guard against `rgb` version divergence between `ferriswheel` and `smart-leds-trait`
+
+If `smart-leds-trait` ever bumps to `rgb v0.9`, the two `RGB8` types would silently
+diverge and users would see confusing type-mismatch errors at the `SmartLedsWrite`
+call site rather than a clean version-conflict at `cargo update` time.
+Mitigation: add `smart-leds-trait` as an optional dependency in `ferriswheel`
+(e.g. `smart-leds-compat = ["dep:smart-leds-trait"]`).
+Cargo would then surface the version conflict at resolve time rather than at the
+user's build site.
+Purely defensive — not urgent until `smart-leds-trait` signals an `rgb` bump.
 
 ---
 
