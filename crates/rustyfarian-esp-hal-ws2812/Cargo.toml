@@ -55,5 +55,9 @@ name = "hal_c6_meteor"
 required-features = ["esp32c6", "rt"]
 
 [[example]]
+name = "hal_c6_twinkle"
+required-features = ["esp32c6", "rt"]
+
+[[example]]
 name = "hal_c6_smart_leds"
 required-features = ["esp32c6", "rt", "smart-leds"]

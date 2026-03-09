@@ -14,6 +14,7 @@
 //! - [`BreatheEffect`] — breathing animation: symmetric full-sine brightness with no pause
 //! - [`SpinnerEffect`] — rotating dot with fading tail (linear decay, brightness floor)
 //! - [`MeteorEffect`] — meteor / comet: bright head with exponentially-decaying tail
+//! - [`TwinkleEffect`] — ambient sparkle: random LEDs flash to peak brightness then decay
 //! - [`ChaseEffect`] — moving a solid segment around the ring
 //! - [`FlashEffect`] — rapid on/off toggle with configurable duty cycle
 //! - [`ProgressEffect`] — proportional ring fill
@@ -62,6 +63,7 @@ mod pulse;
 mod rainbow;
 mod section;
 mod spinner;
+mod twinkle;
 mod util;
 
 pub use rgb::RGB8;
@@ -78,4 +80,5 @@ pub use pulse::PulseEffect;
 pub use rainbow::RainbowEffect;
 pub use section::{SectionEffect, MAX_SECTIONS};
 pub use spinner::SpinnerEffect;
+pub use twinkle::TwinkleEffect;
 pub use util::{fill_solid, lerp_color, scale_brightness, sine_full, sine_wave};
