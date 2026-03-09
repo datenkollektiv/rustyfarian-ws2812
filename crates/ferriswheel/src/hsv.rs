@@ -19,7 +19,7 @@ use rgb::RGB8;
 ///
 /// ```
 /// use ferriswheel::hsv_to_rgb;
-/// use rgb::RGB8;
+/// use ferriswheel::RGB8;
 ///
 /// // Pure red
 /// let red = hsv_to_rgb(0, 255, 255);

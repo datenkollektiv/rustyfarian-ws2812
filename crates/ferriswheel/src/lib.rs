@@ -27,11 +27,16 @@
 //! - [`scale_brightness`] — scale an RGB color's brightness
 //! - [`lerp_color`] — linearly interpolate between two colors
 //!
+//! # Color type
+//!
+//! All effects operate on [`RGB8`], re-exported here from the [`rgb`] crate.
+//! Downstream crates do not need a direct `rgb` dependency — `use ferriswheel::RGB8`
+//! is sufficient.
+//!
 //! # Example
 //!
 //! ```
-//! use ferriswheel::{Effect, RainbowEffect, Direction};
-//! use rgb::RGB8;
+//! use ferriswheel::{Effect, RainbowEffect, Direction, RGB8};
 //!
 //! let mut rainbow = RainbowEffect::new(12).unwrap();
 //! let mut buffer = [RGB8::default(); 12];
@@ -56,6 +61,8 @@ mod rainbow;
 mod section;
 mod spinner;
 mod util;
+
+pub use rgb::RGB8;
 
 pub use breathe::BreatheEffect;
 pub use chase::ChaseEffect;

@@ -18,7 +18,7 @@ use rgb::RGB8;
 ///
 /// ```
 /// use ferriswheel::{RainbowEffect, Direction};
-/// use rgb::RGB8;
+/// use ferriswheel::RGB8;
 ///
 /// let mut rainbow = RainbowEffect::new(12).unwrap();
 /// let mut buffer = [RGB8::default(); 12];

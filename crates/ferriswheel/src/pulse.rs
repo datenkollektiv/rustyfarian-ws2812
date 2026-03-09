@@ -15,7 +15,7 @@ use rgb::RGB8;
 ///
 /// ```
 /// use ferriswheel::{PulseEffect, Effect};
-/// use rgb::RGB8;
+/// use ferriswheel::RGB8;
 ///
 /// let mut pulse = PulseEffect::new(12).unwrap()
 ///     .with_color(RGB8::new(0, 0, 255));

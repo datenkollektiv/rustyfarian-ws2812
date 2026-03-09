@@ -17,7 +17,7 @@ use rgb::RGB8;
 ///
 /// ```
 /// use ferriswheel::{FlashEffect, Effect};
-/// use rgb::RGB8;
+/// use ferriswheel::RGB8;
 ///
 /// let mut flash = FlashEffect::new(8).unwrap()
 ///     .with_color(RGB8::new(255, 0, 0))

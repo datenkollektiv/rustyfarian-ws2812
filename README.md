@@ -139,8 +139,7 @@ For LED rings, use `RainbowEffect` from the `ferriswheel` crate:
 
 ```rust
 use rustyfarian_esp_idf_ws2812::WS2812RMT;
-use ferriswheel::{RainbowEffect, Direction};
-use rgb::RGB8;
+use ferriswheel::{RainbowEffect, Direction, RGB8};
 
 let mut driver = WS2812RMT::new(gpio_pin, rmt_channel)?;
 
