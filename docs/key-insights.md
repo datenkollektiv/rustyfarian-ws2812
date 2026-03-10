@@ -130,6 +130,23 @@ Fix: add a second pair of parentheses: `((expr) as u8) < rhs`; the inner cast is
 
 ---
 
+## Local CI with `act`
+
+**`rustsec/audit-check@v2` requires a real `GITHUB_TOKEN` for GitHub API calls; it fails with any dummy token and cannot be used with `act` in typical local setups.**
+The action posts PR annotations via the GitHub API, which requires a token with `checks: write` permissions.
+Passing `-s GITHUB_TOKEN=dummy` results in an authentication error during the action's API calls.
+Fix: replace the action step with two plain steps — `cargo install cargo-audit --locked` and `cargo audit`.
+This produces the same vulnerability report output, works locally with no token, and is simpler to read in CI logs.
+
+**Passing `-s GITHUB_TOKEN=<any-value>` to `act` causes `act` to forward that value as HTTP Basic auth when cloning third-party actions from GitHub, breaking the download.**
+`act` treats the `GITHUB_TOKEN` secret as a credential for all GitHub HTTP operations, not just the ones your workflow explicitly passes `${{ secrets.GITHUB_TOKEN }}` to.
+If the token is invalid, GitHub rejects the clone with `authentication required: Invalid username or token. Password authentication is not supported for Git operations.`
+The failure is counterintuitive: you'd expect a dummy token to be ignored rather than actively break unrelated operations.
+Fix: omit `-s GITHUB_TOKEN=…` entirely when the workflow no longer references `${{ secrets.GITHUB_TOKEN }}`.
+If a real token is needed for specific steps, scope it narrowly with a step-level `env:` block rather than passing it as a global `act` secret.
+
+---
+
 ## Developer Tooling
 
 **Claude Code Stop hooks only support `type: "command"`; `type: "prompt"` is not a valid hook type and produces "Stop hook error: JSON validation failed".**

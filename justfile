@@ -138,6 +138,25 @@ deny:
 audit:
     cargo audit
 
+# Run CI workflow locally via act (requires Docker + act)
+act-ci:
+    act -j check-and-test
+
+# Run format-check workflow locally via act (requires Docker + act)
+act-fmt:
+    act -j fmt
+
+# Run clippy workflow locally via act (requires Docker + act)
+act-clippy:
+    act -j clippy
+
+# Run audit workflow locally via act (requires Docker + act)
+act-audit:
+    act -j audit
+
+# Run all CI workflows locally via act (requires Docker + act)
+act-all: act-fmt act-clippy act-ci act-audit
+
 # update dependencies
 update:
     cargo update

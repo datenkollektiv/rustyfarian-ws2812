@@ -161,6 +161,11 @@ impl RainbowCometEffect {
         self
     }
 
+    /// Returns the number of LEDs this effect is configured for.
+    pub fn num_leds(&self) -> usize {
+        self.num_leds
+    }
+
     /// Sets the head hue without resetting the animation position.
     ///
     /// Use this to change the hue live (e.g., driven by a sensor or event)
