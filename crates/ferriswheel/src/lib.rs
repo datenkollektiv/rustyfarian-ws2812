@@ -22,6 +22,7 @@
 //! - [`FlashEffect`] — rapid on/off toggle with configurable duty cycle
 //! - [`ProgressEffect`] — proportional ring fill
 //! - [`SectionEffect`] — weighted color sections on a ring
+//! - [`RainbowCometEffect`] — Rainbow comet: orbiting head with a hue-cycling fading tail
 //!
 //! # Utilities
 //!
@@ -67,6 +68,7 @@ mod palette;
 mod progress;
 mod pulse;
 mod rainbow;
+mod rainbow_comet;
 mod section;
 mod spinner;
 mod twinkle;
@@ -87,6 +89,7 @@ pub use palette::ColorPalette;
 pub use progress::ProgressEffect;
 pub use pulse::PulseEffect;
 pub use rainbow::RainbowEffect;
+pub use rainbow_comet::RainbowCometEffect;
 pub use section::{SectionEffect, MAX_SECTIONS};
 pub use spinner::SpinnerEffect;
 pub use twinkle::TwinkleEffect;

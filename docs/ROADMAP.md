@@ -5,7 +5,7 @@
 This roadmap is informed by the [ecosystem comparison](ecosystem-comparison.md) conducted in February 2026.
 Items are grouped by theme and ordered roughly by impact and dependency.
 Vision review (March 2026) refocused near-term priority on `NoLed` → `esp-hal` driver → ecosystem integration.
-`NoLed`, the `esp-hal` driver, `SmartLedsWrite`, `BreatheEffect`, `MeteorEffect`, `TwinkleEffect`, `FireEffect`, and `CylonEffect` are now complete; mid-term focus shifts to `Knight Rider / dual-headed scanner` and `Rainbow-fade tail`.
+`NoLed`, the `esp-hal` driver, `SmartLedsWrite`, `BreatheEffect`, `MeteorEffect`, `TwinkleEffect`, `FireEffect`, `CylonEffect`, and `KnightRiderEffect` are now complete; mid-term focus shifts to `Rainbow-fade tail`.
 
 ```mermaid
 %%{init: {
@@ -31,7 +31,7 @@ timeline
               : Twinkle / sparkle effect (done)
               : Fire effect (done)
               : Cylon / bouncing scanner (done)
-              : Knight Rider / dual-headed scanner
+              : Knight Rider / dual-headed scanner (done)
               : Rainbow-fade tail
 
     Long term : Upstream contribution evaluation (after Adopt smart-leds color types)
@@ -104,8 +104,8 @@ See the v0.2.0 CHANGELOG entry for details.
 
 ## Animation Effects (`ferriswheel`)
 
-The current `ferriswheel` crate provides twelve well-tested, ring-specific effects:
-`RainbowEffect`, `PulseEffect`, `BreatheEffect`, `SpinnerEffect`, `MeteorEffect`, `TwinkleEffect`, `FireEffect`, `CylonEffect`, `ChaseEffect`, `FlashEffect`, `ProgressEffect`, and `SectionEffect`.
+The current `ferriswheel` crate provides thirteen well-tested, ring-specific effects:
+`RainbowEffect`, `PulseEffect`, `BreatheEffect`, `SpinnerEffect`, `MeteorEffect`, `TwinkleEffect`, `FireEffect`, `CylonEffect`, `KnightRiderEffect`, `ChaseEffect`, `FlashEffect`, `ProgressEffect`, and `SectionEffect`.
 The ecosystem survey identified the following as good candidates for the backlog —
 each would need ring-geometry-aware implementation and full test coverage.
 
@@ -183,11 +183,10 @@ Configurable `spawn_chance` (0 = never, 255 = always, 1–254 = probabilistic), 
 A single bright LED sweeps back and forth across the ring, automatically reversing direction.
 Note: `ChaseEffect` already covers unidirectional scanning; this adds the auto-bounce behaviour.
 
-### Knight Rider / dual-headed scanner
+### Knight Rider / dual-headed scanner ✓ done
 
 Two `CylonEffect`-style heads travel in opposite directions, crossing in the middle and reversing independently at each end.
-Produces a more complex, symmetric scan pattern.
-Can be implemented as a dedicated `KnightRiderEffect` or as a convenience wrapper composing two `CylonEffect` instances into a shared buffer.
+`KnightRiderEffect` is a dedicated struct sharing the `draw_scanner_head` and `scanner_bounce` utilities extracted to `util.rs` alongside `CylonEffect`.
 
 ### Rainbow-fade tail
 
