@@ -51,5 +51,8 @@ name = "idf_c6_meteor"
 name = "idf_c6_twinkle"
 
 [[example]]
+name = "idf_c6_fire"
+
+[[example]]
 name = "idf_c6_smart_leds"
 required-features = ["smart-leds"]

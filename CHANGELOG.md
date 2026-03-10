@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `rustyfarian-esp-hal-ws2812`: `hal_c6_fire` bare-metal example for ESP32-C6 (flickering flame, GPIO18)
+- `rustyfarian-esp-idf-ws2812`: `idf_c6_fire` IDF example for ESP32-C6 (flickering flame, GPIO18)
+- `ferriswheel`: `FireEffect` — heat-map fire simulation; the base (index 0) ignites randomly each tick, heat diffuses upward toward the tip via a weighted three-point average, and each LED's temperature maps through a black → dark red → orange → white gradient; configurable `cooling` (higher = shorter flames), `sparking` (0 = off, 255 = always), and deterministic PRNG seed via `with_seed()`
+
 - `ferriswheel`: `TwinkleEffect` — ambient sparkle / starfield animation; random LEDs flash to peak brightness and decay independently each tick; configurable color, `max_brightness`, per-tick `decay`, `spawn_chance` (0 = never, 255 = always, 1–254 = probabilistic), and deterministic PRNG seed via `with_seed()`
 - `rustyfarian-esp-hal-ws2812`: `hal_c6_twinkle` bare-metal example for ESP32-C6 (blue-white starfield, GPIO18)
 - `rustyfarian-esp-idf-ws2812`: `idf_c6_twinkle` IDF example for ESP32-C6 (blue-white starfield, GPIO18)

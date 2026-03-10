@@ -5,7 +5,7 @@
 This roadmap is informed by the [ecosystem comparison](ecosystem-comparison.md) conducted in February 2026.
 Items are grouped by theme and ordered roughly by impact and dependency.
 Vision review (March 2026) refocused near-term priority on `NoLed` → `esp-hal` driver → ecosystem integration.
-`NoLed`, the `esp-hal` driver, `SmartLedsWrite`, and `BreatheEffect` are now complete; near-term focus has shifted to adopting `smart-leds-trait` color types in the pure crates.
+`NoLed`, the `esp-hal` driver, `SmartLedsWrite`, `BreatheEffect`, `MeteorEffect`, `TwinkleEffect`, and `FireEffect` are now complete; mid-term focus is on `Cylon / bouncing scanner` next.
 
 ```mermaid
 %%{init: {
@@ -29,7 +29,7 @@ timeline
     Mid term  : Adopt smart-leds color types (done)
               : Meteor / comet effect (done)
               : Twinkle / sparkle effect (done)
-              : Fire effect (after Twinkle)
+              : Fire effect (done)
               : Cylon / bouncing scanner (after Fire)
 
     Long term : Upstream contribution evaluation (after Adopt smart-leds color types)
@@ -102,8 +102,8 @@ See the v0.2.0 CHANGELOG entry for details.
 
 ## Animation Effects (`ferriswheel`)
 
-The current `ferriswheel` crate provides ten well-tested, ring-specific effects:
-`RainbowEffect`, `PulseEffect`, `BreatheEffect`, `SpinnerEffect`, `MeteorEffect`, `TwinkleEffect`, `ChaseEffect`, `FlashEffect`, `ProgressEffect`, and `SectionEffect`.
+The current `ferriswheel` crate provides eleven well-tested, ring-specific effects:
+`RainbowEffect`, `PulseEffect`, `BreatheEffect`, `SpinnerEffect`, `MeteorEffect`, `TwinkleEffect`, `FireEffect`, `ChaseEffect`, `FlashEffect`, `ProgressEffect`, and `SectionEffect`.
 The ecosystem survey identified the following as good candidates for the backlog —
 each would need ring-geometry-aware implementation and full test coverage.
 
@@ -132,9 +132,7 @@ Not blocking, but tracked here to avoid being lost.
   Add a shared contract test (or per-effect test) that confirms oversized buffers are accepted
   and only the required LEDs are written.
 
-- **`PulseEffect` doc says "breathing cycle"** — the `PulseEffect` rustdoc uses the phrase
-  "breathing cycle" even though `BreatheEffect` now owns that term.
-  Rename to "pulse cycle" to reduce confusion.
+- **`PulseEffect` doc says "breathing cycle"** ✓ done — renamed to "pulse cycle" in `set_color` rustdoc.
 
 - **`MeteorEffect` decay math: `/255` vs fixed-point `>> 8`** — current `brightness * decay / 255`
   maps decay values directly to percentages and keeps `decay=0` = instant black.
@@ -149,10 +147,20 @@ Not blocking, but tracked here to avoid being lost.
   Fix is crate-wide: change `advance_position` + all four `position` fields to `usize`.
   Not urgent until `MAX_LEDS` increases.
 
-### Fire effect
+### Fire effect ✓ done
 
-A heat-map simulation with randomised flickering decay from a "hot" base upward through the ring.
-Requires a per-LED temperature buffer and a decay function.
+Heat-map simulation: the base (index 0) sparks randomly, heat diffuses upward via a weighted three-point average, and each LED maps through a black → dark red → orange → yellow gradient.
+Configurable `cooling`, `sparking`, and PRNG seed.
+
+### FireEffect follow-ups
+
+Small improvements identified during review. Not blocking, tracked to avoid being lost.
+
+- **Parameterise ignition base range** — `with_base_range(u8)` builder; currently hardcoded to `n.min(3)`, which is fine for small rings but too narrow for long strips (60+ LEDs). A proportional default (e.g. `(n / 10).max(3)`) or explicit setter would make large-strip fire look more natural.
+
+- **Ring wrap-around diffusion** — `with_wrap(bool)` flag to feed `heat[n-1]` back into `heat[0]` during diffusion, enabling a true circular topology where the "tip" and "base" are adjacent. Changes the visual character significantly — the current linear model (base at index 0) is correct for a strip; wrap-around suits a true ring where the flame is symmetric.
+
+- **Gradient parameterisation** — `with_gradient(&'static [GradientStop])` for users who want a custom palette (e.g. blue ice, purple plasma). Requires a `GradientStop` type and piecewise-linear interpolation in `fire_color`. `no_std`-safe with a fixed-size slice; `Vec` is off the table.
 
 ### Meteor / comet effect ✓ done
 
