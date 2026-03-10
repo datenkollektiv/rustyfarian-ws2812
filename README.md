@@ -49,13 +49,13 @@ See [Why Yet Another WS2812 Crate?](docs/why-yet-another-ws2812-crate.md) for th
 
 ## Crates
 
-| Crate                                                             | Description                                                                         | Target              |
-|:------------------------------------------------------------------|-------------------------------------------------------------------------------------|:--------------------|
-| [`ferriswheel`](crates/ferriswheel)                               | RGB LED ring animations (rainbow, pulse, spinner, chase, flash, progress, sections) | `no_std` compatible |
-| [`led-effects`](crates/led-effects)                               | LED status effects (pulse, simple LED adapter)                                      | `no_std` compatible |
-| [`ws2812-pure`](crates/ws2812-pure)                               | Pure Rust WS2812 utilities (color conversion, bit encoding)                         | `no_std` compatible |
-| [`rustyfarian-esp-idf-ws2812`](crates/rustyfarian-esp-idf-ws2812) | WS2812 driver using ESP-IDF RMT peripheral                                          | ESP-IDF (std)       |
-| [`rustyfarian-esp-hal-ws2812`](crates/rustyfarian-esp-hal-ws2812) | WS2812 driver using esp-hal RMT peripheral                                          | esp-hal (no_std)    |
+| Crate                                                             | Description                                                                                                   | Target              |
+|:------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|:--------------------|
+| [`ferriswheel`](crates/ferriswheel)                               | RGB LED ring animations (rainbow, pulse, breathe, spinner, meteor, twinkle, chase, flash, progress, sections) | `no_std` compatible |
+| [`led-effects`](crates/led-effects)                               | LED status effects (pulse, simple LED adapter)                                                                | `no_std` compatible |
+| [`ws2812-pure`](crates/ws2812-pure)                               | Pure Rust WS2812 utilities (color conversion, bit encoding)                                                   | `no_std` compatible |
+| [`rustyfarian-esp-idf-ws2812`](crates/rustyfarian-esp-idf-ws2812) | WS2812 driver using ESP-IDF RMT peripheral                                                                    | ESP-IDF (std)       |
+| [`rustyfarian-esp-hal-ws2812`](crates/rustyfarian-esp-hal-ws2812) | WS2812 driver using esp-hal RMT peripheral                                                                    | esp-hal (no_std)    |
 
 ## Examples
 

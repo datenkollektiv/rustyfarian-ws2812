@@ -9,14 +9,28 @@ fi
 
 setup_xtensa_toolchain() {
     if ! command -v xtensa-esp32-elf-gcc >/dev/null 2>&1; then
-        local xtensa_bin
-        xtensa_bin=$(ls -td \
-            "$HOME/.rustup/toolchains/esp/xtensa-esp-elf/"*/xtensa-esp-elf/bin \
-            2>/dev/null | head -1 || true)
+        local xtensa_bin=""
+        local rustup_candidates=("$HOME/.rustup/toolchains/esp/xtensa-esp-elf/"*/xtensa-esp-elf/bin)
+        if [ ${#rustup_candidates[@]} -gt 0 ] && [ -d "${rustup_candidates[0]}" ]; then
+            if [ ${#rustup_candidates[@]} -gt 1 ]; then
+                printf 'Error: multiple xtensa toolchain directories found under:\n' >&2
+                printf '  ~/.rustup/toolchains/esp/xtensa-esp-elf/*/xtensa-esp-elf/bin\n' >&2
+                printf 'Remove or rename extra versions so only one remains.\n' >&2
+                return 1
+            fi
+            xtensa_bin="${rustup_candidates[0]}"
+        fi
         if [ -z "$xtensa_bin" ]; then
-            xtensa_bin=$(ls -td \
-                "$HOME/.espressif/tools/xtensa-esp-elf/"*/xtensa-esp-elf/bin \
-                2>/dev/null | head -1 || true)
+            local espressif_candidates=("$HOME/.espressif/tools/xtensa-esp-elf/"*/xtensa-esp-elf/bin)
+            if [ ${#espressif_candidates[@]} -gt 0 ] && [ -d "${espressif_candidates[0]}" ]; then
+                if [ ${#espressif_candidates[@]} -gt 1 ]; then
+                    printf 'Error: multiple xtensa toolchain directories found under:\n' >&2
+                    printf '  ~/.espressif/tools/xtensa-esp-elf/*/xtensa-esp-elf/bin\n' >&2
+                    printf 'Remove or rename extra versions so only one remains.\n' >&2
+                    return 1
+                fi
+                xtensa_bin="${espressif_candidates[0]}"
+            fi
         fi
         if [ -n "$xtensa_bin" ]; then
             export PATH="$xtensa_bin:$PATH"
