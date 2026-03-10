@@ -15,6 +15,7 @@
 //! - [`SpinnerEffect`] — rotating dot with fading tail (linear decay, brightness floor)
 //! - [`MeteorEffect`] — meteor / comet: bright head with exponentially-decaying tail
 //! - [`TwinkleEffect`] — ambient sparkle: random LEDs flash to peak brightness then decay
+//! - [`FireEffect`] — fire simulation: heat diffuses upward from a sparking base
 //! - [`ChaseEffect`] — moving a solid segment around the ring
 //! - [`FlashEffect`] — rapid on/off toggle with configurable duty cycle
 //! - [`ProgressEffect`] — proportional ring fill
@@ -54,6 +55,7 @@
 mod breathe;
 mod chase;
 mod effect;
+mod fire;
 mod flash;
 mod hsv;
 mod meteor;
@@ -71,6 +73,7 @@ pub use rgb::RGB8;
 pub use breathe::BreatheEffect;
 pub use chase::ChaseEffect;
 pub use effect::{Direction, Effect, EffectError, MAX_LEDS};
+pub use fire::FireEffect;
 pub use flash::FlashEffect;
 pub use hsv::hsv_to_rgb;
 pub use meteor::MeteorEffect;
