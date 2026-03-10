@@ -30,7 +30,7 @@ timeline
               : Meteor / comet effect (done)
               : Twinkle / sparkle effect (done)
               : Fire effect (done)
-              : Cylon / bouncing scanner (after Fire)
+              : Cylon / bouncing scanner (done)
 
     Long term : Upstream contribution evaluation (after Adopt smart-leds color types)
               : embedded-graphics-core evaluation (after Upstream contribution evaluation)
@@ -176,10 +176,21 @@ Good for ambient/idle states.
 `TwinkleEffect` uses a built-in xorshift32 PRNG (no external dependency) to select which LED fires each tick.
 Configurable `spawn_chance` (0 = never, 255 = always, 1–254 = probabilistic), `decay`, `max_brightness`, and PRNG `seed` for reproducible sequences.
 
-### Cylon / bouncing scanner effect
+### Cylon / bouncing scanner effect ✓ done
 
-A single bright LED (or small cluster) sweeps back and forth across the ring, automatically reversing direction.
+A single bright LED sweeps back and forth across the ring, automatically reversing direction.
 Note: `ChaseEffect` already covers unidirectional scanning; this adds the auto-bounce behaviour.
+
+### Knight Rider / dual-headed scanner
+
+Two `CylonEffect`-style heads travel in opposite directions, crossing in the middle and reversing independently at each end.
+Produces a more complex, symmetric scan pattern.
+Can be implemented as a dedicated `KnightRiderEffect` or as a convenience wrapper composing two `CylonEffect` instances into a shared buffer.
+
+### Rainbow-fade tail
+
+A scanner or comet variant where the tail cycles through hue rather than fading to black — each tail LED is offset in hue from the previous one.
+Could be a standalone `RainbowCometEffect` or a `with_rainbow_tail()` builder option on `MeteorEffect`/`CylonEffect`; the standalone effect is simpler to test and document.
 
 ---
 

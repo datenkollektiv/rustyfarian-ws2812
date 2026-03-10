@@ -51,6 +51,9 @@ name = "idf_c6_meteor"
 name = "idf_c6_twinkle"
 
 [[example]]
+name = "idf_c6_cylon"
+
+[[example]]
 name = "idf_c6_fire"
 
 [[example]]
