@@ -94,7 +94,7 @@ impl PulseEffect {
     /// Sets the pulse color without resetting the animation phase.
     ///
     /// Use this to change the color live (e.g., from a rotary encoder)
-    /// without restarting the breathing cycle.
+    /// without restarting the pulse cycle.
     pub fn set_color(&mut self, color: RGB8) {
         self.color = color;
     }
