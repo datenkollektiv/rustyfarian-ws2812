@@ -6,7 +6,7 @@
 //! around the ring without bouncing.
 
 use crate::effect::{validate_buffer, validate_num_leds, validate_speed, Effect, EffectError};
-use crate::util::scale_brightness;
+use crate::util::{draw_scanner_head, scanner_bounce};
 use rgb::RGB8;
 
 /// A Cylon / bouncing scanner effect.
@@ -137,35 +137,15 @@ impl CylonEffect {
         let n = self.num_leds;
 
         buffer[..n].fill(RGB8::default());
-
-        let head = self.position as usize;
-        buffer[head] = self.color;
-
-        // Tail trails behind the direction of travel — no wrap-around at the ends.
-        // forward → tail toward lower indices; backward → tail toward higher indices.
-        let effective_tail = (self.tail_length as usize).min(n - 1);
-        let mut brightness: u16 = 255;
-        for i in 1..=effective_tail {
-            brightness = brightness * self.decay as u16 / 255;
-            if brightness == 0 {
-                break;
-            }
-            let tail_idx = if self.forward {
-                // Moving toward higher indices: tail is behind at lower indices.
-                match head.checked_sub(i) {
-                    Some(idx) => idx,
-                    None => break,
-                }
-            } else {
-                // Moving toward lower indices: tail is behind at higher indices.
-                let idx = head + i;
-                if idx >= n {
-                    break;
-                }
-                idx
-            };
-            buffer[tail_idx] = scale_brightness(self.color, brightness as u8);
-        }
+        draw_scanner_head(
+            buffer,
+            n,
+            self.position as usize,
+            self.forward,
+            self.color,
+            self.tail_length,
+            self.decay,
+        );
 
         Ok(())
     }
@@ -188,27 +168,10 @@ impl CylonEffect {
     /// Uses reflection arithmetic so that large `speed` values produce
     /// a sensible bounce rather than wrapping or panicking.
     fn advance(&mut self) {
-        let n = self.num_leds as isize;
-        let mut pos = self.position as isize;
-        let step = self.speed as isize;
-
-        if self.forward {
-            pos += step;
-            if pos >= n {
-                // Reflect off the top end; clamp to 0 in case step > 2*(n-1).
-                pos = (2 * (n - 1) - pos).max(0);
-                self.forward = false;
-            }
-        } else {
-            pos -= step;
-            if pos < 0 {
-                // Reflect off the bottom end; clamp to n-1 in case step > 2*(n-1).
-                pos = (-pos).min(n - 1);
-                self.forward = true;
-            }
-        }
-
-        self.position = pos as u8;
+        let (position, forward) =
+            scanner_bounce(self.position, self.forward, self.speed, self.num_leds);
+        self.position = position;
+        self.forward = forward;
     }
 }
 
