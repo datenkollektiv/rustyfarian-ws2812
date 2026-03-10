@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `ferriswheel`: `KnightRiderEffect` — dual-headed scanner where two heads start at opposite ends, sweep toward each other, cross in the middle, and reverse independently at each end; configurable color, speed, tail length, and decay
+- `hal_c6_knight_rider` and `idf_c6_knight_rider` examples for ESP32-C6
+
 ## [0.3.0] - 2026-03-10
 
 ### Added

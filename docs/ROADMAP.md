@@ -31,6 +31,8 @@ timeline
               : Twinkle / sparkle effect (done)
               : Fire effect (done)
               : Cylon / bouncing scanner (done)
+              : Knight Rider / dual-headed scanner
+              : Rainbow-fade tail
 
     Long term : Upstream contribution evaluation (after Adopt smart-leds color types)
               : embedded-graphics-core evaluation (after Upstream contribution evaluation)

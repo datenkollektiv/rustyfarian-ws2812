@@ -117,6 +117,77 @@ pub fn fill_solid(buffer: &mut [RGB8], color: RGB8) {
     }
 }
 
+/// Advances a scanner head one step using reflection arithmetic.
+///
+/// Returns the new `(position, forward)` pair. Large `speed` values are
+/// handled by clamping the reflected position rather than wrapping or panicking.
+pub(crate) fn scanner_bounce(
+    position: u8,
+    forward: bool,
+    speed: u8,
+    num_leds: usize,
+) -> (u8, bool) {
+    let n = num_leds as isize;
+    let mut pos = position as isize;
+    let step = speed as isize;
+    let mut fwd = forward;
+
+    if fwd {
+        pos += step;
+        if pos >= n {
+            // Reflect off the top end; clamp to 0 in case step > 2*(n-1).
+            pos = (2 * (n - 1) - pos).max(0);
+            fwd = false;
+        }
+    } else {
+        pos -= step;
+        if pos < 0 {
+            // Reflect off the bottom end; clamp to n-1 in case step > 2*(n-1).
+            pos = (-pos).min(n - 1);
+            fwd = true;
+        }
+    }
+
+    (pos as u8, fwd)
+}
+
+/// Draws a scanner head and its exponentially-decaying tail into `buffer`.
+pub(crate) fn draw_scanner_head(
+    buffer: &mut [RGB8],
+    num_leds: usize,
+    head: usize,
+    forward: bool,
+    color: RGB8,
+    tail_length: u8,
+    decay: u8,
+) {
+    buffer[head] = color;
+
+    let effective_tail = (tail_length as usize).min(num_leds - 1);
+    let mut brightness: u16 = 255;
+    for i in 1..=effective_tail {
+        brightness = brightness * decay as u16 / 255;
+        if brightness == 0 {
+            break;
+        }
+        let tail_idx = if forward {
+            // Moving toward higher indices: tail is behind at lower indices.
+            match head.checked_sub(i) {
+                Some(idx) => idx,
+                None => break,
+            }
+        } else {
+            // Moving toward lower indices: tail is behind at higher indices.
+            let idx = head + i;
+            if idx >= num_leds {
+                break;
+            }
+            idx
+        };
+        buffer[tail_idx] = scale_brightness(color, brightness as u8);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -322,5 +393,58 @@ mod tests {
         let mut buffer: [RGB8; 0] = [];
         fill_solid(&mut buffer, RGB8::new(10, 20, 30));
         // Should not panic
+    }
+
+    #[test]
+    fn test_scanner_bounce_reflects_at_top_boundary() {
+        assert_eq!(scanner_bounce(19, true, 1, 20), (18, false));
+    }
+
+    #[test]
+    fn test_scanner_bounce_reflects_at_bottom_boundary() {
+        assert_eq!(scanner_bounce(0, false, 1, 20), (1, true));
+    }
+
+    #[test]
+    fn test_scanner_bounce_clamps_large_steps() {
+        assert_eq!(scanner_bounce(5, true, 50, 20), (0, false));
+        assert_eq!(scanner_bounce(10, false, 255, 20), (19, true));
+    }
+
+    #[test]
+    fn test_draw_scanner_head_forward_trails_toward_lower_indices() {
+        let red = RGB8::new(255, 0, 0);
+        let mut buffer = [RGB8::default(); 10];
+        draw_scanner_head(&mut buffer, 10, 4, true, red, 3, 255);
+        assert_eq!(buffer[4], red);
+        assert_eq!(buffer[3], red);
+        assert_eq!(buffer[2], red);
+        assert_eq!(buffer[1], red);
+        assert_eq!(buffer[0], RGB8::default());
+        assert_eq!(buffer[5], RGB8::default());
+    }
+
+    #[test]
+    fn test_draw_scanner_head_backward_trails_toward_higher_indices() {
+        let blue = RGB8::new(0, 0, 255);
+        let mut buffer = [RGB8::default(); 10];
+        draw_scanner_head(&mut buffer, 10, 5, false, blue, 3, 255);
+        assert_eq!(buffer[5], blue);
+        assert_eq!(buffer[6], blue);
+        assert_eq!(buffer[7], blue);
+        assert_eq!(buffer[8], blue);
+        assert_eq!(buffer[4], RGB8::default());
+        assert_eq!(buffer[9], RGB8::default());
+    }
+
+    #[test]
+    fn test_draw_scanner_head_clamps_at_strip_boundary_and_applies_decay() {
+        let white = RGB8::new(255, 255, 255);
+        let mut buffer = [RGB8::default(); 10];
+        draw_scanner_head(&mut buffer, 10, 2, true, white, 5, 128);
+        assert_eq!(buffer[2], white);
+        assert_eq!(buffer[1], scale_brightness(white, 128));
+        assert_eq!(buffer[0], scale_brightness(white, 64));
+        assert_eq!(buffer[3], RGB8::default());
     }
 }

@@ -17,6 +17,7 @@
 //! - [`TwinkleEffect`] — ambient sparkle: random LEDs flash to peak brightness then decay
 //! - [`FireEffect`] — fire simulation: heat diffuses upward from a sparking base
 //! - [`CylonEffect`] — Cylon / bouncing scanner: bright head sweeps back and forth with fading tail
+//! - [`KnightRiderEffect`] — Knight Rider / dual-headed scanner: two heads sweep in opposite directions
 //! - [`ChaseEffect`] — moving a solid segment around the ring
 //! - [`FlashEffect`] — rapid on/off toggle with configurable duty cycle
 //! - [`ProgressEffect`] — proportional ring fill
@@ -60,6 +61,7 @@ mod effect;
 mod fire;
 mod flash;
 mod hsv;
+mod knight_rider;
 mod meteor;
 mod palette;
 mod progress;
@@ -79,6 +81,7 @@ pub use effect::{Direction, Effect, EffectError, MAX_LEDS};
 pub use fire::FireEffect;
 pub use flash::FlashEffect;
 pub use hsv::hsv_to_rgb;
+pub use knight_rider::KnightRiderEffect;
 pub use meteor::MeteorEffect;
 pub use palette::ColorPalette;
 pub use progress::ProgressEffect;
