@@ -6,87 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-03-10
+
 ### Added
 
-- `rustyfarian-esp-hal-ws2812`: `hal_c6_cylon` bare-metal example for ESP32-C6 (light-blue bouncing scanner, GPIO18)
-- `rustyfarian-esp-idf-ws2812`: `idf_c6_cylon` IDF example for ESP32-C6 (light-blue bouncing scanner, GPIO18)
-- `ferriswheel`: `CylonEffect` — Cylon / bouncing scanner; a bright head LED sweeps back and forth between the two ends, automatically reversing direction, with a multiplicatively-decaying tail that always trails behind the direction of travel; configurable `color`, `speed`, `tail_length`, `decay`, and live `set_color()`
-
-- `rustyfarian-esp-hal-ws2812`: `hal_c6_fire` bare-metal example for ESP32-C6 (flickering flame, GPIO18)
-- `rustyfarian-esp-idf-ws2812`: `idf_c6_fire` IDF example for ESP32-C6 (flickering flame, GPIO18)
-- `ferriswheel`: `FireEffect` — heat-map fire simulation; the base (index 0) ignites randomly each tick, heat diffuses upward toward the tip via a weighted three-point average, and each LED's temperature maps through a black → dark red → orange → white gradient; configurable `cooling` (higher = shorter flames), `sparking` (0 = off, 255 = always), and deterministic PRNG seed via `with_seed()`
-
-- `ferriswheel`: `TwinkleEffect` — ambient sparkle / starfield animation; random LEDs flash to peak brightness and decay independently each tick; configurable color, `max_brightness`, per-tick `decay`, `spawn_chance` (0 = never, 255 = always, 1–254 = probabilistic), and deterministic PRNG seed via `with_seed()`
-- `rustyfarian-esp-hal-ws2812`: `hal_c6_twinkle` bare-metal example for ESP32-C6 (blue-white starfield, GPIO18)
-- `rustyfarian-esp-idf-ws2812`: `idf_c6_twinkle` IDF example for ESP32-C6 (blue-white starfield, GPIO18)
-- `ferriswheel`: `MeteorEffect` — meteor / comet animation; a bright head LED travels around the ring with an exponentially-decaying tail that fades to black; configurable tail length, per-step `decay` factor, speed, direction, and live `set_color()`
-- `rustyfarian-esp-hal-ws2812`: `hal_c6_meteor` bare-metal example for ESP32-C6 (amber comet, GPIO18)
-- `rustyfarian-esp-idf-ws2812`: `idf_c6_meteor` IDF example for ESP32-C6 (amber comet, GPIO18)
-- `ferriswheel`: `RGB8` re-exported as `ferriswheel::RGB8`; downstream crates no longer need a direct `rgb` dependency
-- `ferriswheel`: `BreatheEffect` — smooth breathing animation using a full symmetric sine wave; brightness rises to the peak and descends without any pause at the floor, giving a continuous in-out rhythm distinct from `PulseEffect`'s heartbeat character
-- `ferriswheel`: `sine_full(phase: u8) -> u8` utility — full symmetric sine lookup (0→255→0 over the full 256-phase cycle, no zero plateau); exported alongside `sine_wave`
-- `rustyfarian-esp-hal-ws2812`: `smart_leds_trait::SmartLedsWrite` trait implementation with zero-allocation buffer-draining iterator support; error type is crate's `Error` enum, color type is `smart_leds_trait::RGB8`
-- `rustyfarian-esp-idf-ws2812`: `smart_leds_trait::SmartLedsWrite` trait implementation enabling use within the `smart-leds` ecosystem; error type is `anyhow::Error`, color type is `smart_leds_trait::RGB8`
-- `README.md`: IDF troubleshooting tip documenting `just clean-idf` for stale `sdkconfig.defaults` cache
-- `scripts/build-example.sh`, `scripts/run-example.sh`: progress output (`Building <example> for <target>...` / `Flashing <example> with bootloader <path>...`) so users can see what the script is doing at each step
-- `rustyfarian-esp-hal-ws2812`: `esp32` feature and `hal_esp32_pulse` bare-metal example for the ESP32-WROOM-32 (Xtensa LX6), using GPIO4 and the `xtensa-esp32-none-elf` target
-- `.cargo/config.toml`: `[target.xtensa-esp32-none-elf]` entry with `-Tlinkall.x` linker flag for bare-metal ESP32 builds
-- `justfile`: `build-example-esp32-hal` alias for `just build-example hal-ws2812 hal_esp32_pulse`
-- `rustyfarian-esp-hal-ws2812`: full WS2812 RMT driver for ESP32-C6 (`esp-hal 1.0.0`, bare-metal `no_std`); const-generic buffer `N = num_leds * 24 + 1`, `buffer_size()` const helper, `RMT_CLK_DIV` constant, `esp32c3`/`esp32c6`/`unstable`/`rt` features
-- `hal_c3_rainbow`, `hal_c3_pulse`, `hal_c6_rainbow`, `hal_c6_pulse` examples: complete 2×2 matrix of `RainbowEffect` and `PulseEffect` for ESP32-C3 (GPIO4) and ESP32-C6 (GPIO18) using the bare-metal esp-hal driver
-- `idf_c3_rainbow`, `idf_c3_pulse`, `idf_c6_rainbow`, `idf_c6_pulse` examples: matching 2×2 matrix using the ESP-IDF driver as a known-good hardware baseline; C3 examples use GPIO4, C6 examples use GPIO18
-- `idf_esp32_rainbow` and `idf_esp32_pulse` examples: IDF examples for Adafruit Feather ESP32 V2 (Xtensa); onboard NeoPixel on GPIO0, power enable on GPIO2 (`NEOPIXEL_I2C_POWER`); uses `cargo +esp` and `xtensa-esp32-espidf` target
-- `just build-example-c6` alias for `just build-example hal-ws2812 hal_c6_rainbow`
-- `just build-example-esp32` alias for `just build-example idf-ws2812 idf_esp32_rainbow`
-- `[target.xtensa-esp32-espidf]` added to `.cargo/config.toml` with `ldproxy` linker for Xtensa ESP32 IDF builds
-- `scripts/build-example.sh`, `scripts/run-example.sh`, `scripts/ensure-bootloader.sh`: `esp32` chip added alongside `c3` and `c6`; maps to `xtensa-esp32-espidf` target with `MCU=esp32`
-- `build.rs` in `rustyfarian-esp-idf-ws2812`: re-emits ESP-IDF link args via `embuild::espidf::sysenv::output()` so downstream examples link without their own `build.rs`
-- `just build-example <crate> <example>` and `just run-example <crate> <example>`: universal recipes; driver and chip auto-detected from the `{driver}_{chip}_{name}` naming convention
-- `just ensure-bootloader <chip>`: builds the IDF example cache on demand so the v5.3.3 bootloader is always available for both IDF and bare-metal flashing
-- `just flash` auto-detects the driver crate from the example name prefix (`hal_*` → `hal-ws2812`, `idf_*` → `idf-ws2812`)
-- `just check-hal` and `just clippy-hal` recipes for the bare-metal crate (no ESP-IDF toolchain required)
-- `[target.riscv32imc-esp-espidf]` in `.cargo/config.toml` with `ldproxy` linker for ESP32-C3 IDF builds
-- `-Tlinkall.x` linker flag for `riscv32imc-unknown-none-elf` and `riscv32imac-unknown-none-elf` targets in `.cargo/config.toml`
-
-### Removed
-
-- HAL rainbow examples (`hal_c3_rainbow`, `hal_c6_rainbow`) and IDF pulse examples (`idf_c3_pulse`, `idf_c6_pulse`, `idf_esp32_pulse`) removed to keep one example per driver per chip:
-  HAL crate uses `PulseEffect`; IDF crate uses `RainbowEffect`
+- `ferriswheel`: five new ring effects — `BreatheEffect`, `MeteorEffect`, `TwinkleEffect`, `FireEffect`, `CylonEffect` — plus `sine_full()` utility and `RGB8` re-export; `ferriswheel` now provides twelve effects in total
+- `rustyfarian-esp-hal-ws2812`: full bare-metal WS2812 RMT driver (`esp-hal 1.0.0`, `no_std`); targets ESP32-C3, ESP32-C6, and ESP32-WROOM-32
+- Both drivers implement `SmartLedsWrite` from `smart-leds-trait`, enabling `brightness()` and `gamma()` iterator adapters from the `smart-leds` ecosystem
+- 19 ready-to-run examples across ESP32-C3, ESP32-C6, and ESP32-WROOM-32 for both drivers; `just run <example>` and `just build-example <crate> <example>` automation
 
 ### Changed
 
-- `README.md`: examples table updated to match actual example set — removed stale entries (`hal_c3_rainbow`, `hal_c6_rainbow`, `idf_c3_pulse`, `idf_c6_pulse`, `idf_esp32_pulse`), added `hal_esp32_pulse`; example `just run` command updated to `hal_c6_pulse`
-- `rustyfarian-esp-hal-ws2812/Cargo.toml`: added comment on `esp-println` dev-dependency clarifying it is used only in `hal_c6_pulse` and the `esp32c6` feature selection is intentional
-- `rustyfarian-esp-hal-ws2812`: chip and `unstable` feature selection moved from the workspace root into the driver crate's own `[features]` (`esp32c6`, `unstable`);
-  the workspace only pins the version now, making the crate self-describing and easier to extend for future chips
+- `ferriswheel`: `FireEffect` gradient top stop changed from white to bright yellow; flames stay in the red → orange → yellow family
 
 ### Fixed
 
-- `scripts/run-example.sh`, `scripts/ensure-bootloader.sh`: replaced fragile `ls -t … | head -1` bootloader lookup with a bash array glob that exits with a clear error listing all candidates when multiple `esp-idf-sys-*` build directories exist, preventing silent selection of the wrong bootloader after a `cargo update` or dependency bump
-
-- `hal_c3_rainbow` example: `with_idle_output(false)` corrected to `with_idle_output(true)` to match the C6 example and satisfy the WS2812 reset condition (pin must be actively driven LOW between frames)
-
-- `hal_c3_rainbow` and `hal_c6_rainbow` examples: added `esp-bootloader-esp-idf` dependency and `esp_app_desc!()` invocation so the IDF v5.3.3 bootloader reads a valid app descriptor instead of garbage bytes at that offset;
-  fixes `boot_comm: Image requires efuse blk rev >= vX.Y, but chip is v0.3` boot loop
-- `rustyfarian-esp-hal-ws2812/Cargo.toml`: `esp32c6` and `esp32c3` features now forward to `esp-bootloader-esp-idf` chip features so the app descriptor is populated with the correct MMU page size for each target
-
-- `scripts/build-example.sh` and `scripts/run-example.sh`: HAL bare-metal examples now built with `--release` as strongly recommended by esp-hal; binary path updated from `debug/` to `release/`
-- `scripts/build-example.sh` and `scripts/run-example.sh`: `pkg` is now derived from the example name prefix, and `crate_alias` is validated against the derived value — mismatched combinations (e.g. `hal-ws2812` alias with an `idf_*` example) now fail immediately with a clear message instead of silently using the wrong package
-- `scripts/run-example.sh`: added a defensive check after HAL bootloader lookup — exits with a clear error and remediation hint if `$bl` is empty after `ensure-bootloader.sh`, rather than passing `--bootloader ""` to espflash
-- `scripts/ensure-bootloader.sh` and `scripts/run-example.sh`: use `ls -t` to select the most recently modified `esp-idf-sys` build directory, avoiding stale artifacts when multiple build hashes coexist
-- `idf_c3_rainbow` example: `NUM_LEDS` corrected from `24` to `12` to match the 12-LED ring stated in the wiring documentation
-- `docs/key-insights.md`: tightened five insight descriptions to be less absolute and avoid future misinterpretation:
-  - link-arg propagation insight reworded around "final crate" rather than blanket "does not propagate"
-  - `sdkconfig.defaults` insight notes the special case applies only when the file is introduced for the first time
-  - C3/C6 target-mismatch insight softened from "compiles but wrong" to "may compile far enough to produce an invalid image"
-  - espflash bootloader insight now includes an explicit "re-verify if upgrading espflash or ESP-IDF" guardrail
-  - stack-overflow explanation rephrased to avoid the imprecise "compiler does not reuse stack frames"
-- `hal_c3_rainbow` and `hal_c6_rainbow` examples: inline comment added above `#[panic_handler]` noting it is minimal and should be replaced for real applications
-
-- `sdkconfig.defaults` added to workspace root with `CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192`:
-  the default 3584-byte main task stack overflows in debug builds when `set_pixels_slice`
-  iterates over 12 LEDs, because `color_to_pulses` returns `[Pulse; 48]` (~192 bytes) on
-  the stack per LED and the unoptimized compiler does not reuse stack frames across iterations
+- Flashing reliability: `run-example` always uses the correct v5.3.3 bootloader; bare-metal examples now include `esp_app_desc!()` to prevent boot loop; `sdkconfig.defaults` raises the main task stack to 8 KB to prevent stack overflow with 12+ LEDs in debug builds
 
 ## [0.2.0] - 2026-03-01
 
