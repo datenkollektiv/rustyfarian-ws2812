@@ -49,27 +49,40 @@ See [Why Yet Another WS2812 Crate?](docs/why-yet-another-ws2812-crate.md) for th
 
 ## Crates
 
-| Crate                                                             | Description                                                                                                   | Target              |
-|:------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|:--------------------|
-| [`ferriswheel`](crates/ferriswheel)                               | RGB LED ring animations (rainbow, pulse, breathe, spinner, meteor, twinkle, chase, flash, progress, sections) | `no_std` compatible |
-| [`led-effects`](crates/led-effects)                               | LED status effects (pulse, simple LED adapter)                                                                | `no_std` compatible |
-| [`ws2812-pure`](crates/ws2812-pure)                               | Pure Rust WS2812 utilities (color conversion, bit encoding)                                                   | `no_std` compatible |
-| [`rustyfarian-esp-idf-ws2812`](crates/rustyfarian-esp-idf-ws2812) | WS2812 driver using ESP-IDF RMT peripheral                                                                    | ESP-IDF (std)       |
-| [`rustyfarian-esp-hal-ws2812`](crates/rustyfarian-esp-hal-ws2812) | WS2812 driver using esp-hal RMT peripheral                                                                    | esp-hal (no_std)    |
+| Crate                                                             | Description                                                                                                                | Target              |
+|:------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------|:--------------------|
+| [`ferriswheel`](crates/ferriswheel)                               | RGB LED ring animations (rainbow, pulse, breathe, spinner, meteor, twinkle, fire, cylon, chase, flash, progress, sections) | `no_std` compatible |
+| [`led-effects`](crates/led-effects)                               | LED status effects (pulse, simple LED adapter)                                                                             | `no_std` compatible |
+| [`ws2812-pure`](crates/ws2812-pure)                               | Pure Rust WS2812 utilities (color conversion, bit encoding)                                                                | `no_std` compatible |
+| [`rustyfarian-esp-idf-ws2812`](crates/rustyfarian-esp-idf-ws2812) | WS2812 driver using ESP-IDF RMT peripheral                                                                                 | ESP-IDF (std)       |
+| [`rustyfarian-esp-hal-ws2812`](crates/rustyfarian-esp-hal-ws2812) | WS2812 driver using esp-hal RMT peripheral                                                                                 | esp-hal (no_std)    |
 
 ## Examples
 
 The project includes ready-to-run examples for ESP32-C3 and ESP32-C6 using both drivers.
 Each example name encodes the driver, chip, and effect: `{driver}_{chip}_{effect}`.
 
-| Example             | Driver           | Board / Chip              | Effect     | Data GPIO | Notes                |
-|:--------------------|:-----------------|:--------------------------|:-----------|:----------|:---------------------|
-| `hal_c3_pulse`      | esp-hal (no_std) | ESP32-C3                  | Blue Pulse | GPIO4     |                      |
-| `hal_c6_pulse`      | esp-hal (no_std) | ESP32-C6                  | Blue Pulse | GPIO18    |                      |
-| `hal_esp32_pulse`   | esp-hal (no_std) | ESP32-WROOM-32            | Blue Pulse | GPIO4     |                      |
-| `idf_c3_rainbow`    | ESP-IDF (std)    | ESP32-C3                  | Rainbow    | GPIO4     |                      |
-| `idf_c6_rainbow`    | ESP-IDF (std)    | ESP32-C6                  | Rainbow    | GPIO18    |                      |
-| `idf_esp32_rainbow` | ESP-IDF (std)    | Adafruit Feather ESP32 V2 | Rainbow    | GPIO0     | GPIO2 = power enable |
+| Example                 | Driver           | Board / Chip              | Effect                 | Data GPIO | Notes                     |
+|:------------------------|:-----------------|:--------------------------|:-----------------------|:----------|:--------------------------|
+| `hal_c3_pulse`          | esp-hal (no_std) | ESP32-C3                  | Pulse                  | GPIO4     |                           |
+| `hal_c6_pulse`          | esp-hal (no_std) | ESP32-C6                  | Pulse                  | GPIO18    |                           |
+| `hal_esp32_pulse`       | esp-hal (no_std) | ESP32-WROOM-32            | Pulse                  | GPIO4     |                           |
+| `hal_c6_breathe_color`  | esp-hal (no_std) | ESP32-C6                  | Breathe (hue cycling)  | GPIO18    |                           |
+| `hal_c6_meteor`         | esp-hal (no_std) | ESP32-C6                  | Meteor / comet         | GPIO18    |                           |
+| `hal_c6_twinkle`        | esp-hal (no_std) | ESP32-C6                  | Twinkle / starfield    | GPIO18    |                           |
+| `hal_c6_fire`           | esp-hal (no_std) | ESP32-C6                  | Fire                   | GPIO18    |                           |
+| `hal_c6_cylon`          | esp-hal (no_std) | ESP32-C6                  | Cylon / scanner        | GPIO18    |                           |
+| `hal_c6_smart_leds`     | esp-hal (no_std) | ESP32-C6                  | smart-leds interop     | GPIO18    | `--features smart-leds`   |
+| `idf_c3_rainbow`        | ESP-IDF (std)    | ESP32-C3                  | Rainbow                | GPIO4     |                           |
+| `idf_c6_rainbow`        | ESP-IDF (std)    | ESP32-C6                  | Rainbow                | GPIO18    |                           |
+| `idf_esp32_rainbow`     | ESP-IDF (std)    | Adafruit Feather ESP32 V2 | Rainbow                | GPIO0     | GPIO2 = power enable      |
+| `idf_c6_breathe_color`  | ESP-IDF (std)    | ESP32-C6                  | Breathe (hue cycling)  | GPIO18    |                           |
+| `idf_c6_effects`        | ESP-IDF (std)    | ESP32-C6                  | Multi-effect sequence  | GPIO18    |                           |
+| `idf_c6_meteor`         | ESP-IDF (std)    | ESP32-C6                  | Meteor / comet         | GPIO18    |                           |
+| `idf_c6_twinkle`        | ESP-IDF (std)    | ESP32-C6                  | Twinkle / starfield    | GPIO18    |                           |
+| `idf_c6_fire`           | ESP-IDF (std)    | ESP32-C6                  | Fire                   | GPIO18    |                           |
+| `idf_c6_cylon`          | ESP-IDF (std)    | ESP32-C6                  | Cylon / scanner        | GPIO18    |                           |
+| `idf_c6_smart_leds`     | ESP-IDF (std)    | ESP32-C6                  | smart-leds interop     | GPIO18    | `--features smart-leds`   |
 
 Flash and open the serial monitor on a connected board:
 
@@ -128,7 +141,7 @@ driver.set_pixel(RGB8::new(255, 0, 0))?;
 let mut pulse = PulseEffect::new();
 loop {
     let color = pulse.update((0, 0, 255));
-    driver.set_pixel(0, color)?;
+    driver.set_pixel(color)?;
     // delay...
 }
 ```
@@ -152,7 +165,7 @@ let mut buffer = [RGB8::default(); 12];
 
 loop {
     rainbow.update(&mut buffer)?;
-    driver.set_pixels(&buffer)?;
+    driver.set_pixels_slice(&buffer)?;
     // delay...
 }
 ```

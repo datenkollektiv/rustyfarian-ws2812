@@ -59,6 +59,10 @@ name = "hal_c6_twinkle"
 required-features = ["esp32c6", "rt"]
 
 [[example]]
+name = "hal_c6_cylon"
+required-features = ["esp32c6", "rt"]
+
+[[example]]
 name = "hal_c6_fire"
 required-features = ["esp32c6", "rt"]
 

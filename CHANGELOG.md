@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `rustyfarian-esp-hal-ws2812`: `hal_c6_cylon` bare-metal example for ESP32-C6 (light-blue bouncing scanner, GPIO18)
+- `rustyfarian-esp-idf-ws2812`: `idf_c6_cylon` IDF example for ESP32-C6 (light-blue bouncing scanner, GPIO18)
+- `ferriswheel`: `CylonEffect` — Cylon / bouncing scanner; a bright head LED sweeps back and forth between the two ends, automatically reversing direction, with a multiplicatively-decaying tail that always trails behind the direction of travel; configurable `color`, `speed`, `tail_length`, `decay`, and live `set_color()`
+
 - `rustyfarian-esp-hal-ws2812`: `hal_c6_fire` bare-metal example for ESP32-C6 (flickering flame, GPIO18)
 - `rustyfarian-esp-idf-ws2812`: `idf_c6_fire` IDF example for ESP32-C6 (flickering flame, GPIO18)
 - `ferriswheel`: `FireEffect` — heat-map fire simulation; the base (index 0) ignites randomly each tick, heat diffuses upward toward the tip via a weighted three-point average, and each LED's temperature maps through a black → dark red → orange → white gradient; configurable `cooling` (higher = shorter flames), `sparking` (0 = off, 255 = always), and deterministic PRNG seed via `with_seed()`
