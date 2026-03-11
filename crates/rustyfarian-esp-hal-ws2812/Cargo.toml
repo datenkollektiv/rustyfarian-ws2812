@@ -17,6 +17,9 @@ ws2812-pure.workspace = true
 smart-leds-trait = { workspace = true, default-features = false }
 led-effects = { workspace = true, optional = true }
 smart-leds = { workspace = true, optional = true }
+esp-rtos = { workspace = true, optional = true }
+embassy-time = { workspace = true, optional = true }
+embassy-executor = { workspace = true, optional = true }
 
 [dev-dependencies]
 ferriswheel = { workspace = true }
@@ -26,13 +29,14 @@ esp-println = { workspace = true, features = ["esp32c6", "jtag-serial"] }
 
 [features]
 default = ["esp32c6", "unstable", "led-effects"]
-esp32c6 = ["esp-hal/esp32c6", "esp-bootloader-esp-idf/esp32c6"]
-esp32c3 = ["esp-hal/esp32c3", "esp-bootloader-esp-idf/esp32c3"]
-esp32   = ["esp-hal/esp32",   "esp-bootloader-esp-idf/esp32"]
+esp32c6 = ["esp-hal/esp32c6", "esp-bootloader-esp-idf/esp32c6", "esp-rtos?/esp32c6"]
+esp32c3 = ["esp-hal/esp32c3", "esp-bootloader-esp-idf/esp32c3", "esp-rtos?/esp32c3"]
+esp32   = ["esp-hal/esp32",   "esp-bootloader-esp-idf/esp32",   "esp-rtos?/esp32"]
 unstable = ["esp-hal/unstable"]
 led-effects = ["dep:led-effects"]
 smart-leds = ["dep:smart-leds"]
 rt = ["esp-hal/rt"]
+async = ["dep:esp-rtos", "dep:embassy-time", "dep:embassy-executor", "esp-hal/unstable", "esp-rtos/embassy"]
 
 [[example]]
 name = "hal_c3_pulse"
@@ -77,3 +81,7 @@ required-features = ["esp32c6", "rt"]
 [[example]]
 name = "hal_c6_smart_leds"
 required-features = ["esp32c6", "rt", "smart-leds"]
+
+[[example]]
+name = "hal_c6_rainbow_comet_async"
+required-features = ["esp32c6", "rt", "async"]

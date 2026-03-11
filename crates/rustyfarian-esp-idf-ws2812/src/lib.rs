@@ -32,7 +32,6 @@ use anyhow::Result;
 use core::time::Duration;
 use esp_idf_hal::{
     gpio::OutputPin,
-    peripheral::Peripheral,
     rmt::{
         config::TransmitConfig, FixedLengthSignal, PinState, Pulse, RmtChannel, TxRmtDriver,
         VariableLengthSignal,
@@ -62,10 +61,7 @@ impl<'d> WS2812RMT<'d> {
     /// ```ignore
     /// let mut led = WS2812RMT::new(peripherals.pins.gpio8, peripherals.rmt.channel0)?;
     /// ```
-    pub fn new(
-        led: impl Peripheral<P = impl OutputPin> + 'd,
-        channel: impl Peripheral<P = impl RmtChannel> + 'd,
-    ) -> Result<Self> {
+    pub fn new(led: impl OutputPin + 'd, channel: impl RmtChannel + 'd) -> Result<Self> {
         let config = TransmitConfig::new().clock_divider(2);
         let tx = TxRmtDriver::new(channel, led, &config)?;
         Ok(Self { tx_rmt_driver: tx })
