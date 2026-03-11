@@ -250,8 +250,8 @@ mod tests {
             effect.update(&mut buffer).unwrap();
             let brightness = buffer[0].r.max(buffer[0].g).max(buffer[0].b);
             assert!(
-                brightness <= 201,
-                "brightness {} should be <= 200 (allowing rounding)",
+                brightness <= 200,
+                "brightness {} should be <= 200",
                 brightness
             );
         }
@@ -273,8 +273,8 @@ mod tests {
             effect.update(&mut buffer).unwrap();
             let brightness = buffer[0].r.max(buffer[0].g).max(buffer[0].b);
             assert!(
-                brightness >= 99,
-                "brightness {} should be >= min 100 (allowing rounding)",
+                brightness >= 100,
+                "brightness {} should be >= min 100",
                 brightness
             );
         }
@@ -295,8 +295,8 @@ mod tests {
             effect.update(&mut buffer).unwrap();
             let brightness = buffer[0].r.max(buffer[0].g).max(buffer[0].b);
             assert!(
-                brightness <= 101,
-                "brightness {} should be <= max 100 (allowing rounding)",
+                brightness <= 100,
+                "brightness {} should be <= max 100",
                 brightness
             );
         }
