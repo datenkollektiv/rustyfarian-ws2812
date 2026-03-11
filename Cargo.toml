@@ -26,7 +26,7 @@ esp-idf-hal = { version = "0.46", features = ["rmt-legacy"] }
 # matrix APIs we rely on; patch bumps can break that surface silently.
 # Chip selection and "unstable" are forwarded via features in the driver crate.
 esp-hal = { version = "1.0.0" }
-# App descriptor required for IDF bootloader compatibility; chip feature forwarded from driver crate.
+# App descriptor required for IDF bootloader compatibility; chip feature forwarded from the driver crate.
 esp-bootloader-esp-idf = { version = "0.4.0", default-features = false }
 # Bare-metal serial output via USB-JTAG ROM; no esp-hal dependency.
 esp-println = { version = "0.16", default-features = false }

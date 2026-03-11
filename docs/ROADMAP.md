@@ -5,7 +5,7 @@
 This roadmap is informed by the [ecosystem comparison](ecosystem-comparison.md) conducted in February 2026.
 Items are grouped by theme and ordered roughly by impact and dependency.
 Vision review (March 2026) refocused near-term priority on `NoLed` → `esp-hal` driver → ecosystem integration.
-`NoLed`, the `esp-hal` driver, `SmartLedsWrite`, `BreatheEffect`, `MeteorEffect`, `TwinkleEffect`, `FireEffect`, `CylonEffect`, and `KnightRiderEffect` are now complete; mid-term focus shifts to `Rainbow-fade tail`.
+`NoLed`, the `esp-hal` driver, `SmartLedsWrite`, `BreatheEffect`, `MeteorEffect`, `TwinkleEffect`, `FireEffect`, `CylonEffect`, `KnightRiderEffect`, and `RainbowCometEffect` are now complete; mid-term focus shifts to long-term strategic items.
 
 ```mermaid
 %%{init: {
@@ -32,7 +32,7 @@ timeline
               : Fire effect (done)
               : Cylon / bouncing scanner (done)
               : Knight Rider / dual-headed scanner (done)
-              : Rainbow-fade tail
+              : RainbowCometEffect (done)
 
     Long term : Upstream contribution evaluation (after Adopt smart-leds color types)
               : embedded-graphics-core evaluation (after Upstream contribution evaluation)
@@ -45,7 +45,7 @@ timeline
 
 `SmartLedsWrite` is now implemented in both `rustyfarian-esp-hal-ws2812` and `rustyfarian-esp-idf-ws2812`,
 enabling use of the `brightness()` and `gamma()` iterator adapters from the `smart-leds` crate without any conversion code.
-See the [Unreleased] CHANGELOG entry for details.
+See the v0.3.0 CHANGELOG entry for details.
 
 </details>
 
@@ -104,8 +104,8 @@ See the v0.2.0 CHANGELOG entry for details.
 
 ## Animation Effects (`ferriswheel`)
 
-The current `ferriswheel` crate provides thirteen well-tested, ring-specific effects:
-`RainbowEffect`, `PulseEffect`, `BreatheEffect`, `SpinnerEffect`, `MeteorEffect`, `TwinkleEffect`, `FireEffect`, `CylonEffect`, `KnightRiderEffect`, `ChaseEffect`, `FlashEffect`, `ProgressEffect`, and `SectionEffect`.
+The current `ferriswheel` crate provides more than a dozen well-tested, ring-specific effects:
+`RainbowEffect`, `PulseEffect`, `BreatheEffect`, `SpinnerEffect`, `MeteorEffect`, `TwinkleEffect`, `FireEffect`, `CylonEffect`, `KnightRiderEffect`, `ChaseEffect`, `FlashEffect`, `ProgressEffect`, `SectionEffect`, and `RainbowCometEffect`.
 The ecosystem survey identified the following as good candidates for the backlog —
 each would need ring-geometry-aware implementation and full test coverage.
 
@@ -188,10 +188,10 @@ Note: `ChaseEffect` already covers unidirectional scanning; this adds the auto-b
 Two `CylonEffect`-style heads travel in opposite directions, crossing in the middle and reversing independently at each end.
 `KnightRiderEffect` is a dedicated struct sharing the `draw_scanner_head` and `scanner_bounce` utilities extracted to `util.rs` alongside `CylonEffect`.
 
-### Rainbow-fade tail
+### Rainbow-fade tail / `RainbowCometEffect` ✓ done
 
-A scanner or comet variant where the tail cycles through hue rather than fading to black — each tail LED is offset in hue from the previous one.
-Could be a standalone `RainbowCometEffect` or a `with_rainbow_tail()` builder option on `MeteorEffect`/`CylonEffect`; the standalone effect is simpler to test and document.
+A scanner where the tail cycles through hue rather than fading to black — each tail LED is offset in hue from the previous one.
+Implemented as the standalone `RainbowCometEffect` struct in `ferriswheel`.
 
 ---
 
