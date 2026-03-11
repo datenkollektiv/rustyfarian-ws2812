@@ -33,6 +33,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- `ferriswheel`: `BreatheEffect` and `PulseEffect` clamp via `u8::min`/`u8::max` before range arithmetic, preventing underflow when `min_brightness > max_brightness`
+- `ferriswheel`: `PulseEffect::set_color` rustdoc renamed "breathing cycle" to "pulse cycle"
 - Flashing reliability: `run-example` always uses the correct v5.3.3 bootloader; bare-metal examples now include `esp_app_desc!()` to prevent boot loop; `sdkconfig.defaults` raises the main task stack to 8 KB to prevent stack overflow with 12+ LEDs in debug builds
 
 ## [0.2.0] - 2026-03-01
