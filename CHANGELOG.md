@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- `rustyfarian-esp-idf-ws2812`: migrated from legacy RMT API (`rmt-legacy` feature) to new `esp-idf-hal 0.46` RMT API using `BytesEncoder`; `WS2812RMT::new()` no longer requires an `RmtChannel` parameter (**breaking**)
 - `rustyfarian-esp-hal-ws2812`: `Ws2812Rmt` gains a `Dm: DriverMode` type parameter (`Ws2812Rmt<'d, Dm, N>`); existing blocking code can use the `Ws2812RmtBlocking<'d, N>` type alias or write `Ws2812Rmt<'d, Blocking, N>` directly
 
 ## [0.3.0] - 2026-03-10

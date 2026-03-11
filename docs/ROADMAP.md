@@ -20,9 +20,10 @@ Completed items have been moved to the [CHANGELOG](../CHANGELOG.md).
 timeline
     title Fuzzy Rustyfarian WS2812 Roadmap
 
-    Near term : Migrate esp-idf-ws2812 from legacy RMT API
+    Near term : ~~Migrate esp-idf-ws2812 from legacy RMT API~~ ✅
 
-    Mid term  : Guard against rgb version divergence
+    Mid term  : Remove send_and_wait workaround (esp-idf-hal fix)
+              : Guard against rgb version divergence
 
     Long term : Upstream contribution evaluation
               : embedded-graphics-core evaluation
@@ -45,18 +46,23 @@ Purely defensive — not urgent until `smart-leds-trait` signals an `rgb` bump.
 
 ## Hardware Driver Improvements
 
-### Migrate `rustyfarian-esp-idf-ws2812` from legacy RMT API to new `esp-idf-hal` RMT API
+### ~~Migrate `rustyfarian-esp-idf-ws2812` from legacy RMT API to new `esp-idf-hal` RMT API~~ — Done
 
-The driver currently uses `esp-idf-hal 0.46` with `features = ["rmt-legacy"]`, enabling
-deprecated types: `TransmitConfig`, `TxRmtDriver`, `FixedLengthSignal`,
-`VariableLengthSignal`, `Pulse`, `PinState`.
-Disabling `rmt-legacy` activates the new RMT API; the driver must be rewritten to use it.
+Completed: migrated from `rmt-legacy` to new `esp-idf-hal 0.46` RMT API using `BytesEncoder`.
+See [CHANGELOG](../CHANGELOG.md) `[Unreleased]` for details.
 
-- **Scope**: `crates/rustyfarian-esp-idf-ws2812/src/lib.rs` (~60 lines of RMT logic),
-  the workspace `Cargo.toml` (`rmt-legacy` feature removal), and all 12 IDF examples
-- **Prerequisite**: research the new `esp-idf-hal 0.46` RMT API surface (signal types,
-  configuration, transmission methods) — assign to `research-analyst`
-- **Risk**: WS2812 timing is sensitive; must verify signal integrity on hardware after migration
+### Remove `send_and_wait` workaround when `esp-idf-hal` fixes `EncoderWrapper`
+
+`esp-idf-hal 0.46.2` has a bug in `EncoderWrapper`: the `From<rmt_encode_state_t>` conversion
+panics on bitwise-OR'd flag values (e.g. `COMPLETE | MEM_FULL = 0x03`) that the C encoder
+legitimately returns.
+Since the encode callback runs in ISR context, the panic triggers `abort()`.
+We work around this by using `start_send` + `wait_all_done` directly with the C-side
+`BytesEncoder`, bypassing the Rust `EncoderWrapper` entirely.
+When a future `esp-idf-hal` release fixes this (likely by treating `rmt_encode_state_t` as
+a bitfield rather than an enum), switch back to `send_and_wait` and remove the `transmit_bytes`
+helper and its `unsafe` block.
+Track: [esp-idf-hal GitHub issues](https://github.com/esp-rs/esp-idf-hal/issues).
 
 ---
 
