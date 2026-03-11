@@ -103,6 +103,21 @@ Fix: use `peripherals.GPIO4` for C3 examples and `peripherals.GPIO18` for C6 exa
 
 ## ESP-IDF Runtime
 
+**`esp-idf-hal 0.46.2` `send_and_wait` panics in ISR context due to a bug in `EncoderWrapper`'s `From<rmt_encode_state_t>` conversion.**
+The C RMT encoder returns bitwise-OR'd flag values (e.g. `RMT_ENCODING_COMPLETE | RMT_ENCODING_MEM_FULL = 0x03`).
+The Rust `From<rmt_encode_state_t>` in `encoder.rs` only matches individual values (`0x00`, `0x01`, `0x02`) and panics on the `_` arm for any combined value.
+The `send_and_wait` method wraps even C-native encoders like `BytesEncoder` in a Rust `EncoderWrapper` (via `into_raw`), inserting a Rust callback in the ISR path.
+When the C encoder returns a combined state, the Rust callback panics in ISR context; the panic handler tries to print via `usb_serial_jtag_write`, which calls `_lock_acquire_recursive`, which aborts because recursive mutexes are illegal in ISR context.
+Symptom: `abort() was called at PC 0x...` with stack trace showing `lock_acquire_generic` → `usb_serial_jtag_write` → `esp_vfs_write`.
+Decoded via: `riscv32-esp-elf-addr2line -pfiaC -e target/.../examples/idf_c6_rainbow 0x40801e7d ...`
+Fix: use `start_send` + `wait_all_done` directly with `BytesEncoder` (a `RawEncoder`), bypassing the `EncoderWrapper`.
+This passes the C encoder handle directly to `rmt_transmit`, so the ISR calls the C encode function with no Rust wrapper.
+
+**The new RMT API (`TxChannelDriver`) registers ISR callbacks via `rmt_tx_register_event_callbacks`, requiring a larger FreeRTOS ISR stack than the legacy API.**
+The default `CONFIG_FREERTOS_ISR_STACKSIZE=1536` overflows with the new API's callback overhead.
+Symptom: `Guru Meditation Error: Stack protection fault` immediately after `WS2812RMT::new()` succeeds.
+Fix: add `CONFIG_FREERTOS_ISR_STACKSIZE=4096` to `sdkconfig.defaults` and clean the IDF build cache.
+
 **The default ESP-IDF main task stack (3584 bytes) overflows in debug builds when `set_pixels_slice` loops over 12+ WS2812 LEDs.**
 `color_to_pulses` in `rustyfarian-esp-idf-ws2812` returns `[Pulse; 48]` (~192 bytes) per LED on the stack.
 Debug builds retain larger temporaries and do not optimise stack usage, so 12 LEDs consumes ~2300+ bytes just for pulse arrays before accounting for other frames.

@@ -49,7 +49,7 @@ fn main() -> anyhow::Result<()> {
     let peripherals = esp_idf_hal::peripherals::Peripherals::take()?;
 
     const NUM_LEDS: usize = 12;
-    let mut ws = WS2812RMT::new(peripherals.pins.gpio18, peripherals.rmt.channel0)?;
+    let mut ws = WS2812RMT::new(peripherals.pins.gpio18)?;
     let mut effect = FireEffect::new(NUM_LEDS)
         .unwrap()
         .with_cooling(55)

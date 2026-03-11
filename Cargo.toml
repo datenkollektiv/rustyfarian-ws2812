@@ -11,7 +11,7 @@ repository = "https://github.com/datenkollektiv/rustyfarian-ws2812"
 [workspace.dependencies]
 # External dependencies
 anyhow = "1.0"
-rgb = "0.8"
+rgb = "0.8.53"
 smart-leds-trait = { version = "^0.3.2", default-features = false }
 smart-leds = "0.4.0"
 
@@ -21,7 +21,7 @@ led-effects = { path = "crates/led-effects" }
 ws2812-pure = { path = "crates/ws2812-pure" }
 
 # ESP32 dependencies
-esp-idf-hal = { version = "0.46", features = ["rmt-legacy"] }
+esp-idf-hal = { version = "0.46" }
 # Pinned to exact 1.0.0: the "unstable" feature gate covers RMT and the GPIO
 # matrix APIs we rely on; patch bumps can break that surface silently.
 # Chip selection and "unstable" are forwarded via features in the driver crate.

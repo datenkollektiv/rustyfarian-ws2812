@@ -19,9 +19,9 @@ _default:
 build:
     cargo build {{ pure_crates }} --target {{ host_target }}
 
-# build all crates including ESP-IDF (requires espup)
+# build all crates including ESP-IDF (requires espup; does NOT cover rustyfarian-esp-hal-ws2812 — use check-hal)
 build-all:
-    cargo build
+    cargo +esp build --workspace --exclude rustyfarian-esp-hal-ws2812
 
 # check platform-independent crates (no ESP toolchain required)
 check:
@@ -29,7 +29,11 @@ check:
 
 # check all crates including ESP-IDF (requires espup; does NOT cover rustyfarian-esp-hal-ws2812 — use check-hal)
 check-all:
-    cargo check
+    cargo +esp check --workspace --exclude rustyfarian-esp-hal-ws2812
+
+# check only the ESP-IDF driver crate (requires espup)
+check-idf:
+    cargo +esp check -p rustyfarian-esp-idf-ws2812
 
 # check the esp-hal bare-metal driver (requires: rustup target add riscv32imac-unknown-none-elf)
 check-hal:
@@ -96,7 +100,11 @@ clippy:
 
 # run clippy on all crates including ESP-IDF (requires espup; does NOT cover rustyfarian-esp-hal-ws2812 — use clippy-hal)
 clippy-all:
-    cargo clippy -- -D warnings
+    cargo +esp clippy --workspace --exclude rustyfarian-esp-hal-ws2812 -- -D warnings
+
+# run clippy on only the ESP-IDF driver crate (requires espup)
+clippy-idf:
+    cargo +esp clippy -p rustyfarian-esp-idf-ws2812 -- -D warnings
 
 # run clippy on the esp-hal bare-metal driver (requires: rustup target add riscv32imac-unknown-none-elf)
 clippy-hal:

@@ -13,7 +13,7 @@
 //! use rustyfarian_esp_idf_ws2812::WS2812RMT;
 //! use rgb::RGB8;
 //!
-//! let mut led = WS2812RMT::new(peripherals.pins.gpio8, peripherals.rmt.channel0)?;
+//! let mut led = WS2812RMT::new(peripherals.pins.gpio8)?;
 //!
 //! led.set_pixel(RGB8::new(255, 0, 0))?;
 //!
@@ -28,14 +28,19 @@
 //! - ESP32-C3-DevKitC-02: GPIO8
 //! - ESP32-C6-DevKitC-1: GPIO8
 
+// Requires esp-idf-hal 0.46+ for TxChannelDriver and BytesEncoder.
+// Uses a workaround for send_and_wait bug present in 0.46.2
+// (see transmit_bytes and ROADMAP.md).
 use anyhow::Result;
 use core::time::Duration;
 use esp_idf_hal::{
     gpio::OutputPin,
     rmt::{
-        config::TransmitConfig, FixedLengthSignal, PinState, Pulse, RmtChannel, TxRmtDriver,
-        VariableLengthSignal,
+        config::{TransmitConfig, TxChannelConfig},
+        encoder::{BytesEncoder, BytesEncoderConfig},
+        PinState, Pulse, Symbol, TxChannelDriver,
     },
+    units::Hertz,
 };
 use rgb::RGB8;
 use ws2812_pure::rgb_to_grb;
@@ -44,8 +49,51 @@ use ws2812_pure::rgb_to_grb;
 ///
 /// The RMT peripheral provides precise timing control needed for the
 /// WS2812 protocol without CPU intervention.
+///
+/// # Example
+///
+/// ```ignore
+/// use rustyfarian_esp_idf_ws2812::WS2812RMT;
+/// use rgb::RGB8;
+///
+/// let peripherals = esp_idf_hal::peripherals::Peripherals::take()?;
+/// let mut led = WS2812RMT::new(peripherals.pins.gpio8)?;
+///
+/// led.set_pixel(RGB8::new(255, 0, 0))?;
+///
+/// let colors = [RGB8::new(255, 0, 0), RGB8::new(0, 255, 0), RGB8::new(0, 0, 255)];
+/// led.set_pixels_slice(&colors)?;
+/// ```
 pub struct WS2812RMT<'a> {
-    tx_rmt_driver: TxRmtDriver<'a>,
+    tx: TxChannelDriver<'a>,
+    encoder_config: BytesEncoderConfig,
+}
+
+/// Transmits bytes using the C-side `BytesEncoder` directly, bypassing
+/// `send_and_wait` which wraps the encoder in a Rust `EncoderWrapper`.
+///
+/// The `EncoderWrapper` callback converts `rmt_encode_state_t` via a Rust
+/// `match` that panics on bitwise-OR'd flag values (e.g. `COMPLETE | MEM_FULL
+/// = 0x03`). Since the encode callback runs in ISR context, the panic triggers
+/// `abort()` when the panic handler tries to acquire a recursive mutex.
+///
+/// Using `start_send` + `wait_all_done` passes the C encoder handle directly
+/// to `rmt_transmit`, so the ISR calls the C encode function with no Rust
+/// wrapper in the path.
+// TODO: Switch back to send_and_wait when esp-idf-hal fixes EncoderWrapper
+// to handle bitwise-OR'd rmt_encode_state_t flags. See ROADMAP.md.
+fn transmit_bytes(
+    tx: &mut TxChannelDriver<'_>,
+    encoder_config: &BytesEncoderConfig,
+    bytes: &[u8],
+) -> Result<()> {
+    let mut encoder = BytesEncoder::with_config(encoder_config)?;
+    // SAFETY: `encoder` and `bytes` live until `wait_all_done` returns.
+    unsafe {
+        tx.start_send(&mut encoder, bytes, &TransmitConfig::default())?;
+    }
+    tx.wait_all_done(None)?;
+    Ok(())
 }
 
 impl<'d> WS2812RMT<'d> {
@@ -54,57 +102,42 @@ impl<'d> WS2812RMT<'d> {
     /// # Arguments
     ///
     /// * `led` - GPIO pin connected to the LED data line
-    /// * `channel` - RMT channel to use for transmission
     ///
     /// # Example
     ///
     /// ```ignore
-    /// let mut led = WS2812RMT::new(peripherals.pins.gpio8, peripherals.rmt.channel0)?;
+    /// let mut led = WS2812RMT::new(peripherals.pins.gpio8)?;
     /// ```
-    pub fn new(led: impl OutputPin + 'd, channel: impl RmtChannel + 'd) -> Result<Self> {
-        let config = TransmitConfig::new().clock_divider(2);
-        let tx = TxRmtDriver::new(channel, led, &config)?;
-        Ok(Self { tx_rmt_driver: tx })
-    }
+    pub fn new(led: impl OutputPin + 'd) -> Result<Self> {
+        let channel_config = TxChannelConfig {
+            resolution: Hertz(10_000_000), // 100 ns/tick
+            ..Default::default()
+        };
+        let tx = TxChannelDriver::new(led, &channel_config)?;
 
-    /// Creates the WS2812 timing pulses for 0 and 1 bits.
-    fn create_pulses(&mut self) -> Result<(Pulse, Pulse, Pulse, Pulse)> {
-        let ticks_hz = self.tx_rmt_driver.counter_clock()?;
-        let t0h = Pulse::new_with_duration(ticks_hz, PinState::High, &ns(350))?;
-        let t0l = Pulse::new_with_duration(ticks_hz, PinState::Low, &ns(800))?;
-        let t1h = Pulse::new_with_duration(ticks_hz, PinState::High, &ns(700))?;
-        let t1l = Pulse::new_with_duration(ticks_hz, PinState::Low, &ns(600))?;
-        Ok((t0h, t0l, t1h, t1l))
+        let resolution = Hertz(10_000_000);
+        let t0h = Pulse::new_with_duration(resolution, PinState::High, Duration::from_nanos(350))?;
+        let t0l = Pulse::new_with_duration(resolution, PinState::Low, Duration::from_nanos(800))?;
+        let t1h = Pulse::new_with_duration(resolution, PinState::High, Duration::from_nanos(700))?;
+        let t1l = Pulse::new_with_duration(resolution, PinState::Low, Duration::from_nanos(600))?;
+
+        let encoder_config = BytesEncoderConfig {
+            bit0: Symbol::new(t0h, t0l),
+            bit1: Symbol::new(t1h, t1l),
+            msb_first: true,
+            ..Default::default()
+        };
+
+        Ok(Self { tx, encoder_config })
     }
 
     /// Sets a single pixel color.
     ///
     /// Use this for single-LED indicators or when updating one pixel at a time.
     pub fn set_pixel(&mut self, rgb: RGB8) -> Result<()> {
-        let color = rgb_to_grb(rgb);
-        let (t0h, t0l, t1h, t1l) = self.create_pulses()?;
-        let mut signal = FixedLengthSignal::<24>::new();
-        Self::encode_color_bits(color, &mut signal, 0, t0h, t0l, t1h, t1l)?;
-        self.tx_rmt_driver.start_blocking(&signal)?;
-        Ok(())
-    }
-
-    /// Encodes a 24-bit color value into RMT pulses (MSB first).
-    fn encode_color_bits(
-        color: u32,
-        signal: &mut FixedLengthSignal<24>,
-        offset: usize,
-        t0h: Pulse,
-        t0l: Pulse,
-        t1h: Pulse,
-        t1l: Pulse,
-    ) -> Result<()> {
-        for i in (0..24).rev() {
-            let bit = (color >> i) & 1 != 0;
-            let (high_pulse, low_pulse) = if bit { (t1h, t1l) } else { (t0h, t0l) };
-            signal.set(offset + (23 - i as usize), &(high_pulse, low_pulse))?;
-        }
-        Ok(())
+        let grb = rgb_to_grb(rgb);
+        let bytes = [(grb >> 16) as u8, (grb >> 8) as u8, grb as u8];
+        transmit_bytes(&mut self.tx, &self.encoder_config, &bytes)
     }
 
     /// Sets multiple pixels from a slice.
@@ -115,33 +148,15 @@ impl<'d> WS2812RMT<'d> {
     ///
     /// * `rgbs` - Slice of colors, one per pixel in order
     pub fn set_pixels_slice(&mut self, rgbs: &[RGB8]) -> Result<()> {
-        let (t0h, t0l, t1h, t1l) = self.create_pulses()?;
-        let mut signal = VariableLengthSignal::new();
+        let mut bytes = Vec::with_capacity(rgbs.len() * 3);
         for rgb in rgbs {
-            let pulses = Self::color_to_pulses(*rgb, t0h, t0l, t1h, t1l);
-            signal.push(&pulses)?;
+            let grb = rgb_to_grb(*rgb);
+            bytes.push((grb >> 16) as u8);
+            bytes.push((grb >> 8) as u8);
+            bytes.push(grb as u8);
         }
-        self.tx_rmt_driver.start_blocking(&signal)?;
-        Ok(())
+        transmit_bytes(&mut self.tx, &self.encoder_config, &bytes)
     }
-
-    /// Converts a color to individual pulses (no allocation, returns an array).
-    fn color_to_pulses(rgb: RGB8, t0h: Pulse, t0l: Pulse, t1h: Pulse, t1l: Pulse) -> [Pulse; 48] {
-        let color = rgb_to_grb(rgb);
-        let mut pulses = [t0h; 48]; // Initialize with dummy values
-        for i in (0..24).rev() {
-            let bit = (color >> i) & 1 != 0;
-            let (high, low) = if bit { (t1h, t1l) } else { (t0h, t0l) };
-            let idx = (23 - i) * 2;
-            pulses[idx] = high;
-            pulses[idx + 1] = low;
-        }
-        pulses
-    }
-}
-
-fn ns(nanos: u64) -> Duration {
-    Duration::from_nanos(nanos)
 }
 
 #[cfg(feature = "led-effects")]
@@ -160,9 +175,8 @@ impl smart_leds_trait::SmartLedsWrite for WS2812RMT<'_> {
     /// Writes a sequence of colors to the LED strip.
     ///
     /// Each item in the iterator is converted from `I` into `smart_leds_trait::RGB8`
-    /// and streamed directly into the RMT signal buffer — no intermediate `Vec`
-    /// is allocated. The underlying [`VariableLengthSignal`] is heap-backed
-    /// (proportional to LED count), which is inherent to the ESP-IDF RMT API.
+    /// and collected into a flat GRB byte buffer. The `BytesEncoder` then converts
+    /// each byte into RMT symbols per-bit.
     /// For a zero-allocation path use the `no_std` HAL driver
     /// (`rustyfarian-esp-hal-ws2812`).
     ///
@@ -179,20 +193,18 @@ impl smart_leds_trait::SmartLedsWrite for WS2812RMT<'_> {
         T: IntoIterator<Item = I>,
         I: Into<Self::Color>,
     {
-        let (t0h, t0l, t1h, t1l) = self.create_pulses()?;
-        let mut signal = VariableLengthSignal::new();
-        let mut num_leds = 0usize;
+        let mut bytes = Vec::new();
         for item in iterator {
             let rgb: RGB8 = item.into();
-            let pulses = Self::color_to_pulses(rgb, t0h, t0l, t1h, t1l);
-            signal.push(&pulses)?;
-            num_leds += 1;
+            let grb = rgb_to_grb(rgb);
+            bytes.push((grb >> 16) as u8);
+            bytes.push((grb >> 8) as u8);
+            bytes.push(grb as u8);
         }
-        if num_leds == 0 {
+        if bytes.is_empty() {
             return Ok(());
         }
-        self.tx_rmt_driver.start_blocking(&signal)?;
-        Ok(())
+        transmit_bytes(&mut self.tx, &self.encoder_config, &bytes)
     }
 }
 

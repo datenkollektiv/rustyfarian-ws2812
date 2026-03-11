@@ -51,7 +51,7 @@ fn main() -> anyhow::Result<()> {
     let peripherals = esp_idf_hal::peripherals::Peripherals::take()?;
 
     const NUM_LEDS: usize = 12;
-    let mut ws = WS2812RMT::new(peripherals.pins.gpio4, peripherals.rmt.channel0)?;
+    let mut ws = WS2812RMT::new(peripherals.pins.gpio4)?;
     let mut effect = RainbowEffect::new(NUM_LEDS)
         .unwrap()
         .with_brightness(32)
