@@ -11,6 +11,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `ferriswheel`: `RainbowCometEffect` — orbiting comet with a hue-cycling tail; each tail LED steps further along the color wheel with decreasing brightness; configurable hue, saturation, brightness, hue step, tail length, speed, direction, and decay
 - `ferriswheel`: `KnightRiderEffect` — dual-headed scanner where two heads start at opposite ends, sweep toward each other, cross in the middle, and reverse independently at each end; configurable color, speed, tail length, and decay
 - `hal_c6_knight_rider` and `idf_c6_knight_rider` examples for ESP32-C6
+- `rustyfarian-esp-hal-ws2812`: `async` feature flag — enables async `set_pixel` and `set_pixels_slice` on `Ws2812Rmt<'d, Async, N>` using `esp-hal`'s native async RMT channel and `esp-rtos` as the Embassy executor; `Ws2812RmtBlocking` type alias provided for code that wants to avoid writing the `Blocking` type parameter explicitly
+- `hal_c6_rainbow_comet_async` example — async animation loop using Embassy `Timer` to yield between frames
+
+### Changed
+
+- `rustyfarian-esp-hal-ws2812`: `Ws2812Rmt` gains a `Dm: DriverMode` type parameter (`Ws2812Rmt<'d, Dm, N>`); existing blocking code can use the `Ws2812RmtBlocking<'d, N>` type alias or write `Ws2812Rmt<'d, Blocking, N>` directly
 
 ## [0.3.0] - 2026-03-10
 
