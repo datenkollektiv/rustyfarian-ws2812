@@ -20,7 +20,7 @@ Completed items have been moved to the [CHANGELOG](../CHANGELOG.md).
 timeline
     title Fuzzy Rustyfarian WS2812 Roadmap
 
-    Near term : ~~Migrate esp-idf-ws2812 from legacy RMT API~~ ✅
+    Near term : <none>
 
     Mid term  : Remove send_and_wait workaround (esp-idf-hal fix)
               : Guard against rgb version divergence
