@@ -173,7 +173,8 @@ update:
 clean:
     cargo clean
 
-# clean only the ESP-IDF crate's build artifacts; also removes esp-idf-sys incremental artifacts (needed after sdkconfig.defaults changes)
+# clean only the ESP-IDF crate's build artifacts; also removes esp-idf-sys incremental artifacts
+# (needed after sdkconfig.defaults changes)
 clean-idf:
     cargo clean -p rustyfarian-esp-idf-ws2812
     rm -rf target/riscv32imac-esp-espidf/debug/build/esp-idf-sys-*/

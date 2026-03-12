@@ -20,7 +20,7 @@ Completed items have been moved to the [CHANGELOG](../CHANGELOG.md).
 timeline
     title Fuzzy Rustyfarian WS2812 Roadmap
 
-    Near term : ~~Migrate esp-idf-ws2812 from legacy RMT API~~ ✅
+    Near term : <none>
 
     Mid term  : Remove send_and_wait workaround (esp-idf-hal fix)
               : Guard against rgb version divergence
@@ -45,11 +45,6 @@ Purely defensive — not urgent until `smart-leds-trait` signals an `rgb` bump.
 ---
 
 ## Hardware Driver Improvements
-
-### ~~Migrate `rustyfarian-esp-idf-ws2812` from legacy RMT API to new `esp-idf-hal` RMT API~~ — Done
-
-Completed: migrated from `rmt-legacy` to new `esp-idf-hal 0.46` RMT API using `BytesEncoder`.
-See [CHANGELOG](../CHANGELOG.md) `[Unreleased]` for details.
 
 ### Remove `send_and_wait` workaround when `esp-idf-hal` fixes `EncoderWrapper`
 
@@ -126,3 +121,12 @@ Decision should follow a stability review and user feedback.
 for addressing LEDs as a 2D pixel grid.
 If a matrix display use-case emerges, this pattern provides a ready-made approach.
 Not a near-term priority — track as a future option.
+
+---
+
+<details>
+<summary><strong>Completed</strong></summary>
+
+- **Migrate `rustyfarian-esp-idf-ws2812` from legacy RMT API to new `esp-idf-hal` RMT API** — migrated from `rmt-legacy` to `esp-idf-hal 0.46` RMT API using `BytesEncoder`. See [CHANGELOG](../CHANGELOG.md) `[Unreleased]`.
+
+</details>
