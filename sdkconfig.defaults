@@ -1,10 +1,10 @@
 # ESP-IDF project defaults for rustyfarian-ws2812
 #
 # CONFIG_ESP_MAIN_TASK_STACK_SIZE: The default 3584 bytes overflows in debug
-# builds.  16384 bytes gives comfortable headroom.
+# builds. 16384 bytes gives comfortable headroom.
 #
 # CONFIG_FREERTOS_ISR_STACKSIZE: The new esp-idf-hal RMT API (TxChannelDriver)
-# registers ISR callbacks via rmt_tx_register_event_callbacks.  The default
+# registers ISR callbacks via rmt_tx_register_event_callbacks. The default
 # 1536 bytes overflows with the callback overhead; 4096 is sufficient.
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=16384
 CONFIG_FREERTOS_ISR_STACKSIZE=4096
