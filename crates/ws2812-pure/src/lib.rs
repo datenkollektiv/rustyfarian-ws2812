@@ -5,6 +5,13 @@
 //! This crate provides hardware-independent color conversion and bit manipulation
 //! utilities for WS2812 (NeoPixel) LEDs. It has no ESP or embedded dependencies,
 //! making it fully testable on any platform.
+//!
+//! ## SPI Pre-rendering
+//!
+//! [`prerender_spi`] encodes `&[RGB8]` into a byte buffer suitable for SPI-based
+//! WS2812 transmission (4 SPI bits per WS2812 data bit, 12 bytes per LED).
+//! The encoding is byte-for-byte compatible with
+//! [`ws2812-spi`](https://crates.io/crates/ws2812-spi) v0.5.1's prerendered module.
 
 use rgb::RGB8;
 
@@ -50,6 +57,89 @@ pub fn color_to_bits(color: u32) -> [bool; 24] {
         bits[23 - i] = (color >> i) & 1 != 0;
     }
     bits
+}
+
+/// Error returned by [`prerender_spi`] when the output buffer is too small.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SpiEncodeError {
+    BufferTooSmall,
+}
+
+impl core::fmt::Display for SpiEncodeError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::BufferTooSmall => write!(f, "SPI output buffer too small"),
+        }
+    }
+}
+
+/// Returns the number of SPI data bytes required to encode `num_leds` LEDs.
+///
+/// This covers pixel data only — it does **not** include reset bytes.
+/// Each LED requires 12 SPI bytes (24 WS2812 bits × 4 SPI bits each ÷ 8).
+pub const fn spi_data_len(num_leds: usize) -> usize {
+    num_leds * 12
+}
+
+/// Minimum reset bytes for 2 MHz SPI clock.
+///
+/// Append this many `0x00` bytes after LED data for single-transaction use.
+/// At 2 MHz: 280 µs × 2 Mbit/s ÷ 8 = 70 bytes. 80 provides margin.
+pub const SPI_RESET_BYTES_2MHZ: usize = 80;
+
+/// SPI lookup table: maps each 2-bit WS2812 pair to an SPI byte.
+///
+/// Index by `(grb_value >> shift) & 0b11` for each 2-bit pair (MSB-first).
+///
+/// | Pair | Byte   | WS2812 meaning              |
+/// |------|--------|-----------------------------|
+/// | `00` | `0x88` | bit0=low (`1000`), bit1=low  |
+/// | `01` | `0x8E` | bit0=low, bit1=high (`1110`) |
+/// | `10` | `0xE8` | bit0=high, bit1=low          |
+/// | `11` | `0xEE` | bit0=high, bit1=high         |
+const SPI_PATTERNS: [u8; 4] = [0b1000_1000, 0b1000_1110, 0b1110_1000, 0b1110_1110];
+
+/// Pre-renders `colors` into a WS2812-compatible SPI byte buffer.
+///
+/// Encodes each [`RGB8`] pixel in GRB order using 4 SPI bits per WS2812 data bit,
+/// producing 12 bytes per LED. The buffer must be at least [`spi_data_len`]`(colors.len())`
+/// bytes long; excess bytes are left untouched.
+///
+/// Reset bytes are **not** appended — the caller can either send a separate
+/// SPI transaction of zeros or pre-zero the tail of an oversized buffer.
+/// For correct WS2812 reset at 2 MHz, transmit at least [`SPI_RESET_BYTES_2MHZ`]
+/// trailing `0x00` bytes after pixel data.
+///
+/// # Errors
+///
+/// Returns [`SpiEncodeError::BufferTooSmall`] if `buf.len() < spi_data_len(colors.len())`.
+///
+/// # Example
+///
+/// ```
+/// use ws2812_pure::prerender_spi;
+/// use rgb::RGB8;
+///
+/// let colors = [RGB8::new(0, 0, 0)]; // black
+/// let mut buf = [0u8; 12];
+/// prerender_spi(&colors, &mut buf).unwrap();
+/// assert!(buf.iter().all(|&b| b == 0x88));
+/// ```
+pub fn prerender_spi(colors: &[RGB8], buf: &mut [u8]) -> Result<(), SpiEncodeError> {
+    let required = spi_data_len(colors.len());
+    if buf.len() < required {
+        return Err(SpiEncodeError::BufferTooSmall);
+    }
+    let mut pos = 0;
+    for &rgb in colors {
+        let grb = rgb_to_grb(rgb);
+        for shift in (0..24).step_by(2).rev() {
+            let pair = ((grb >> shift) & 0b11) as usize;
+            buf[pos] = SPI_PATTERNS[pair];
+            pos += 1;
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -132,5 +222,179 @@ mod tests {
         let bits = color_to_bits(0x000001);
         assert!(bits[23], "LSB should be set");
         assert!(bits[..23].iter().all(|&b| !b), "all other bits should be 0");
+    }
+
+    // --- SPI prerender tests ---
+
+    #[test]
+    fn spi_data_len_zero() {
+        assert_eq!(spi_data_len(0), 0);
+    }
+
+    #[test]
+    fn spi_data_len_one() {
+        assert_eq!(spi_data_len(1), 12);
+    }
+
+    #[test]
+    fn spi_data_len_twelve() {
+        assert_eq!(spi_data_len(12), 144);
+    }
+
+    #[test]
+    fn prerender_spi_black() {
+        let colors = [RGB8::new(0, 0, 0)];
+        let mut buf = [0u8; 12];
+        prerender_spi(&colors, &mut buf).unwrap();
+        assert!(buf.iter().all(|&b| b == 0x88), "all-zero bits → 0x88");
+    }
+
+    #[test]
+    fn prerender_spi_white() {
+        let colors = [RGB8::new(255, 255, 255)];
+        let mut buf = [0u8; 12];
+        prerender_spi(&colors, &mut buf).unwrap();
+        assert!(buf.iter().all(|&b| b == 0xEE), "all-one bits → 0xEE");
+    }
+
+    #[test]
+    fn prerender_spi_red() {
+        // RGB(255,0,0) → GRB = 0x00FF00
+        // G=0x00: 00 00 00 00 → [0x88, 0x88, 0x88, 0x88]
+        // R=0xFF: 11 11 11 11 → [0xEE, 0xEE, 0xEE, 0xEE]
+        // B=0x00: 00 00 00 00 → [0x88, 0x88, 0x88, 0x88]
+        let colors = [RGB8::new(255, 0, 0)];
+        let mut buf = [0u8; 12];
+        prerender_spi(&colors, &mut buf).unwrap();
+        let expected = [
+            0x88, 0x88, 0x88, 0x88, // G=0x00
+            0xEE, 0xEE, 0xEE, 0xEE, // R=0xFF
+            0x88, 0x88, 0x88, 0x88, // B=0x00
+        ];
+        assert_eq!(buf, expected);
+    }
+
+    #[test]
+    fn prerender_spi_green() {
+        // RGB(0,255,0) → GRB = 0xFF0000
+        let colors = [RGB8::new(0, 255, 0)];
+        let mut buf = [0u8; 12];
+        prerender_spi(&colors, &mut buf).unwrap();
+        let expected = [
+            0xEE, 0xEE, 0xEE, 0xEE, // G=0xFF
+            0x88, 0x88, 0x88, 0x88, // R=0x00
+            0x88, 0x88, 0x88, 0x88, // B=0x00
+        ];
+        assert_eq!(buf, expected);
+    }
+
+    #[test]
+    fn prerender_spi_blue() {
+        // RGB(0,0,255) → GRB = 0x0000FF
+        let colors = [RGB8::new(0, 0, 255)];
+        let mut buf = [0u8; 12];
+        prerender_spi(&colors, &mut buf).unwrap();
+        let expected = [
+            0x88, 0x88, 0x88, 0x88, // G=0x00
+            0x88, 0x88, 0x88, 0x88, // R=0x00
+            0xEE, 0xEE, 0xEE, 0xEE, // B=0xFF
+        ];
+        assert_eq!(buf, expected);
+    }
+
+    #[test]
+    fn prerender_spi_mixed() {
+        // RGB(0x12, 0x34, 0x56) → GRB = 0x341256
+        // G=0x34 = 0011_0100 → pairs: 00 11 01 00 → [0x88, 0xEE, 0x8E, 0x88]
+        // R=0x12 = 0001_0010 → pairs: 00 01 00 10 → [0x88, 0x8E, 0x88, 0xE8]
+        // B=0x56 = 0101_0110 → pairs: 01 01 01 10 → [0x8E, 0x8E, 0x8E, 0xE8]
+        let colors = [RGB8::new(0x12, 0x34, 0x56)];
+        let mut buf = [0u8; 12];
+        prerender_spi(&colors, &mut buf).unwrap();
+        let expected = [
+            0x88, 0xEE, 0x8E, 0x88, // G=0x34
+            0x88, 0x8E, 0x88, 0xE8, // R=0x12
+            0x8E, 0x8E, 0x8E, 0xE8, // B=0x56
+        ];
+        assert_eq!(buf, expected);
+    }
+
+    #[test]
+    fn prerender_spi_buffer_too_small() {
+        let colors = [RGB8::new(0, 0, 0)];
+        let mut buf = [0u8; 11];
+        assert_eq!(
+            prerender_spi(&colors, &mut buf),
+            Err(SpiEncodeError::BufferTooSmall)
+        );
+    }
+
+    #[test]
+    fn prerender_spi_exact_buffer() {
+        let colors = [RGB8::new(0, 0, 0)];
+        let mut buf = [0u8; 12];
+        assert!(prerender_spi(&colors, &mut buf).is_ok());
+    }
+
+    #[test]
+    fn prerender_spi_empty() {
+        let colors: &[RGB8] = &[];
+        let mut buf: [u8; 0] = [];
+        assert!(prerender_spi(colors, &mut buf).is_ok());
+    }
+
+    #[test]
+    fn prerender_spi_multiple_leds() {
+        let colors = [
+            RGB8::new(255, 0, 0),
+            RGB8::new(0, 255, 0),
+            RGB8::new(0, 0, 255),
+        ];
+        let mut buf = [0u8; 36];
+        prerender_spi(&colors, &mut buf).unwrap();
+        assert_eq!(buf.len(), 36);
+        // First LED (red): G=0, R=FF, B=0
+        assert_eq!(&buf[0..4], &[0x88, 0x88, 0x88, 0x88]);
+        assert_eq!(&buf[4..8], &[0xEE, 0xEE, 0xEE, 0xEE]);
+        assert_eq!(&buf[8..12], &[0x88, 0x88, 0x88, 0x88]);
+        // Last LED (blue): G=0, R=0, B=FF
+        assert_eq!(&buf[24..28], &[0x88, 0x88, 0x88, 0x88]);
+        assert_eq!(&buf[28..32], &[0x88, 0x88, 0x88, 0x88]);
+        assert_eq!(&buf[32..36], &[0xEE, 0xEE, 0xEE, 0xEE]);
+    }
+
+    #[test]
+    fn prerender_spi_oversized_buffer() {
+        let colors = [RGB8::new(0, 0, 0)];
+        let mut buf = [0xFFu8; 20];
+        prerender_spi(&colors, &mut buf).unwrap();
+        // First 12 bytes are encoded
+        assert!(buf[..12].iter().all(|&b| b == 0x88));
+        // Remaining bytes untouched
+        assert!(buf[12..].iter().all(|&b| b == 0xFF));
+    }
+
+    #[test]
+    fn prerender_spi_conformance_ws2812_spi() {
+        // Reference buffer produced by ws2812-spi v0.5.1's write_byte algorithm:
+        //   for each color byte, extract 2-bit pairs MSB-first, index into
+        //   [0x88, 0x8E, 0xE8, 0xEE].
+        // Input: RGB(0xCA, 0xFE, 0x42) → GRB bytes: 0xFE, 0xCA, 0x42
+        //   G=0xFE (11 11 11 10): [0xEE, 0xEE, 0xEE, 0xE8]
+        //   R=0xCA (11 00 10 10): [0xEE, 0x88, 0xE8, 0xE8]
+        //   B=0x42 (01 00 00 10): [0x8E, 0x88, 0x88, 0xE8]
+        let colors = [RGB8::new(0xCA, 0xFE, 0x42)];
+        let mut buf = [0u8; 12];
+        prerender_spi(&colors, &mut buf).unwrap();
+        #[rustfmt::skip]
+        let expected: [u8; 12] = [
+            0xEE, 0xEE, 0xEE, 0xE8, // G=0xFE
+            0xEE, 0x88, 0xE8, 0xE8, // R=0xCA
+            0x8E, 0x88, 0x88, 0xE8, // B=0x42
+        ];
+        assert_eq!(
+            buf, expected,
+            "must match ws2812-spi v0.5.1 write_byte output"
+        );
     }
 }
