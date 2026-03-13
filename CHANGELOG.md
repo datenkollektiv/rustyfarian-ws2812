@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-03-13
+
 ### Added
 
 - `ferriswheel`: `RainbowCometEffect` — orbiting comet with a hue-cycling tail; each tail LED steps further along the color wheel with decreasing brightness; configurable hue, saturation, brightness, hue step, tail length, speed, direction, and decay
