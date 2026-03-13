@@ -27,6 +27,7 @@ timeline
 
     Long term : Upstream contribution evaluation
               : embedded-graphics-core evaluation
+              : ATmega328P / AVR WS2812 exploration
 ```
 
 ## Ecosystem Integration
@@ -119,6 +120,31 @@ The pure-logic crates (`ws2812-pure`, `ferriswheel`) represent a gap in the ecos
 no existing `smart-leds-rs` crate provides ring-geometry animations testable without hardware.
 Once the APIs are stable, evaluate whether proposing these as upstream additions or companion crates makes sense.
 Decision should follow a stability review and user feedback.
+
+### Explore ATmega328P / AVR WS2812 support (`rustyfarian-avr-ws2812`)
+
+A third hardware driver targeting `avr-unknown-gnu-atmega328` using the SPI prerendered
+approach (no inline assembly required).
+See [AVR WS2812 Research](research-avr-ws2812.md) for the full feasibility assessment.
+
+**Phased approach:**
+
+1. **Add `prerender_spi` to `ws2812-pure`** — pure `no_std` function encoding `&[RGB8]` into
+   a WS2812 SPI byte buffer (`12 × num_leds + 20` bytes).
+   Fully host-testable, no AVR toolchain needed.
+2. **Add `rustyfarian-avr-ws2812`** — thin wrapper holding an `embedded-hal 1.0` `SpiBus`,
+   calling `prerender_spi`, transmitting inside `avr_device::interrupt::free`.
+   Requires pinned AVR nightly via per-crate `rust-toolchain.toml`.
+
+**Key constraints:**
+- Permanent nightly dependency (Tier 3 target, no stable path)
+- GNU AVR toolchain required (`avr-gcc`, `avr-binutils`, `avr-libc`)
+- 2 KB SRAM limits practical LED count (~60 LEDs max, 12-LED ring is comfortable at 164 bytes)
+- `ws2812-spi` still targets `embedded-hal 0.2`; `avr-hal` is on 1.0 — version mismatch means
+  implementing SPI encoding ourselves (in `ws2812-pure`) rather than depending on `ws2812-spi`
+
+**Do not adopt:** `ws2812-avr` (GPL, unstable `generic_const_exprs`, near-zero maintenance).
+**Do not attempt:** pure-Rust bitbang without assembly — timing margins too tight at 16 MHz.
 
 ### Evaluate `embedded-graphics-core` integration for matrix displays
 
