@@ -90,14 +90,14 @@ caller-provided buffer before transmission, then DMA-handing the buffer to SPI h
 Buffer sizing formula:
 
 ```
-min_buffer_bytes = 12 * num_leds + 20
-// or +40 bytes if using the mosi_idle_high feature
+min_buffer_bytes = 12 * num_leds
 ```
 
-This is derived from the SPI encoding: each WS2812 data bit is encoded as 3 SPI bits, so
-each 24-bit LED colour expands to 72 SPI bits = 9 bytes.
-With the 4-SPI-bits-per-WS2812-bit encoding variant the crate uses, it is 12 bytes per LED.
-The trailing 20 bytes represent the WS2812 reset pulse (≥ 50 µs low).
+This is derived from the SPI encoding: each WS2812 data bit is encoded as 4 SPI bits, so
+each 24-bit LED colour expands to 96 SPI bits = 12 bytes.
+The reset pulse is sent separately (not included in the pixel buffer by default).
+With the `reset_single_transaction` or `mosi_idle_high` feature flags, add 140 bytes each
+(the `ws2812-spi` constant `RESET_DATA_LEN = 140`).
 
 On a 16 MHz ATmega328P the available hardware SPI divisors (2, 4, 8, 16, ...) yield:
 8 MHz (÷2), 4 MHz (÷4), 2 MHz (÷8).
@@ -254,13 +254,13 @@ widths, mirroring what `ws2812-avr` attempts with `generic_const_exprs`.
 
 ## Timing Approaches Compared
 
-| Approach | How it works | Interrupt-free window | AVR suitability | Rust path |
-|:---------|:-------------|:----------------------|:----------------|:----------|
-| Bitbang + assembly | GPIO toggled by cycle-counted `nop` sequences | Required for entire frame | Works at 8–16 MHz but assembly is platform-specific | Inline `asm!` in Rust; blocked by `global_asm!` library bug |
-| Bitbang + const generics | Compile-time loop counts derived from CPU freq | Required for entire frame | Proof-of-concept exists (`ws2812-avr`); fragile nightly dependency | `generic_const_exprs` (unstable) |
-| SPI prerendered | Pre-encode all bits into a `[u8; N]` buffer; SPI hardware clocks it out | Required for entire frame (SPI TX); buffer can be prepared with interrupts enabled | Recommended for Rust on AVR; 2 MHz with ÷8 divisor on 16 MHz ATmega | `ws2812-spi` prerendered; `embedded-hal 1.0` `SpiBus::write` |
-| SPI on-the-fly | Generate each byte just before SPI sends it | Required; CPU must keep pace | Requires ≥ 48 MHz; fails on AVR | Not viable for AVR |
-| UART | Encode as UART frames at specific baud | Required | Possible but baud rates don't cleanly match WS2812 at standard AVR clocks | `ws2812-uart` crate exists; not AVR-validated |
+| Approach                 | How it works                                                            | Interrupt-free window                                                              | AVR suitability                                                           | Rust path                                                    |
+|:-------------------------|:------------------------------------------------------------------------|:-----------------------------------------------------------------------------------|:--------------------------------------------------------------------------|:-------------------------------------------------------------|
+| Bitbang + assembly       | GPIO toggled by cycle-counted `nop` sequences                           | Required for entire frame                                                          | Works at 8–16 MHz but assembly is platform-specific                       | Inline `asm!` in Rust; blocked by `global_asm!` library bug  |
+| Bitbang + const generics | Compile-time loop counts derived from CPU freq                          | Required for entire frame                                                          | Proof-of-concept exists (`ws2812-avr`); fragile nightly dependency        | `generic_const_exprs` (unstable)                             |
+| SPI prerendered          | Pre-encode all bits into a `[u8; N]` buffer; SPI hardware clocks it out | Required for entire frame (SPI TX); buffer can be prepared with interrupts enabled | Recommended for Rust on AVR; 2 MHz with ÷8 divisor on 16 MHz ATmega       | `ws2812-spi` prerendered; `embedded-hal 1.0` `SpiBus::write` |
+| SPI on-the-fly           | Generate each byte just before SPI sends it                             | Required; CPU must keep pace                                                       | Requires ≥ 48 MHz; fails on AVR                                           | Not viable for AVR                                           |
+| UART                     | Encode as UART frames at specific baud                                  | Required                                                                           | Possible but baud rates don't cleanly match WS2812 at standard AVR clocks | `ws2812-uart` crate exists; not AVR-validated                |
 
 **Conclusion**: the SPI prerendered approach is the correct Rust path for AVR.
 It avoids inline assembly entirely, separates buffer preparation (pure logic, testable) from
@@ -272,10 +272,10 @@ transmission (hardware, thin wrapper), and maps directly onto the `embedded-hal 
 
 The ATmega328P has **2 KB of SRAM** and **32 KB of flash**.
 A 12-LED ring (the primary target of this workspace) requires a prerendered SPI buffer of
-`12 × 12 + 20 = 164 bytes` — approximately 8% of available SRAM.
-A 60-LED strip requires `12 × 60 + 20 = 740 bytes` — about 36% of SRAM before accounting for
+`12 × 12 = 144 bytes` — approximately 7% of available SRAM.
+A 60-LED strip requires `12 × 60 = 720 bytes` — about 35% of SRAM before accounting for
 the application stack and other data.
-A 300-LED strip would require `3,620 bytes` which **exceeds available SRAM** and is not feasible.
+A 300-LED strip would require `3,600 bytes` which **exceeds available SRAM** and is not feasible.
 
 AVR WS2812 use cases are therefore limited to short strips or single rings.
 For the primary `ferriswheel` 12-LED use case, SRAM budget is comfortable.
@@ -355,20 +355,20 @@ AVR compile checks require the GNU toolchain and a nightly Rust; this adds non-t
 
 ## Comparison Table
 
-| Item | `ws2812-spi` prerendered | `ws2812-avr` bitbang | New `rustyfarian-avr-ws2812` |
-|:-----|:------------------------|:---------------------|:-----------------------------|
-| Approach | SPI + pre-encoded buffer | Bitbang const generics | SPI + pre-encoded buffer |
-| embedded-hal version | 0.2.4 | None (avr-hal direct) | 1.0 (target) |
-| AVR support | Explicit, documented | ATmega328P (via features) | ATmega328P primary target |
-| Nightly required | No (for host tests); Yes (for AVR target) | Yes (`generic_const_exprs`) | Yes (AVR target only) |
-| Inline assembly | No | No | No |
-| Pure/testable logic | No | No | Yes (buffer encoding in `ws2812-pure`) |
-| Host-runnable tests | No | No | Yes (buffer encoding layer) |
-| smart-leds-trait | 0.2.x | No | 0.3.x (embedded-hal 1.0) |
-| Maintenance status | Active (v0.5.1, June 2025) | Low (9 commits, Sep 2024) | New |
-| Licence | MIT OR Apache-2.0 | GPL-3.0 | MIT OR Apache-2.0 |
-| Published on crates.io | Yes | No | Planned |
-| SRAM usage (12 LEDs) | 164 bytes | ~0 (no buffer) | 164 bytes |
+| Item                   | `ws2812-spi` prerendered                  | `ws2812-avr` bitbang        | New `rustyfarian-avr-ws2812`           |
+|:-----------------------|:------------------------------------------|:----------------------------|:---------------------------------------|
+| Approach               | SPI + pre-encoded buffer                  | Bitbang const generics      | SPI + pre-encoded buffer               |
+| embedded-hal version   | 0.2.4                                     | None (avr-hal direct)       | 1.0 (target)                           |
+| AVR support            | Explicit, documented                      | ATmega328P (via features)   | ATmega328P primary target              |
+| Nightly required       | No (for host tests); Yes (for AVR target) | Yes (`generic_const_exprs`) | Yes (AVR target only)                  |
+| Inline assembly        | No                                        | No                          | No                                     |
+| Pure/testable logic    | No                                        | No                          | Yes (buffer encoding in `ws2812-pure`) |
+| Host-runnable tests    | No                                        | No                          | Yes (buffer encoding layer)            |
+| smart-leds-trait       | 0.2.x                                     | No                          | 0.3.x (embedded-hal 1.0)               |
+| Maintenance status     | Active (v0.5.1, June 2025)                | Low (9 commits, Sep 2024)   | New                                    |
+| Licence                | MIT OR Apache-2.0                         | GPL-3.0                     | MIT OR Apache-2.0                      |
+| Published on crates.io | Yes                                       | No                          | Planned                                |
+| SRAM usage (12 LEDs)   | 164 bytes                                 | ~0 (no buffer)              | 164 bytes                              |
 
 ---
 

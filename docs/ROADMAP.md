@@ -20,14 +20,14 @@ Completed items have been moved to the [CHANGELOG](../CHANGELOG.md).
 timeline
     title Fuzzy Rustyfarian WS2812 Roadmap
 
-    Near term : <none>
+    Near term : Add rustyfarian-avr-ws2812 hardware wrapper (Phase 2)
+              : AVR CI / build validation
 
     Mid term  : Remove send_and_wait workaround (esp-idf-hal fix)
               : Guard against rgb version divergence
 
     Long term : Upstream contribution evaluation
               : embedded-graphics-core evaluation
-              : ATmega328P / AVR WS2812 exploration
 ```
 
 ## Ecosystem Integration
@@ -124,12 +124,14 @@ See [AVR WS2812 Research](research-avr-ws2812.md) for the full feasibility asses
 
 **Phased approach:**
 
-1. **Add `prerender_spi` to `ws2812-pure`** — pure `no_std` function encoding `&[RGB8]` into
-   a WS2812 SPI byte buffer (`12 × num_leds + 20` bytes).
-   Fully host-testable, no AVR toolchain needed.
+1. ~~**Add `prerender_spi` to `ws2812-pure`**~~ — **Done.**
+   Pure `no_std` function encoding `&[RGB8]` into a WS2812 SPI byte buffer (`12 × num_leds` bytes, reset sent separately).
+   Includes `spi_data_len()`, `SpiEncodeError`, `SPI_RESET_BYTES_2MHZ`, and 14 unit tests + 1 doc test.
 2. **Add `rustyfarian-avr-ws2812`** — thin wrapper holding an `embedded-hal 1.0` `SpiBus`,
    calling `prerender_spi`, transmitting inside `avr_device::interrupt::free`.
    Requires pinned AVR nightly via per-crate `rust-toolchain.toml`.
+3. **AVR CI / build validation** — add a `just check-avr` recipe and validate the crate compiles
+   for `avr-unknown-gnu-atmega328` on nightly. Host tests already cover the encoding logic.
 
 **Key constraints:**
 - Permanent nightly dependency (Tier 3 target, no stable path)
@@ -153,6 +155,7 @@ Not a near-term priority — track as a future option.
 <details>
 <summary><strong>Completed</strong></summary>
 
-- **Migrate `rustyfarian-esp-idf-ws2812` from legacy RMT API to new `esp-idf-hal` RMT API** — migrated from `rmt-legacy` to `esp-idf-hal 0.46` RMT API using `BytesEncoder`. See [CHANGELOG](../CHANGELOG.md) `[Unreleased]`.
+- **Add `prerender_spi` to `ws2812-pure`** (AVR Phase 1) — pure `no_std` SPI encoding function with `spi_data_len()`, `SpiEncodeError`, `SPI_RESET_BYTES_2MHZ` constant, and 14 unit tests + 1 doc test. Unblocks Phase 2 hardware wrapper.
+- **Migrate `rustyfarian-esp-idf-ws2812` from legacy RMT API to new `esp-idf-hal` RMT API** — migrated from `rmt-legacy` to `esp-idf-hal 0.46` RMT API using `BytesEncoder`. See [CHANGELOG](../CHANGELOG.md) `[0.4.0]`.
 
 </details>
