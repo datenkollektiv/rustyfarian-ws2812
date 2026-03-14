@@ -5,7 +5,7 @@
 # explicitly passes --target to override it.
 
 host_target := `scripts/host-target.sh`
-pure_crates := "-p ws2812-pure -p ferriswheel -p led-effects"
+pure_crates := "-p ws2812-pure -p ferriswheel -p led-effects -p rustyfarian-avr-ws2812"
 hal_target := "riscv32imac-unknown-none-elf"
 hal_crate := "-p rustyfarian-esp-hal-ws2812"
 
@@ -19,17 +19,17 @@ _default:
 build:
     cargo build {{ pure_crates }} --target {{ host_target }}
 
-# build all crates including ESP-IDF (requires espup; does NOT cover rustyfarian-esp-hal-ws2812 — use check-hal)
+# build all crates including ESP-IDF (requires espup; does NOT cover rustyfarian-esp-hal-ws2812 or rustyfarian-avr-ws2812 — use check-hal / check-avr)
 build-all:
-    cargo +esp build --workspace --exclude rustyfarian-esp-hal-ws2812
+    cargo +esp build --workspace --exclude rustyfarian-esp-hal-ws2812 --exclude rustyfarian-avr-ws2812
 
 # check platform-independent crates (no ESP toolchain required)
 check:
     cargo check {{ pure_crates }} --target {{ host_target }}
 
-# check all crates including ESP-IDF (requires espup; does NOT cover rustyfarian-esp-hal-ws2812 — use check-hal)
+# check all crates including ESP-IDF (requires espup; does NOT cover rustyfarian-esp-hal-ws2812 or rustyfarian-avr-ws2812 — use check-hal / check-avr)
 check-all:
-    cargo +esp check --workspace --exclude rustyfarian-esp-hal-ws2812
+    cargo +esp check --workspace --exclude rustyfarian-esp-hal-ws2812 --exclude rustyfarian-avr-ws2812
 
 # check only the ESP-IDF driver crate (requires espup)
 check-idf:
@@ -38,6 +38,11 @@ check-idf:
 # check the esp-hal bare-metal driver (requires: rustup target add riscv32imac-unknown-none-elf)
 check-hal:
     cargo check {{ hal_crate }} --target {{ hal_target }}
+
+# check the AVR SPI driver on the host target (no AVR toolchain required)
+# Note: real AVR target (avr-unknown-gnu-atmega328p) requires nightly + avr-gcc — Phase 3
+check-avr:
+    cargo check -p rustyfarian-avr-ws2812 --target {{ host_target }}
 
 # --- Examples -------------------------------------------------------------
 

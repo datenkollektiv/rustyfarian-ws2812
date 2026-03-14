@@ -14,6 +14,7 @@ anyhow = "1.0"
 rgb = "0.8.53"
 smart-leds-trait = { version = "^0.3.2", default-features = false }
 smart-leds = "0.4.0"
+embedded-hal = { version = "1.0", default-features = false }
 
 # Internal crates
 ferriswheel = { path = "crates/ferriswheel" }

@@ -136,7 +136,7 @@ See [AVR WS2812 Research](research-avr-ws2812.md) for the full feasibility asses
 **Key constraints:**
 - Permanent nightly dependency (Tier 3 target, no stable path)
 - GNU AVR toolchain required (`avr-gcc`, `avr-binutils`, `avr-libc`)
-- 2 KB SRAM limits practical LED count (~60 LEDs max, 12-LED ring is comfortable at 164 bytes)
+- 2 KB SRAM limits practical LED count (~60 LEDs max, 12-LED ring is comfortable at 144 bytes)
 - `ws2812-spi` still targets `embedded-hal 0.2`; `avr-hal` is on 1.0 — version mismatch means
   implementing SPI encoding ourselves (in `ws2812-pure`) rather than depending on `ws2812-spi`
 
