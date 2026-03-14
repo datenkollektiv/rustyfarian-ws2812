@@ -78,7 +78,7 @@ impl MeteorEffect {
             color: RGB8::new(255, 255, 255),
             position: 0,
             speed: 1,
-            tail_length: 6,
+            tail_length: 6.min(num_leds.saturating_sub(1) as u8),
             decay: 192,
             direction: Direction::Clockwise,
         })
@@ -505,5 +505,20 @@ mod tests {
         effect.current(&mut buf2).unwrap();
 
         assert_eq!(buf1, buf2, "current() must not advance position");
+    }
+
+    #[test]
+    fn test_oversized_buffer_accepted() {
+        let sentinel = RGB8::new(0xDE, 0xAD, 0xFF);
+        let effect = MeteorEffect::new(4).unwrap();
+        let mut buffer = [sentinel; 8];
+        effect.current(&mut buffer).unwrap();
+        for i in 4..8 {
+            assert_eq!(
+                buffer[i], sentinel,
+                "LED {} beyond num_leds must not be modified",
+                i
+            );
+        }
     }
 }
