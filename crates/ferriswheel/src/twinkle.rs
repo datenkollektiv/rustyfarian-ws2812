@@ -47,7 +47,7 @@ fn xorshift32(mut x: u32) -> u32 {
 ///
 /// twinkle.update(&mut buffer).unwrap();
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TwinkleEffect {
     num_leds: usize,
     color: RGB8,

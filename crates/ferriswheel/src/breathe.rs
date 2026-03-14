@@ -38,7 +38,7 @@ use rgb::RGB8;
 /// ```
 ///
 /// [`PulseEffect`]: crate::PulseEffect
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct BreatheEffect {
     num_leds: usize,
     color: RGB8,

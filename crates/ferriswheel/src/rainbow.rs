@@ -26,7 +26,7 @@ use rgb::RGB8;
 /// // Fill the buffer with rainbow colors and advance animation
 /// rainbow.update(&mut buffer).unwrap();
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct RainbowEffect {
     num_leds: usize,
     hue_offset: u8,

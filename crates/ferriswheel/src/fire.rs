@@ -78,7 +78,7 @@ pub(crate) fn fire_color(heat: u8) -> RGB8 {
 ///
 /// fire.update(&mut buffer).unwrap();
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct FireEffect {
     num_leds: usize,
     /// Per-LED heat (0 = cold/black, 255 = peak/white).

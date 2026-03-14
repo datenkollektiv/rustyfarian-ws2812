@@ -23,7 +23,7 @@ use rgb::RGB8;
 ///
 /// pulse.update(&mut buffer).unwrap();
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PulseEffect {
     num_leds: usize,
     color: RGB8,

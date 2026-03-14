@@ -35,7 +35,7 @@ pub const MAX_SECTIONS: usize = 8;
 /// let mut buffer = [RGB8::default(); 12];
 /// effect.update(&mut buffer).unwrap();
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SectionEffect {
     num_leds: usize,
     sections: [(ColorPalette, u8); MAX_SECTIONS],

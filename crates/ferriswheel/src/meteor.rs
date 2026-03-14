@@ -40,7 +40,7 @@ use rgb::RGB8;
 ///
 /// meteor.update(&mut buffer).unwrap();
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MeteorEffect {
     num_leds: usize,
     color: RGB8,
