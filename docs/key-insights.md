@@ -4,7 +4,7 @@ This file records non-obvious technical discoveries: facts that caused surprisin
 failures, took significant time to debug, or would save a future developer 30+
 minutes if known upfront.
 
-Refer to `CLAUDE.md` and the `/key-insights` skill for recording guidelines.
+Refer to `CLAUDE.md` and the `/project-lore` skill for recording guidelines.
 
 ---
 
@@ -171,3 +171,24 @@ Fix: use `type: "command"` pointing at a shell script, and call `claude -p` insi
 **The Stop hook `decision` field accepts `"approve" | "block"`, not `"allow"`.**
 Outputting `{"decision": "allow"}` fails schema validation; the correct value to permit the session to end is `"approve"`.
 Fix: use `{"decision": "approve"}` or simply exit 0 with no output to allow the stop.
+
+---
+
+## AVR WS2812 Driver: SPI Prerendered Encoding Limitation
+
+**`rustyfarian-avr-ws2812` (SPI prerendered, `ws2812-pure::prerender_spi`) can produce stable white-ish output (no flicker, brightness scaling proportional, but every channel appears similarly lit) on the *same physical strip* that works correctly with `rustyfarian-esp-idf-ws2812` and `rustyfarian-esp-hal-ws2812`.**
+Reproduced 2026-05-04 with both an Arduino Nano CH340 clone and a genuine Arduino Nano — ruling out clone-specific hardware quirks.
+The 2 MHz SPI / 4-bits-per-WS2812-bit encoding emits `T0H = 0.5 µs` and `T1H = 1.5 µs` against a WS2812B nominal `T0H_max ≈ 0.55 µs` and `T1H_nom = 0.7 µs`; both the `T0H = 0.5 µs` value (right at the chip's "0/1" decision threshold) and the wildly out-of-spec `T1H` rely on chip tolerance, which varies between WS2812 / WS2812B / clone variants.
+ESP32 RMT drivers don't hit this problem because they synthesize native WS2812 timing (`T0H ≈ 400 ns`, `T1H ≈ 700 ns`) — squarely inside spec.
+Diagnostic dead-ends already ruled out: crystal frequency mismatch (`SerialClockRate::OscfOver4` vs `OscfOver8` produced no behavioural change), GRB color order, strip variant ("works on ESP, fails on AVR" rules out a wrong/dead strip), PulseEffect math, USB power supply (3V3 vs VIN/5V — no consistent improvement), cable length, and Arduino board (clone vs genuine).
+Smoking-gun observation: with `NUM_LEDS = 1` (sending data for one LED only), LEDs 2 and 3 in the chain still flickered at minimum illumination — this is mechanical proof that LED 1 is not reliably consuming exactly 24 bits, so partial/extra bits leak into the next chip via the chain pass-through.
+That rules in encoding-level bit-counting unreliability and rules out anything that would only affect color (color order, PulseEffect math, brightness scaling).
+A working ESP setup is *not* a sufficient validation environment for the AVR driver: it must be validated on actual AVR hardware against the target strip type.
+
+**Resolved (2026-05-04):** Adopted cycle-counted inline-`asm!` bit-bang as the recommended AVR backend, with the SPI prerendered backend retained as an opt-in alternative.
+The asm pattern follows `Adafruit_NeoPixel`'s proven ATmega328P @ 16 MHz cycle counts (T0H = 4, T0L = 16, T1H = 13, T1L = 7, total 20 cy/bit).
+Architectural decision recorded in [`docs/adr/007-avr-ws2812-driver-strategy.md`](adr/007-avr-ws2812-driver-strategy.md).
+
+The production `Ws2812BitBang` driver landed in `rustyfarian-avr-ws2812` behind the `bitbang` cargo feature (const-generic over `PORT_ADDR` and `PIN_BIT`, runtime ports for any pin on PORTB / PORTC / PORTD on ATmega328P @ 16 MHz, internal `interrupt::free` wrapping).
+Hardware-validated with `examples/avr-nano-rainbow/src/bin/bitbang_demo.rs` driving `ferriswheel::PulseEffect` — identical visible behaviour to the original spike (`bin/bitbang_spike.rs`, retained as a low-level reference).
+`SmartLedsWrite` is implemented for both `Ws2812Spi` and `Ws2812BitBang` behind the `smart-leds-trait` feature, matching the sister ESP drivers.
