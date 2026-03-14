@@ -25,7 +25,7 @@ use rgb::RGB8;
 /// progress.set_progress(128);
 /// progress.update(&mut buffer).unwrap();
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ProgressEffect {
     num_leds: usize,
     fill_color: RGB8,

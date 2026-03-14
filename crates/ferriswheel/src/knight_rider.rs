@@ -38,7 +38,7 @@ use rgb::RGB8;
 /// ```
 ///
 /// The maximum number of LEDs is [`MAX_LEDS`](crate::effect::MAX_LEDS).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct KnightRiderEffect {
     num_leds: usize,
     color: RGB8,

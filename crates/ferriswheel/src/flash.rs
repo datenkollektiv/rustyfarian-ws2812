@@ -26,7 +26,7 @@ use rgb::RGB8;
 ///
 /// flash.update(&mut buffer).unwrap();
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct FlashEffect {
     num_leds: usize,
     color: RGB8,

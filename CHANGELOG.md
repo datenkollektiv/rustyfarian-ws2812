@@ -9,6 +9,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - `rustyfarian-avr-ws2812` — WS2812 LED driver for AVR/ATmega328P using SPI prerendered encoding via `embedded-hal 1.0` `SpiBus`
+- `ferriswheel`: oversized-buffer acceptance tests for all 14 effects — confirms buffers larger than `num_leds` are accepted and excess entries are not modified
+
+### Changed
+
+- `ferriswheel`: all 14 effect structs now derive `PartialEq`, enabling direct `assert_eq!` comparisons in tests
+
+### Fixed
+
+- `ferriswheel`: `MeteorEffect::new()` now clamps the default `tail_length` to `num_leds - 1`, preventing a subtract overflow when `num_leds < 7`
 
 ## [0.4.0] - 2026-03-13
 

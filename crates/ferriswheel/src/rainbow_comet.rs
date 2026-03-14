@@ -39,7 +39,7 @@ use rgb::RGB8;
 /// ```
 ///
 /// The maximum number of LEDs is [`MAX_LEDS`](crate::effect::MAX_LEDS).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct RainbowCometEffect {
     num_leds: usize,
     /// Head hue (0–255, wraps the HSV color wheel).

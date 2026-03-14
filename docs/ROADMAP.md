@@ -24,7 +24,7 @@ timeline
     title Fuzzy Rustyfarian WS2812 Roadmap
 
     Near term : Oversized-buffer acceptance tests (done)
-              : PartialEq derive on effect structs
+              : PartialEq derive on effect structs (done)
               : AVR hardware test with wiring guide
 
     Mid term  : Remove send_and_wait workaround (esp-idf-hal fix)

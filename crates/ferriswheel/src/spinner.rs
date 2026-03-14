@@ -27,7 +27,7 @@ use rgb::RGB8;
 ///
 /// spinner.update(&mut buffer).unwrap();
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SpinnerEffect {
     num_leds: usize,
     color: RGB8,
