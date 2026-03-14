@@ -1,4 +1,4 @@
-/target
+target/
 .embuild
 # This is a library crate, so we don't pin the dependencies.
 Cargo.lock

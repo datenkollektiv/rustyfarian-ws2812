@@ -9,7 +9,18 @@ description = "WS2812 (NeoPixel) LED driver using SPI prerendered encoding (no_s
 keywords = ["ws2812", "neopixel", "avr", "spi", "led"]
 categories = ["embedded", "hardware-support", "no-std"]
 
+[features]
+# SPI prerendered backend is always available (no feature gate) — preserves the
+# v0.1.x API surface for existing users.
+# Opt-in additions:
+bitbang = []
+smart-leds-trait = ["dep:smart-leds-trait"]
+
 [dependencies]
 ws2812-pure.workspace = true
 embedded-hal.workspace = true
 rgb.workspace = true
+smart-leds-trait = { workspace = true, optional = true }
+
+[target.'cfg(target_arch = "avr")'.dependencies]
+avr-device = { version = "0.8.1", features = ["atmega328p"] }

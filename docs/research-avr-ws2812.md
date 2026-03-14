@@ -94,7 +94,7 @@ min_buffer_bytes = 12 * num_leds
 ```
 
 This is derived from the SPI encoding: each WS2812 data bit is encoded as 4 SPI bits, so
-each 24-bit LED colour expands to 96 SPI bits = 12 bytes.
+each 24-bit LED color expands to 96 SPI bits = 12 bytes.
 The reset pulse is sent separately (not included in the pixel buffer by default).
 With the `reset_single_transaction` or `mosi_idle_high` feature flags, add 140 bytes each
 (the `ws2812-spi` constant `RESET_DATA_LEN = 140`).
@@ -225,7 +225,7 @@ Interrupts must be disabled for the duration of a frame write.
 
 FastLED supports WS2812B natively alongside a wide range of other LED chipsets.
 It uses assembly inner loops for AVR and hardware-specific DMA or timer paths for 32-bit platforms.
-It exposes higher-level animation helpers (HSV, colour palettes, noise functions) above the
+It exposes higher-level animation helpers (HSV, color palettes, noise functions) above the
 hardware layer — conceptually similar to how `ferriswheel` sits above `rustyfarian-esp-*`.
 On ESP32-P4, FastLED repurposes the RGB LCD peripheral for zero-CPU-overhead WS2812 output,
 illustrating the same platform-specific hardware mapping strategy used in this workspace.
@@ -387,7 +387,7 @@ to a small `SpiBus::write` call inside an interrupt-critical section.
 The crate should mirror the existing dual-HAL pattern:
 
 1. **Extend `ws2812-pure`** with an `avr_prerender` function that takes a `&[RGB8]` slice and
-   a `&mut [u8]` output buffer and fills it with the 3-SPI-bits-per-WS2812-bit encoding.
+   a `&mut [u8]` output buffer and fills it with the 4-SPI-bits-per-WS2812-bit encoding.
    This function is pure, `no_std`, and fully unit-testable on the host.
 
 2. **`rustyfarian-avr-ws2812`** becomes a thin hardware wrapper: it holds the SPI bus and

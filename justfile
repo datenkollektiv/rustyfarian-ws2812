@@ -44,9 +44,43 @@ check-hal:
 check-avr:
     cargo check -p rustyfarian-avr-ws2812 --target {{ host_target }}
 
+# check the AVR driver on the host with all features (bitbang + smart-leds-trait)
+check-avr-all-features:
+    cargo check -p rustyfarian-avr-ws2812 --features bitbang,smart-leds-trait --target {{ host_target }}
+
+# test the AVR driver on the host with all features
+test-avr-all-features:
+    cargo test -p rustyfarian-avr-ws2812 --features bitbang,smart-leds-trait --target {{ host_target }}
+
 # check the AVR SPI driver against the real avr-none target (requires: just setup-avr, avr-gcc)
 check-avr-target:
     RUSTFLAGS="-C target-cpu=atmega328p" cargo +{{ avr_nightly }} check -p rustyfarian-avr-ws2812 --target avr-none -Z build-std=core
+
+# check the AVR bit-bang driver against the real avr-none target (requires: just setup-avr, avr-gcc)
+check-avr-target-bitbang:
+    RUSTFLAGS="-C target-cpu=atmega328p" cargo +{{ avr_nightly }} check -p rustyfarian-avr-ws2812 --features bitbang --target avr-none -Z build-std=core
+
+# --- AVR Examples ---------------------------------------------------------
+
+# build the AVR Nano rainbow example (default = bit-bang backend; requires: just setup-avr, avr-gcc)
+build-avr-example:
+    cd examples/avr-nano-rainbow && cargo +{{ avr_nightly }} build --release -Z build-std=core
+
+# build and flash the AVR Nano rainbow demo — bit-bang backend, recommended (requires: just setup-avr, avr-gcc, ravedude)
+flash-avr-example:
+    cd examples/avr-nano-rainbow && cargo +{{ avr_nightly }} run --release -Z build-std=core
+
+# build and flash the production bit-bang PulseEffect demo (uses Ws2812BitBang from the driver crate)
+flash-avr-bitbang-demo:
+    cd examples/avr-nano-rainbow && cargo +{{ avr_nightly }} run --release -Z build-std=core --bin bitbang_demo
+
+# build and flash the SPI prerendered rainbow — DIAGNOSTIC ONLY; many strips render this as white-ish (see ADR 007)
+flash-avr-spi-rainbow:
+    cd examples/avr-nano-rainbow && cargo +{{ avr_nightly }} run --release -Z build-std=core --bin spi_rainbow
+
+# build and flash the AVR Nano bit-bang spike (frozen low-level reference, see docs/features/avr-bitbang-driver.md)
+flash-avr-bitbang-spike:
+    cd examples/avr-nano-rainbow && cargo +{{ avr_nightly }} run --release -Z build-std=core --bin bitbang_spike
 
 # --- Examples -------------------------------------------------------------
 

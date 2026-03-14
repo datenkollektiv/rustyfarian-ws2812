@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = ["crates/*"]
+exclude = ["examples/avr-nano-rainbow"]
 
 [workspace.package]
 authors = ["datenkollektiv"]

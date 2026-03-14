@@ -9,11 +9,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - `rustyfarian-avr-ws2812` — WS2812 LED driver for AVR/ATmega328P using SPI prerendered encoding via `embedded-hal 1.0` `SpiBus`
+- `rustyfarian-avr-ws2812`: `Ws2812BitBang<P, PORT_ADDR, PIN_BIT>` — cycle-counted inline-`asm!` bit-bang backend (feature `bitbang`), the recommended default per [ADR 007](docs/adr/007-avr-ws2812-driver-strategy.md). Const-generic over port-register address and pin bit; supports any pin on PORTB / PORTC / PORTD on ATmega328P at 16 MHz; wraps the asm loop in `avr_device::interrupt::free` internally
+- `rustyfarian-avr-ws2812`: `smart_leds_trait::SmartLedsWrite` impl for both `Ws2812Spi` and `Ws2812BitBang` (feature `smart-leds-trait`) — matches the sister ESP drivers for ecosystem parity
+- `examples/avr-nano-rainbow/src/bin/bitbang_demo.rs` — production bit-bang demo using `Ws2812BitBang` with `ferriswheel::PulseEffect`. Companion `just flash-avr-bitbang-demo` recipe
+- `examples/avr-nano-rainbow/src/bin/spi_rainbow.rs` — SPI-prerendered rainbow as a diagnostic / comparison binary, with NUM_LEDS=12 and a prominent header documenting the known white-ish failure mode (per ADR 007). Companion `just flash-avr-spi-rainbow` recipe
 - `ferriswheel`: oversized-buffer acceptance tests for all 14 effects — confirms buffers larger than `num_leds` are accepted and excess entries are not modified
 
 ### Changed
 
 - `ferriswheel`: all 14 effect structs now derive `PartialEq`, enabling direct `assert_eq!` comparisons in tests
+- `examples/avr-nano-rainbow/src/main.rs` — default example now drives the bit-bang backend (the recommended path per ADR 007). The previous SPI rainbow content moved to `bin/spi_rainbow.rs` as a diagnostic comparison. `just flash-avr-example` now runs the bit-bang rainbow
 
 ### Fixed
 

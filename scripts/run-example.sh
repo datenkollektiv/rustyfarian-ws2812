@@ -4,6 +4,10 @@ set -euo pipefail
 # Usage: scripts/run-example.sh <crate_alias> <example>
 #   crate_alias: hal-ws2812 | idf-ws2812
 #   example:     {driver}_{chip}_{name}  e.g. hal_c6_rainbow, idf_c3_rainbow
+#
+# NOTE: This script is invoked by justfile recipes (e.g. `just run-example`).
+# User-facing error messages intentionally reference `just` commands, not this
+# script path, because `just` is the public interface.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=./lib.sh

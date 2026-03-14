@@ -1,11 +1,11 @@
 # Roadmap
 
-*Last updated: March 2026*
+*Last updated: May 2026*
 
 This roadmap is informed by the [ecosystem comparison](ecosystem-comparison.md) conducted in February 2026.
-The AVR WS2812 driver (`rustyfarian-avr-ws2812`) was completed in March 2026 across three phases:
+The AVR WS2812 driver (`rustyfarian-avr-ws2812`) was code-complete in March 2026 across three phases:
 SPI encoding in `ws2812-pure`, the `embedded-hal 1.0` hardware wrapper, and build validation against `avr-none`.
-Near-term focus shifts to code quality follow-ups and real-hardware validation.
+Hardware bring-up in May 2026 surfaced an SPI prerendered encoding limitation; a follow-up driver strategy (4 MHz SPI experiment, then cycle-counted `asm!` bit-bang) is now the active near-term focus.
 
 ```mermaid
 %%{init: {
@@ -23,9 +23,8 @@ Near-term focus shifts to code quality follow-ups and real-hardware validation.
 timeline
     title Fuzzy Rustyfarian WS2812 Roadmap
 
-    Near term : Oversized-buffer acceptance tests (done)
-              : PartialEq derive on effect structs (done)
-              : AVR hardware test with wiring guide
+    Near term : AVR hardware test with wiring guide
+              : Reliable AVR WS2812 backend (4 MHz SPI experiment, then bit-bang)
 
     Mid term  : Remove send_and_wait workaround (esp-idf-hal fix)
               : Guard against rgb version divergence
@@ -75,16 +74,6 @@ The current `ferriswheel` crate provides more than a dozen well-tested, ring-spe
 
 Small improvements deferred during reviews.
 Not blocking, but tracked here to avoid being lost.
-
-- **`PartialEq` derive on effect structs** — `BreatheEffect` (and `PulseEffect`) do not derive
-  `PartialEq`, making test assertions verbose.
-  Low priority; consistent with current `PulseEffect` behaviour; fix both at the same time.
-
-- **Oversized-buffer acceptance test** — all effects silently accept buffers larger than
-  `num_leds` and write only the first `num_leds` entries.
-  This is intentional but untested.
-  Add a shared contract test (or per-effect test) that confirms oversized buffers are accepted
-  and only the required LEDs are written.
 
 - **`MeteorEffect` decay math: `/255` vs fixed-point `>> 8`** — current `brightness * decay / 255`
   maps decay values directly to percentages and keeps `decay=0` = instant black.
@@ -150,23 +139,32 @@ See [AVR WS2812 Research](research-avr-ws2812.md) for the full feasibility asses
 **Do not adopt:** `ws2812-avr` (GPL, unstable `generic_const_exprs`, near-zero maintenance).
 **Do not attempt:** pure-Rust bitbang without assembly — timing margins too tight at 16 MHz.
 
-### AVR hardware test with wiring guide
+### AVR hardware test with a wiring guide
 
 End-to-end validation of `rustyfarian-avr-ws2812` on real hardware.
+
 Deliverables:
 
-- **Wiring guide** (`docs/avr-wiring.md`) — schematic and pin connections for ATmega328P + WS2812
-  12-LED ring: SPI MOSI (PB3/D11) → DIN, 5V power, level shifting (3.3V logic → 5V data),
-  decoupling capacitor.
-- **Flashing guide** — how to compile for AVR, flash via `avrdude` (USBasp or Arduino-as-ISP),
-  and verify output. Include the exact `cargo` + `avr-objcopy` + `avrdude` pipeline.
-- **Minimal example** (`examples/avr_rainbow.rs` or similar) — a working blinky/rainbow using
-  `avr-hal`'s SPI driver with `Ws2812Spi`, demonstrating the full stack from `ferriswheel`
-  effect → `prerender_spi` → SPI hardware → LEDs.
-- **Smoke test confirmation** — document observed behaviour (correct colours, timing, no
-  flicker) and any adjustments needed.
+- ~~**Wiring and flashing guide**~~ — **Done.** Combined into [`docs/avr-getting-started.md`](avr-getting-started.md): pin connections, data line resistor, decoupling capacitor, toolchain setup (Rust nightly + GNU AVR + ravedude), build and flash pipeline.
+- ~~**Minimal example**~~ — **Done.** `examples/avr-nano-rainbow/` — standalone project using `avr-hal`'s SPI with `Ws2812Spi`, demonstrating the full stack from `ferriswheel` `RainbowEffect` → `prerender_spi` → SPI hardware → LEDs.
+- **Smoke test confirmation** — **Blocked by encoding issue.** Hardware testing on 2026-05-04 (both CH340 Nano clone and genuine Arduino Nano with the same WS2812 strip that runs cleanly on ESP32) revealed the SPI prerendered encoding produces stable white-ish output with chain misalignment. Root cause documented in [`docs/key-insights.md`](key-insights.md) "AVR WS2812 Driver: SPI Prerendered Encoding Limitation". External research saved to [`docs/research-avr-ws2812-driver-options.md`](research-avr-ws2812-driver-options.md). Continued under "Reliable AVR WS2812 backend" below.
 
-Requires physical hardware: ATmega328P board (Arduino Nano/Uno), WS2812 ring, USBasp programmer.
+### Reliable AVR WS2812 backend (4 MHz SPI experiment, then bit-bang)
+
+The 2 MHz SPI prerendered encoding emits `T0H = 500 ns` (at the WS2812B "0/1" decision threshold) and `T1H = 1500 ns` (well above the 0.85 µs nominal max), making bit interpretation unreliable on strips with tighter tolerance.
+
+Two-track plan (full design: [`docs/features/avr-bitbang-driver.md`](features/avr-bitbang-driver.md)):
+
+1. **Track A — 4 MHz SPI experiment** (one-line change). Switch `OscfOver8` → `OscfOver4`. Brings `T0H` to 250 ns (mid-spec) and `T1H` to 750 ns (in spec). 5-minute hardware test on the same failing strip.
+   - If it works on the failing strip → ship as the default; record decision in an ADR; close this roadmap entry.
+   - If it fails → proceed to Track B.
+2. **Track B — Cycle-counted `asm!` bit-bang backend.** Add a `bitbang` feature flag with timings matching `Adafruit_NeoPixel`'s proven ATmega328P @ 16 MHz approach (T0H = 4 cycles, T1H = 8 cycles, total 20 cycles per bit = 1.25 µs exact). Disables global interrupts during write. Documented as the canonical working approach for AVR WS2812 from external research.
+
+**Resolved (2026-05-04):** [ADR 007 — AVR WS2812 Driver Strategy](adr/007-avr-ws2812-driver-strategy.md) — cycle-counted bit-bang adopted as the recommended backend; SPI prerendered backend retained as opt-in.
+Production `Ws2812BitBang` driver landed in `rustyfarian-avr-ws2812` behind the `bitbang` feature, hardware-validated against `ferriswheel::PulseEffect`. `SmartLedsWrite` implemented for both backends (feature `smart-leds-trait`).
+This roadmap entry is complete and will be moved to the changelog at the next release cut.
+
+Requires physical hardware: ATmega328P board (Arduino Nano/Uno) and the same WS2812 strip used during the 2026-05-04 bring-up so we're testing against a known-failing baseline.
 
 ### Evaluate `embedded-graphics-core` integration for matrix displays
 
@@ -180,6 +178,8 @@ Not a near-term priority — track as a future option.
 <details>
 <summary><strong>Completed</strong></summary>
 
+- **`PartialEq` derive on effect structs** — all 14 effect structs now derive `PartialEq`, enabling direct `assert_eq!` in tests.
+- **Oversized-buffer acceptance tests** — per-effect tests confirming buffers larger than `num_leds` are accepted and excess entries are not modified.
 - **AVR CI / build validation** (AVR Phase 3) — `just check-avr-target` validates real `avr-none` compilation with `nightly-2025-04-27`. Setup recipes: `just setup-avr`, `just setup-hal`, `just setup` (all targets + tools).
 - **Add `rustyfarian-avr-ws2812`** (AVR Phase 2) — WS2812 SPI driver using `embedded-hal 1.0` `SpiBus`, generic over any SPI bus. `Ws2812Spi`, `SpiError`, `spi_buffer_size`, 7 unit tests + 1 doc test.
 - **Add `prerender_spi` to `ws2812-pure`** (AVR Phase 1) — pure `no_std` SPI encoding function with `spi_data_len()`, `SpiEncodeError`, `SPI_RESET_BYTES_2MHZ` constant, and 14 unit tests + 1 doc test. Unblocks Phase 2 hardware wrapper.
