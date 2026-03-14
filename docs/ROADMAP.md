@@ -20,8 +20,7 @@ Completed items have been moved to the [CHANGELOG](../CHANGELOG.md).
 timeline
     title Fuzzy Rustyfarian WS2812 Roadmap
 
-    Near term : Add rustyfarian-avr-ws2812 hardware wrapper (Phase 2)
-              : AVR CI / build validation
+    Near term : (all AVR phases complete)
 
     Mid term  : Remove send_and_wait workaround (esp-idf-hal fix)
               : Guard against rgb version divergence
@@ -127,11 +126,14 @@ See [AVR WS2812 Research](research-avr-ws2812.md) for the full feasibility asses
 1. ~~**Add `prerender_spi` to `ws2812-pure`**~~ — **Done.**
    Pure `no_std` function encoding `&[RGB8]` into a WS2812 SPI byte buffer (`12 × num_leds` bytes, reset sent separately).
    Includes `spi_data_len()`, `SpiEncodeError`, `SPI_RESET_BYTES_2MHZ`, and 14 unit tests + 1 doc test.
-2. **Add `rustyfarian-avr-ws2812`** — thin wrapper holding an `embedded-hal 1.0` `SpiBus`,
-   calling `prerender_spi`, transmitting inside `avr_device::interrupt::free`.
-   Requires pinned AVR nightly via per-crate `rust-toolchain.toml`.
-3. **AVR CI / build validation** — add a `just check-avr` recipe and validate the crate compiles
-   for `avr-unknown-gnu-atmega328` on nightly. Host tests already cover the encoding logic.
+2. ~~**Add `rustyfarian-avr-ws2812`**~~ — **Done.**
+   Thin wrapper holding an `embedded-hal 1.0` `SpiBus`, calling `prerender_spi`.
+   Generic over `SpiBus`; caller wraps in `avr_device::interrupt::free` at the call site.
+   Includes `Ws2812Spi`, `SpiError`, `spi_buffer_size`, 7 unit tests + 1 doc test.
+3. ~~**AVR CI / build validation**~~ — **Done.**
+   `just check-avr` (host), `just check-avr-target` (real `avr-none` with `-C target-cpu=atmega328p`).
+   Setup recipes: `just setup-avr` installs `nightly-2025-04-27` + `rust-src`.
+   `just setup` installs all targets and tools.
 
 **Key constraints:**
 - Permanent nightly dependency (Tier 3 target, no stable path)
@@ -155,6 +157,8 @@ Not a near-term priority — track as a future option.
 <details>
 <summary><strong>Completed</strong></summary>
 
+- **AVR CI / build validation** (AVR Phase 3) — `just check-avr-target` validates real `avr-none` compilation with `nightly-2025-04-27`. Setup recipes: `just setup-avr`, `just setup-hal`, `just setup` (all targets + tools).
+- **Add `rustyfarian-avr-ws2812`** (AVR Phase 2) — WS2812 SPI driver using `embedded-hal 1.0` `SpiBus`, generic over any SPI bus. `Ws2812Spi`, `SpiError`, `spi_buffer_size`, 7 unit tests + 1 doc test.
 - **Add `prerender_spi` to `ws2812-pure`** (AVR Phase 1) — pure `no_std` SPI encoding function with `spi_data_len()`, `SpiEncodeError`, `SPI_RESET_BYTES_2MHZ` constant, and 14 unit tests + 1 doc test. Unblocks Phase 2 hardware wrapper.
 - **Migrate `rustyfarian-esp-idf-ws2812` from legacy RMT API to new `esp-idf-hal` RMT API** — migrated from `rmt-legacy` to `esp-idf-hal 0.46` RMT API using `BytesEncoder`. See [CHANGELOG](../CHANGELOG.md) `[0.4.0]`.
 

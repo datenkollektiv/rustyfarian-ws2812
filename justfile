@@ -8,6 +8,7 @@ host_target := `scripts/host-target.sh`
 pure_crates := "-p ws2812-pure -p ferriswheel -p led-effects -p rustyfarian-avr-ws2812"
 hal_target := "riscv32imac-unknown-none-elf"
 hal_crate := "-p rustyfarian-esp-hal-ws2812"
+avr_nightly := "nightly-2025-04-27"
 
 # list available recipes (default)
 _default:
@@ -40,9 +41,12 @@ check-hal:
     cargo check {{ hal_crate }} --target {{ hal_target }}
 
 # check the AVR SPI driver on the host target (no AVR toolchain required)
-# Note: real AVR target (avr-unknown-gnu-atmega328p) requires nightly + avr-gcc — Phase 3
 check-avr:
     cargo check -p rustyfarian-avr-ws2812 --target {{ host_target }}
+
+# check the AVR SPI driver against the real avr-none target (requires: just setup-avr, avr-gcc)
+check-avr-target:
+    RUSTFLAGS="-C target-cpu=atmega328p" cargo +{{ avr_nightly }} check -p rustyfarian-avr-ws2812 --target avr-none -Z build-std=core
 
 # --- Examples -------------------------------------------------------------
 
@@ -139,9 +143,31 @@ doc-open:
 
 # --- Maintenance ----------------------------------------------------------
 
-# install required development tooling (cargo-deny, cargo-audit, cargo-watch)
-setup:
+# install all required targets and development tooling
+setup: setup-tools setup-hal setup-avr
+
+# install cargo development tools (cargo-deny, cargo-audit, cargo-watch)
+setup-tools:
     cargo install cargo-deny cargo-audit cargo-watch
+
+# install the bare-metal RISC-V target for esp-hal driver (ESP32-C6, ESP32-C3)
+setup-hal:
+    rustup target add riscv32imac-unknown-none-elf
+    rustup target add riscv32imc-unknown-none-elf
+
+# install the AVR nightly toolchain with rust-src for build-std (requires: avr-gcc via system package manager)
+setup-avr:
+    rustup toolchain install {{ avr_nightly }}
+    rustup component add rust-src --toolchain {{ avr_nightly }}
+    @echo "AVR toolchain ready: {{ avr_nightly }}"
+    @echo "Ensure avr-gcc is installed: brew install avr-gcc (macOS) / apt install gcc-avr (Debian)"
+
+# install ESP-IDF toolchain via espup (requires: espup already installed)
+setup-esp:
+    @echo "ESP-IDF toolchain is managed by espup. Install it first:"
+    @echo "  cargo install espup"
+    @echo "  espup install"
+    @echo "Then use 'cargo +esp' for ESP-IDF builds."
 
 # check dependency licenses, advisories, and bans
 deny:
