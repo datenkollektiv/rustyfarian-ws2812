@@ -393,4 +393,19 @@ mod tests {
         // After advancing, colors may differ (unless the phase happens to land on the same sine value)
         // At least the trait call should not panic
     }
+
+    #[test]
+    fn test_oversized_buffer_accepted() {
+        let sentinel = RGB8::new(0xDE, 0xAD, 0xFF);
+        let effect = PulseEffect::new(4).unwrap();
+        let mut buffer = [sentinel; 8];
+        effect.current(&mut buffer).unwrap();
+        for i in 4..8 {
+            assert_eq!(
+                buffer[i], sentinel,
+                "LED {} beyond num_leds must not be modified",
+                i
+            );
+        }
+    }
 }

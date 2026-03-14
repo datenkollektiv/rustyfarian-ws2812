@@ -23,7 +23,7 @@ Near-term focus shifts to code quality follow-ups and real-hardware validation.
 timeline
     title Fuzzy Rustyfarian WS2812 Roadmap
 
-    Near term : Oversized-buffer acceptance tests
+    Near term : Oversized-buffer acceptance tests (done)
               : PartialEq derive on effect structs
               : AVR hardware test with wiring guide
 
