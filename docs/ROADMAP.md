@@ -3,24 +3,29 @@
 *Last updated: March 2026*
 
 This roadmap is informed by the [ecosystem comparison](ecosystem-comparison.md) conducted in February 2026.
-Items are grouped by theme and ordered roughly by impact and dependency.
-Completed items have been moved to the [CHANGELOG](../CHANGELOG.md).
+The AVR WS2812 driver (`rustyfarian-avr-ws2812`) was completed in March 2026 across three phases:
+SPI encoding in `ws2812-pure`, the `embedded-hal 1.0` hardware wrapper, and build validation against `avr-none`.
+Near-term focus shifts to code quality follow-ups and real-hardware validation.
 
 ```mermaid
 %%{init: {
   "theme": "base",
   "themeVariables": {
-    "cScale0": "#fff3cd",
-    "cScaleLabel0": "#7a5a00",
-    "cScale1": "#e3f2fd",
-    "cScaleLabel1": "#0d47a1"
+    "cScale0": "#c8f7c5",
+    "cScaleLabel0": "#1b5e20",
+    "cScale1": "#fff3cd",
+    "cScaleLabel1": "#7a5a00",
+    "cScale2": "#e3f2fd",
+    "cScaleLabel2": "#0d47a1"
   }
 }}%%
 
 timeline
     title Fuzzy Rustyfarian WS2812 Roadmap
 
-    Near term : (all AVR phases complete)
+    Near term : Oversized-buffer acceptance tests
+              : PartialEq derive on effect structs
+              : AVR hardware test with wiring guide
 
     Mid term  : Remove send_and_wait workaround (esp-idf-hal fix)
               : Guard against rgb version divergence
@@ -115,10 +120,10 @@ no existing `smart-leds-rs` crate provides ring-geometry animations testable wit
 Once the APIs are stable, evaluate whether proposing these as upstream additions or companion crates makes sense.
 Decision should follow a stability review and user feedback.
 
-### Explore ATmega328P / AVR WS2812 support (`rustyfarian-avr-ws2812`)
+### ATmega328P / AVR WS2812 support (`rustyfarian-avr-ws2812`) — Complete
 
-A third hardware driver targeting `avr-unknown-gnu-atmega328` using the SPI prerendered
-approach (no inline assembly required).
+A third hardware driver targeting `avr-none` (with `-C target-cpu=atmega328p`) using the SPI
+prerendered approach (no inline assembly required).
 See [AVR WS2812 Research](research-avr-ws2812.md) for the full feasibility assessment.
 
 **Phased approach:**
@@ -144,6 +149,24 @@ See [AVR WS2812 Research](research-avr-ws2812.md) for the full feasibility asses
 
 **Do not adopt:** `ws2812-avr` (GPL, unstable `generic_const_exprs`, near-zero maintenance).
 **Do not attempt:** pure-Rust bitbang without assembly — timing margins too tight at 16 MHz.
+
+### AVR hardware test with wiring guide
+
+End-to-end validation of `rustyfarian-avr-ws2812` on real hardware.
+Deliverables:
+
+- **Wiring guide** (`docs/avr-wiring.md`) — schematic and pin connections for ATmega328P + WS2812
+  12-LED ring: SPI MOSI (PB3/D11) → DIN, 5V power, level shifting (3.3V logic → 5V data),
+  decoupling capacitor.
+- **Flashing guide** — how to compile for AVR, flash via `avrdude` (USBasp or Arduino-as-ISP),
+  and verify output. Include the exact `cargo` + `avr-objcopy` + `avrdude` pipeline.
+- **Minimal example** (`examples/avr_rainbow.rs` or similar) — a working blinky/rainbow using
+  `avr-hal`'s SPI driver with `Ws2812Spi`, demonstrating the full stack from `ferriswheel`
+  effect → `prerender_spi` → SPI hardware → LEDs.
+- **Smoke test confirmation** — document observed behaviour (correct colours, timing, no
+  flicker) and any adjustments needed.
+
+Requires physical hardware: ATmega328P board (Arduino Nano/Uno), WS2812 ring, USBasp programmer.
 
 ### Evaluate `embedded-graphics-core` integration for matrix displays
 
