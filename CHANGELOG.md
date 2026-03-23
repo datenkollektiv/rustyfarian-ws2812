@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `led-effects`: `AsyncStatusLed` trait — async counterpart of `StatusLed` for drivers with async `set_color`; `NoLed` implements it
 - `rustyfarian-esp-hal-ws2812`: implements `AsyncStatusLed` for `Ws2812Rmt<'d, Async, N>` behind `async` + `led-effects` features
 - `hal_c3_pulse_async`, `hal_c6_pulse_async`, `hal_esp32_pulse_async` — async blue pulse examples using `AsyncStatusLed` for ESP32-C3, C6, and WROOM-32
+- `ferriswheel`: `smart-leds-compat` feature — optional `smart-leds-trait` dependency with a compile-time type-identity assertion that fails the build if the two crates resolve to incompatible `rgb` versions (no runtime impact)
 
 ### Changed
 

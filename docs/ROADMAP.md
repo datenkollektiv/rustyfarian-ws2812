@@ -28,7 +28,7 @@ timeline
               : Fix esp-println dev-dep chip feature conflict (done)
 
     Mid term  : Remove send_and_wait workaround (esp-idf-hal fix)
-              : Guard against rgb version divergence
+              : Guard against rgb version divergence (done)
               : SmartLedsWriteAsync for esp-hal async driver
               : AsyncStatusLed trait in led-effects (done)
 

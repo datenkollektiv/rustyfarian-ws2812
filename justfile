@@ -28,6 +28,10 @@ build-all:
 check:
     cargo check {{ pure_crates }} --target {{ host_target }}
 
+# check ferriswheel with the smart-leds-compat feature — exercises the rgb-version-divergence guard
+check-ferriswheel-smart-leds-compat:
+    cargo check -p ferriswheel --features smart-leds-compat --target {{ host_target }}
+
 # check all crates including ESP-IDF (requires espup; does NOT cover rustyfarian-esp-hal-ws2812 or rustyfarian-avr-ws2812 — use check-hal / check-avr)
 check-all:
     cargo +esp check --workspace --exclude rustyfarian-esp-hal-ws2812 --exclude rustyfarian-avr-ws2812
