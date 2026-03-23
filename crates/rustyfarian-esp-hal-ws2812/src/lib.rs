@@ -1,4 +1,5 @@
 #![no_std]
+#![allow(async_fn_in_trait)]
 //! WS2812 (NeoPixel) LED driver using `esp-hal` RMT peripheral (bare-metal, `no_std`).
 //!
 //! This crate provides a bare-metal driver for WS2812/NeoPixel addressable LEDs
@@ -687,5 +688,14 @@ impl<'d, const N: usize> SmartLedsWrite for Ws2812Rmt<'d, Blocking, N> {
 
         self.buffer[num_leds * 24] = PulseCode::end_marker();
         self.do_transmit(num_leds * 24 + 1)
+    }
+}
+
+#[cfg(all(feature = "async", feature = "led-effects"))]
+impl<'d, const N: usize> led_effects::AsyncStatusLed for Ws2812Rmt<'d, Async, N> {
+    type Error = Error;
+
+    async fn set_color(&mut self, color: RGB8) -> Result<(), Self::Error> {
+        self.set_pixel(color).await
     }
 }

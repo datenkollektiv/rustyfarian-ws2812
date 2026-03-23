@@ -85,3 +85,15 @@ required-features = ["esp32c6", "rt", "smart-leds"]
 [[example]]
 name = "hal_c6_rainbow_comet_async"
 required-features = ["esp32c6", "rt", "async"]
+
+[[example]]
+name = "hal_c3_pulse_async"
+required-features = ["esp32c3", "rt", "async"]
+
+[[example]]
+name = "hal_c6_pulse_async"
+required-features = ["esp32c6", "rt", "async"]
+
+[[example]]
+name = "hal_esp32_pulse_async"
+required-features = ["esp32", "rt", "async"]

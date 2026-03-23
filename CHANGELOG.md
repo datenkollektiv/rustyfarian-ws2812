@@ -14,6 +14,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `examples/avr-nano-rainbow/src/bin/bitbang_demo.rs` — production bit-bang demo using `Ws2812BitBang` with `ferriswheel::PulseEffect`. Companion `just flash-avr-bitbang-demo` recipe
 - `examples/avr-nano-rainbow/src/bin/spi_rainbow.rs` — SPI-prerendered rainbow as a diagnostic / comparison binary, with NUM_LEDS=12 and a prominent header documenting the known white-ish failure mode (per ADR 007). Companion `just flash-avr-spi-rainbow` recipe
 - `ferriswheel`: oversized-buffer acceptance tests for all 14 effects — confirms buffers larger than `num_leds` are accepted and excess entries are not modified
+- `led-effects`: `AsyncStatusLed` trait — async counterpart of `StatusLed` for drivers with async `set_color`; `NoLed` implements it
+- `rustyfarian-esp-hal-ws2812`: implements `AsyncStatusLed` for `Ws2812Rmt<'d, Async, N>` behind `async` + `led-effects` features
+- `hal_c3_pulse_async`, `hal_c6_pulse_async`, `hal_esp32_pulse_async` — async blue pulse examples using `AsyncStatusLed` for ESP32-C3, C6, and WROOM-32
 
 ### Changed
 
