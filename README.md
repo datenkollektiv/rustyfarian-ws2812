@@ -65,33 +65,36 @@ See [Why Yet Another WS2812 Crate?](docs/why-yet-another-ws2812-crate.md) for th
 The project includes ready-to-run examples for ESP32-C3 and ESP32-C6 using both drivers.
 Each example name encodes the driver, chip, and effect: `{driver}_{chip}_{effect}`.
 
-| Example                      | Driver           | Board / Chip              | Effect                 | Data GPIO  | Notes                                                                               |
-|:-----------------------------|:-----------------|:--------------------------|:-----------------------|:-----------|:------------------------------------------------------------------------------------|
-| `hal_c3_pulse`               | esp-hal (no_std) | ESP32-C3                  | Pulse                  | GPIO4      |                                                                                     |
-| `hal_c6_pulse`               | esp-hal (no_std) | ESP32-C6                  | Pulse                  | GPIO18     |                                                                                     |
-| `hal_esp32_pulse`            | esp-hal (no_std) | ESP32-WROOM-32            | Pulse                  | GPIO4      |                                                                                     |
-| `hal_c6_breathe_color`       | esp-hal (no_std) | ESP32-C6                  | Breathe (hue cycling)  | GPIO18     |                                                                                     |
-| `hal_c6_meteor`              | esp-hal (no_std) | ESP32-C6                  | Meteor / comet         | GPIO18     |                                                                                     |
-| `hal_c6_twinkle`             | esp-hal (no_std) | ESP32-C6                  | Twinkle / starfield    | GPIO18     |                                                                                     |
-| `hal_c6_fire`                | esp-hal (no_std) | ESP32-C6                  | Fire                   | GPIO18     |                                                                                     |
-| `hal_c6_cylon`               | esp-hal (no_std) | ESP32-C6                  | Cylon / scanner        | GPIO18     |                                                                                     |
-| `hal_c6_knight_rider`        | esp-hal (no_std) | ESP32-C6                  | Knight Rider / scanner | GPIO18     |                                                                                     |
-| `hal_c6_rainbow_comet`       | esp-hal (no_std) | ESP32-C6                  | Rainbow comet          | GPIO18     |                                                                                     |
-| `hal_c6_rainbow_comet_async` | esp-hal (no_std) | ESP32-C6                  | Rainbow comet (async)  | GPIO18     | `--features async`                                                                  |
-| `hal_c6_smart_leds`          | esp-hal (no_std) | ESP32-C6                  | smart-leds interop     | GPIO18     | `--features smart-leds`                                                             |
-| `idf_c3_rainbow`             | ESP-IDF (std)    | ESP32-C3                  | Rainbow                | GPIO4      |                                                                                     |
-| `idf_c6_rainbow`             | ESP-IDF (std)    | ESP32-C6                  | Rainbow                | GPIO18     |                                                                                     |
-| `idf_esp32_rainbow`          | ESP-IDF (std)    | Adafruit Feather ESP32 V2 | Rainbow                | GPIO0      | GPIO2 = power enable                                                                |
-| `idf_c6_breathe_color`       | ESP-IDF (std)    | ESP32-C6                  | Breathe (hue cycling)  | GPIO18     |                                                                                     |
-| `idf_c6_effects`             | ESP-IDF (std)    | ESP32-C6                  | Multi-effect sequence  | GPIO18     |                                                                                     |
-| `idf_c6_meteor`              | ESP-IDF (std)    | ESP32-C6                  | Meteor / comet         | GPIO18     |                                                                                     |
-| `idf_c6_twinkle`             | ESP-IDF (std)    | ESP32-C6                  | Twinkle / starfield    | GPIO18     |                                                                                     |
-| `idf_c6_fire`                | ESP-IDF (std)    | ESP32-C6                  | Fire                   | GPIO18     |                                                                                     |
-| `idf_c6_cylon`               | ESP-IDF (std)    | ESP32-C6                  | Cylon / scanner        | GPIO18     |                                                                                     |
-| `idf_c6_knight_rider`        | ESP-IDF (std)    | ESP32-C6                  | Knight Rider / scanner | GPIO18     |                                                                                     |
-| `idf_c6_rainbow_comet`       | ESP-IDF (std)    | ESP32-C6                  | Rainbow comet          | GPIO18     |                                                                                     |
-| `idf_c6_smart_leds`          | ESP-IDF (std)    | ESP32-C6                  | smart-leds interop     | GPIO18     | `--features smart-leds`                                                             |
-| `avr-nano-rainbow`           | AVR SPI (no_std) | Arduino Nano (ATmega328P) | Rainbow                | D11 (MOSI) | Standalone project — see [docs/avr-getting-started.md](docs/avr-getting-started.md) |
+| Example                      | Driver           | Board / Chip              | Effect                 | Data GPIO  | Notes                   |
+|:-----------------------------|:-----------------|:--------------------------|:-----------------------|:-----------|:------------------------|
+| `hal_c3_pulse`               | esp-hal (no_std) | ESP32-C3                  | Pulse                  | GPIO4      |                         |
+| `hal_c6_pulse`               | esp-hal (no_std) | ESP32-C6                  | Pulse                  | GPIO18     |                         |
+| `hal_esp32_pulse`            | esp-hal (no_std) | ESP32-WROOM-32            | Pulse                  | GPIO4      |                         |
+| `hal_c6_breathe_color`       | esp-hal (no_std) | ESP32-C6                  | Breathe (hue cycling)  | GPIO18     |                         |
+| `hal_c6_meteor`              | esp-hal (no_std) | ESP32-C6                  | Meteor / comet         | GPIO18     |                         |
+| `hal_c6_twinkle`             | esp-hal (no_std) | ESP32-C6                  | Twinkle / starfield    | GPIO18     |                         |
+| `hal_c6_fire`                | esp-hal (no_std) | ESP32-C6                  | Fire                   | GPIO18     |                         |
+| `hal_c6_cylon`               | esp-hal (no_std) | ESP32-C6                  | Cylon / scanner        | GPIO18     |                         |
+| `hal_c6_knight_rider`        | esp-hal (no_std) | ESP32-C6                  | Knight Rider / scanner | GPIO18     |                         |
+| `hal_c6_rainbow_comet`       | esp-hal (no_std) | ESP32-C6                  | Rainbow comet          | GPIO18     |                         |
+| `hal_c6_rainbow_comet_async` | esp-hal (no_std) | ESP32-C6                  | Rainbow comet (async)  | GPIO18     | `--features async`      |
+| `hal_c3_pulse_async`         | esp-hal (no_std) | ESP32-C3                  | Pulse (async)          | GPIO4      | `--features async`      |
+| `hal_c6_pulse_async`         | esp-hal (no_std) | ESP32-C6                  | Pulse (async)          | GPIO18     | `--features async`      |
+| `hal_esp32_pulse_async`      | esp-hal (no_std) | ESP32-WROOM-32            | Pulse (async)          | GPIO4      | `--features async`      |
+| `hal_c6_smart_leds`          | esp-hal (no_std) | ESP32-C6                  | smart-leds interop     | GPIO18     | `--features smart-leds` |
+| `idf_c3_rainbow`             | ESP-IDF (std)    | ESP32-C3                  | Rainbow                | GPIO4      |                         |
+| `idf_c6_rainbow`             | ESP-IDF (std)    | ESP32-C6                  | Rainbow                | GPIO18     |                         |
+| `idf_esp32_rainbow`          | ESP-IDF (std)    | Adafruit Feather ESP32 V2 | Rainbow                | GPIO0      | GPIO2 = power enable    |
+| `idf_c6_breathe_color`       | ESP-IDF (std)    | ESP32-C6                  | Breathe (hue cycling)  | GPIO18     |                         |
+| `idf_c6_effects`             | ESP-IDF (std)    | ESP32-C6                  | Multi-effect sequence  | GPIO18     |                         |
+| `idf_c6_meteor`              | ESP-IDF (std)    | ESP32-C6                  | Meteor / comet         | GPIO18     |                         |
+| `idf_c6_twinkle`             | ESP-IDF (std)    | ESP32-C6                  | Twinkle / starfield    | GPIO18     |                         |
+| `idf_c6_fire`                | ESP-IDF (std)    | ESP32-C6                  | Fire                   | GPIO18     |                         |
+| `idf_c6_cylon`               | ESP-IDF (std)    | ESP32-C6                  | Cylon / scanner        | GPIO18     |                         |
+| `idf_c6_knight_rider`        | ESP-IDF (std)    | ESP32-C6                  | Knight Rider / scanner | GPIO18     |                         |
+| `idf_c6_rainbow_comet`       | ESP-IDF (std)    | ESP32-C6                  | Rainbow comet          | GPIO18     |                         |
+| `idf_c6_smart_leds`          | ESP-IDF (std)    | ESP32-C6                  | smart-leds interop     | GPIO18     | `--features smart-leds` |
+| `avr-nano-rainbow`           | AVR SPI (no_std) | Arduino Nano (ATmega328P) | Rainbow                | D11 (MOSI) | Standalone project      |
 
 Flash and open the serial monitor on a connected board:
 

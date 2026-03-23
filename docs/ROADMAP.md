@@ -29,7 +29,7 @@ timeline
     Mid term  : Remove send_and_wait workaround (esp-idf-hal fix)
               : Guard against rgb version divergence
               : SmartLedsWriteAsync for esp-hal async driver
-              : AsyncStatusLed trait in led-effects
+              : AsyncStatusLed trait in led-effects (done)
 
     Recurring : Audit deny.toml exceptions (each minor release)
 
@@ -99,18 +99,12 @@ and allows users to apply `brightness()` and `gamma()` adapters in async context
 Blocked on: `SmartLedsWriteAsync` trait stabilisation in the `smart-leds` ecosystem.
 See [ADR 006](adr/006-async-support.md) and [ADR 008](adr/008-embassy-as-async-runtime.md).
 
-### Evaluate `AsyncStatusLed` trait in `led-effects`
+### ~~Evaluate `AsyncStatusLed` trait in `led-effects`~~ — Done
 
-`led-effects` defines `StatusLed` as a sync trait (`fn set_color(&mut self, color) -> Result`).
-Async drivers (`Ws2812Rmt<'d, Async, N>`) cannot implement it because `set_pixel` is async.
-A new `AsyncStatusLed` trait with `async fn set_color` would close this gap.
-
-Key considerations:
-- `led-effects` is `no_std` with zero runtime deps — adding `AsyncStatusLed` must not introduce
-  an `embassy-time` or executor dependency (only `core::future::Future` is acceptable)
-- The trait should use `async fn` in traits (stable since Rust 1.75)
-- Downstream crates could be generic over `StatusLed + AsyncStatusLed` or use separate bounds
-- This is a separate decision from ADR 006/007 — track as its own evaluation
+`AsyncStatusLed` trait added to `led-effects` with `async fn set_color`.
+`NoLed` implements it. `Ws2812Rmt<'d, Async, N>` implements it behind `async` + `led-effects` features.
+No new dependencies — uses only `core::future::Future` (Rust 1.75+, `#![allow(async_fn_in_trait)]`).
+Three async pulse examples added: `hal_c3_pulse_async`, `hal_c6_pulse_async`, `hal_esp32_pulse_async`.
 
 ---
 
