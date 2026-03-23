@@ -28,11 +28,14 @@ timeline
 
     Mid term  : Remove send_and_wait workaround (esp-idf-hal fix)
               : Guard against rgb version divergence
+              : SmartLedsWriteAsync for esp-hal async driver
+              : AsyncStatusLed trait in led-effects
 
     Recurring : Audit deny.toml exceptions (each minor release)
 
     Long term : Upstream contribution evaluation
               : embedded-graphics-core evaluation
+              : Monitor esp-idf-hal for async RMT support
 ```
 
 ## Ecosystem Integration
@@ -86,6 +89,28 @@ When a future `esp-idf-hal` release fixes this (likely by treating `rmt_encode_s
 a bitfield rather than an enum), switch back to `send_and_wait` and remove the `transmit_bytes`
 helper and its `unsafe` block.
 Track: [esp-idf-hal GitHub issues](https://github.com/esp-rs/esp-idf-hal/issues).
+
+### Implement `SmartLedsWriteAsync` for `Ws2812Rmt<'d, Async, N>`
+
+The `smart-leds-trait` ecosystem defines a `SmartLedsWriteAsync` trait for async LED writers.
+`rustyfarian-esp-hal-ws2812` already implements `SmartLedsWrite` for the blocking variant.
+Adding `SmartLedsWriteAsync` for the async variant completes the `smart-leds` integration
+and allows users to apply `brightness()` and `gamma()` adapters in async contexts.
+Blocked on: `SmartLedsWriteAsync` trait stabilisation in the `smart-leds` ecosystem.
+See [ADR 006](adr/006-async-support.md) and [ADR 008](adr/008-embassy-as-async-runtime.md).
+
+### Evaluate `AsyncStatusLed` trait in `led-effects`
+
+`led-effects` defines `StatusLed` as a sync trait (`fn set_color(&mut self, color) -> Result`).
+Async drivers (`Ws2812Rmt<'d, Async, N>`) cannot implement it because `set_pixel` is async.
+A new `AsyncStatusLed` trait with `async fn set_color` would close this gap.
+
+Key considerations:
+- `led-effects` is `no_std` with zero runtime deps — adding `AsyncStatusLed` must not introduce
+  an `embassy-time` or executor dependency (only `core::future::Future` is acceptable)
+- The trait should use `async fn` in traits (stable since Rust 1.75)
+- Downstream crates could be generic over `StatusLed + AsyncStatusLed` or use separate bounds
+- This is a separate decision from ADR 006/007 — track as its own evaluation
 
 ---
 
@@ -190,6 +215,16 @@ This roadmap entry is complete and will be moved to the changelog at the next re
 
 Requires physical hardware: ATmega328P board (Arduino Nano/Uno) and the same WS2812 strip used during the 2026-05-04 bring-up so we're testing against a known-failing baseline.
 
+### Monitor `esp-idf-hal` for async RMT support
+
+`rustyfarian-esp-idf-ws2812` is blocking-only because `esp-idf-hal 0.46`'s `TxChannelDriver`
+has no async API.
+If a future `esp-idf-hal` release adds async RMT (likely using `esp-idf-svc`'s executor or
+`tokio`, not Embassy), async support can be added to the IDF driver under a separate feature flag.
+This would be a different runtime from the HAL driver's Embassy-based async (see [ADR 008](adr/008-embassy-as-async-runtime.md))
+— the two drivers already diverge on error handling (ADR 005), so runtime divergence is expected.
+Track: [esp-idf-hal releases](https://github.com/esp-rs/esp-idf-hal/releases).
+
 ### Evaluate `embedded-graphics-core` integration for matrix displays
 
 `ws2812-esp32-rmt-driver` demonstrated a clean `embedded-graphics-core` drawing target
@@ -202,6 +237,9 @@ Not a near-term priority — track as a future option.
 <details>
 <summary><strong>Completed</strong></summary>
 
+- **Fix `esp-println` dev-dep chip feature conflict** — moved to optional dep with per-chip forwarding; also fixed `Ws2812Rmt::<N>` → `Ws2812Rmt::<_, N>` in all 11 blocking examples.
+- **`AsyncStatusLed` trait in `led-effects`** — `async fn set_color` trait, `NoLed` impl, `Ws2812Rmt<Async>` impl, three async pulse examples (C3, C6, WROOM-32).
+- **Async support for `rustyfarian-esp-hal-ws2812`** — Embassy-based async driver via `esp-rtos` 0.2; `async` feature flag enables `set_pixel().await` and `set_pixels_slice().await` on `Ws2812Rmt<'d, Async, N>`. See [ADR 006](adr/006-async-support.md) and [ADR 008](adr/008-embassy-as-async-runtime.md).
 - **`PartialEq` derive on effect structs** — all 14 effect structs now derive `PartialEq`, enabling direct `assert_eq!` in tests.
 - **Oversized-buffer acceptance tests** — per-effect tests confirming buffers larger than `num_leds` are accepted and excess entries are not modified.
 - **AVR CI / build validation** (AVR Phase 3) — `just check-avr-target` validates real `avr-none` compilation with `nightly-2025-04-27`. Setup recipes: `just setup-avr`, `just setup-hal`, `just setup` (all targets + tools).
