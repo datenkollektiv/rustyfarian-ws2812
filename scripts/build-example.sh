@@ -39,7 +39,7 @@ case "$prefix" in
             *) printf 'Unknown chip "%s" in example "%s". Supported: c3, c6, esp32\n' "$chip" "$example" >&2; exit 1 ;;
         esac
         # Base features required by all HAL examples.
-        hal_features="${mcu},unstable,led-effects,rt"
+        hal_features="${mcu},unstable,led-effects,rt,esp-println"
         # Append optional features required by specific examples.
         name=$(printf '%s' "$example" | cut -d_ -f3-)
         case "$name" in

@@ -23,6 +23,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `ferriswheel`: all 14 effect structs now derive `PartialEq`, enabling direct `assert_eq!` comparisons in tests
 - `examples/avr-nano-rainbow/src/main.rs` — default example now drives the bit-bang backend (the recommended path per ADR 007). The previous SPI rainbow content moved to `bin/spi_rainbow.rs` as a diagnostic comparison. `just flash-avr-example` now runs the bit-bang rainbow
 - `rustyfarian-avr-ws2812`: dropped the `avr-device` dependency. The bit-bang backend now uses raw inline `cli` + `SREG` save/restore asm for its critical section instead of `avr_device::interrupt::free`. This removes the deprecated `bare-metal` crate (RUSTSEC-2026-0110) and the GPL-3.0 `atdf2svd` build-tool from the workspace dep graph entirely. No behaviour change for users.
+- `rustyfarian-esp-hal-ws2812`: `esp-println` moved from dev-dependency to optional dependency with per-chip feature forwarding — fixes cross-chip example builds (C3/ESP32 examples no longer conflict with C6's `esp-println` features)
+- `rustyfarian-esp-hal-ws2812`: all blocking examples updated from `Ws2812Rmt::<N>` to `Ws2812Rmt::<_, N>` to match the v0.4.0 `Dm: DriverMode` type parameter
 
 ### Fixed
 

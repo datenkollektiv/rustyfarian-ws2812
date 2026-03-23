@@ -80,7 +80,7 @@ fn main() -> ! {
         .configure_tx(peripherals.GPIO18, config)
         .unwrap();
 
-    let mut ws = Ws2812Rmt::<N>::new(channel);
+    let mut ws = Ws2812Rmt::<_, N>::new(channel);
     let mut effect = MeteorEffect::new(NUM_LEDS)
         .unwrap()
         .with_color(RGB8::new(255, 200, 80))
