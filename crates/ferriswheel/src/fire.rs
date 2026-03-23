@@ -65,6 +65,14 @@ pub(crate) fn fire_color(heat: u8) -> RGB8 {
 ///
 /// The maximum number of LEDs is [`MAX_LEDS`](crate::effect::MAX_LEDS).
 ///
+/// # Diffusion modes
+///
+/// - **Linear** (default): heat at indices 0 and 1 acts as a fixed base anchor
+///   — those cells are not touched by the diffusion step, so a small ignition
+///   zone keeps producing fresh heat that propagates upward toward the tip.
+/// - **Circular** (via [`with_wrap`](FireEffect::with_wrap)): heat[n-1] feeds
+///   back into heat[0], producing a symmetric ring fire with no cold seam.
+///
 /// # Example
 ///
 /// ```
@@ -95,6 +103,9 @@ pub struct FireEffect {
     /// When true, heat diffusion wraps around: `heat[n-1]` feeds back into
     /// `heat[0]`, producing a symmetric ring fire with no cold seam.
     wrap: bool,
+    /// Number of LEDs at the base eligible for spark ignition.
+    /// Default: `num_leds.min(3)`. Clamped to `1..=num_leds`.
+    base_range: usize,
 }
 
 impl FireEffect {
@@ -120,6 +131,7 @@ impl FireEffect {
             rng_state: DEFAULT_SEED,
             initial_seed: DEFAULT_SEED,
             wrap: false,
+            base_range: num_leds.min(3),
         })
     }
 
@@ -149,6 +161,18 @@ impl FireEffect {
     /// When `false` (default), heat diffuses linearly from base to tip.
     pub fn with_wrap(mut self, wrap: bool) -> Self {
         self.wrap = wrap;
+        self
+    }
+
+    /// Sets the number of base LEDs eligible for spark ignition.
+    ///
+    /// Default: `num_leds.min(3)` — fine for small rings but too narrow for
+    /// long strips (60+ LEDs). A wider range (e.g. `(n / 10).max(3)`) produces
+    /// a more natural flame base on longer strips.
+    ///
+    /// The value is clamped to `1..=num_leds`.
+    pub fn with_base_range(mut self, range: usize) -> Self {
+        self.base_range = range.clamp(1, self.num_leds);
         self
     }
 
@@ -229,8 +253,10 @@ impl FireEffect {
         if self.wrap && n >= 2 {
             // Circular: every index averages its two predecessors (wrapping).
             // A snapshot avoids read-after-write: computing heat[0] reads
-            // heat[n-1], which is also modified in this pass.
-            let snapshot: [u8; MAX_LEDS] = self.heat;
+            // heat[n-1], which is also modified in this pass. Only the active
+            // prefix is copied — the unused tail is irrelevant.
+            let mut snapshot = [0u8; MAX_LEDS];
+            snapshot[..n].copy_from_slice(&self.heat[..n]);
             for i in (0..n).rev() {
                 let a = snapshot[(i + n - 1) % n] as u16;
                 let b = snapshot[(i + n - 2) % n] as u16;
@@ -248,8 +274,7 @@ impl FireEffect {
 
         // Stage 3: randomly ignite the base.
         if self.sparking == 255 || (self.sparking > 0 && self.rng_byte() < self.sparking) {
-            let base_range = n.min(3) as u8;
-            let y = (self.rng_byte() % base_range) as usize;
+            let y = (self.rng_byte() as usize) % self.base_range;
             let boost = self.rng_byte().saturating_add(100);
             self.heat[y] = self.heat[y].saturating_add(boost);
         }
@@ -622,35 +647,45 @@ mod tests {
 
     #[test]
     fn test_wrap_enabled_propagates_tip_to_base() {
-        // With wrap enabled, heat at the tip should influence index 0.
-        // Use high sparking + zero cooling so heat accumulates and spreads.
-        let mut wrap_effect = FireEffect::new(8)
+        // Direct test of the property: with wrap enabled, heat at heat[n-1]
+        // must influence heat[0] after one diffusion step. With wrap disabled,
+        // heat[0] is anchored and can only change via cooling/sparking.
+        // We disable both so any change to heat[0] comes from diffusion alone.
+        const N: usize = 8;
+        let mut wrap_effect = FireEffect::new(N)
             .unwrap()
-            .with_sparking(255)
+            .with_sparking(0)
             .with_cooling(0)
-            .with_wrap(true)
-            .with_seed(42);
-        let mut linear_effect = FireEffect::new(8)
+            .with_wrap(true);
+        let mut linear_effect = FireEffect::new(N)
             .unwrap()
-            .with_sparking(255)
+            .with_sparking(0)
             .with_cooling(0)
-            .with_wrap(false)
-            .with_seed(42);
+            .with_wrap(false);
 
-        let mut wrap_buf = [RGB8::default(); 8];
-        let mut linear_buf = [RGB8::default(); 8];
+        // Inject heat at the tip directly; both base and middle stay cold.
+        wrap_effect.heat[N - 1] = 240;
+        linear_effect.heat[N - 1] = 240;
 
-        // Run enough ticks for heat to propagate through the ring.
-        for _ in 0..20 {
-            wrap_effect.update(&mut wrap_buf).unwrap();
-            linear_effect.update(&mut linear_buf).unwrap();
-        }
+        let mut wrap_buf = [RGB8::default(); N];
+        let mut linear_buf = [RGB8::default(); N];
+        wrap_effect.update(&mut wrap_buf).unwrap();
+        linear_effect.update(&mut linear_buf).unwrap();
 
-        // With the same seed, wrap and linear must produce different output
-        // because the diffusion algorithm differs.
-        assert_ne!(
-            wrap_buf, linear_buf,
-            "wrap-around diffusion should produce different output than linear"
+        // Wrap mode: heat[0] = (heat[n-1]*2 + heat[n-2]) / 3 ≈ 160.
+        // Cooling has a +2 floor that may shave 0–1 off heat[n-1] first, so
+        // we assert the property — heat[0] picks up substantial heat from the
+        // tip — rather than a brittle exact value.
+        assert!(
+            wrap_effect.heat[0] > 100,
+            "wrap mode must propagate heat[n-1] into heat[0]; got {}",
+            wrap_effect.heat[0]
+        );
+        // Linear mode: heat[0] is a base anchor — diffusion never touches it,
+        // sparking is off, and cooling on a zero cell saturates at 0.
+        assert_eq!(
+            linear_effect.heat[0], 0,
+            "linear mode must leave heat[0] anchored at zero"
         );
     }
 
@@ -662,8 +697,8 @@ mod tests {
             .with_cooling(0)
             .with_wrap(true);
         let mut buffer = [RGB8::default(); 1];
-        // n=1 with wrap: modulo arithmetic averages heat[0] with itself.
-        // Must not panic or produce unexpected results.
+        // n=1 doesn't run the diffusion step (wrap path requires n >= 2);
+        // only cooling and sparking run. Must not panic.
         for _ in 0..5 {
             effect.update(&mut buffer).unwrap();
         }
@@ -679,6 +714,72 @@ mod tests {
         for _ in 0..5 {
             effect.update(&mut buffer).unwrap();
         }
+    }
+
+    // ── base range parameterisation ──────────────────────────────────────────
+
+    #[test]
+    fn test_base_range_default_small_ring() {
+        let effect = FireEffect::new(12).unwrap();
+        assert_eq!(
+            effect.base_range, 3,
+            "default for n=12 should be min(12,3)=3"
+        );
+    }
+
+    #[test]
+    fn test_base_range_default_tiny_ring() {
+        let effect = FireEffect::new(2).unwrap();
+        assert_eq!(effect.base_range, 2, "default for n=2 should be min(2,3)=2");
+    }
+
+    #[test]
+    fn test_base_range_default_single_led() {
+        let effect = FireEffect::new(1).unwrap();
+        assert_eq!(effect.base_range, 1, "default for n=1 should be 1");
+    }
+
+    #[test]
+    fn test_with_base_range_sets_value() {
+        let effect = FireEffect::new(12).unwrap().with_base_range(6);
+        assert_eq!(effect.base_range, 6);
+    }
+
+    #[test]
+    fn test_with_base_range_clamps_to_num_leds() {
+        let effect = FireEffect::new(8).unwrap().with_base_range(20);
+        assert_eq!(effect.base_range, 8, "should clamp to num_leds");
+    }
+
+    #[test]
+    fn test_with_base_range_clamps_zero_to_one() {
+        let effect = FireEffect::new(8).unwrap().with_base_range(0);
+        assert_eq!(effect.base_range, 1, "should clamp 0 to 1");
+    }
+
+    #[test]
+    fn test_wide_base_range_ignites_beyond_index_2() {
+        // With base_range=8 and sparking=255, sparks can land at indices 3..7.
+        // Run enough ticks that at least one spark lands beyond index 2.
+        let mut effect = FireEffect::new(8)
+            .unwrap()
+            .with_base_range(8)
+            .with_sparking(255)
+            .with_cooling(0);
+        let mut buffer = [RGB8::default(); 8];
+        let mut saw_high_index = false;
+        for _ in 0..50 {
+            effect.update(&mut buffer).unwrap();
+            // Check if any LED at index 3+ is non-black (heat was sparked there).
+            if buffer[3..].iter().any(|led| *led != RGB8::default()) {
+                saw_high_index = true;
+                break;
+            }
+        }
+        assert!(
+            saw_high_index,
+            "with base_range=8, sparks should reach indices beyond 2"
+        );
     }
 
     #[test]

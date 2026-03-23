@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `hal_c3_pulse_async`, `hal_c6_pulse_async`, `hal_esp32_pulse_async` — async blue pulse examples using `AsyncStatusLed` for ESP32-C3, C6, and WROOM-32
 - `ferriswheel`: `smart-leds-compat` feature — optional `smart-leds-trait` dependency with a compile-time type-identity assertion that fails the build if the two crates resolve to incompatible `rgb` versions (no runtime impact)
 - `ferriswheel`: `FireEffect::with_wrap(bool)` — circular heat diffusion for ring displays; heat wraps from tip back to base, eliminating the cold seam
+- `ferriswheel`: `FireEffect::with_base_range(usize)` — configurable ignition zone width; default `num_leds.min(3)`, clamped to `1..=num_leds`
 
 ### Changed
 
