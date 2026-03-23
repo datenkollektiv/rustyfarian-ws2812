@@ -20,22 +20,21 @@ smart-leds = { workspace = true, optional = true }
 esp-rtos = { workspace = true, optional = true }
 embassy-time = { workspace = true, optional = true }
 embassy-executor = { workspace = true, optional = true }
+esp-println = { workspace = true, optional = true, default-features = false, features = ["jtag-serial"] }
 
 [dev-dependencies]
 ferriswheel = { workspace = true }
-# esp-println is used only in hal_c6_pulse.rs; the esp32c6 feature is intentional.
-# Other examples (c3, esp32) do not import esp_println, so this does not affect them.
-esp-println = { workspace = true, features = ["esp32c6", "jtag-serial"] }
 
 [features]
 default = ["esp32c6", "unstable", "led-effects"]
-esp32c6 = ["esp-hal/esp32c6", "esp-bootloader-esp-idf/esp32c6", "esp-rtos?/esp32c6"]
-esp32c3 = ["esp-hal/esp32c3", "esp-bootloader-esp-idf/esp32c3", "esp-rtos?/esp32c3"]
-esp32   = ["esp-hal/esp32",   "esp-bootloader-esp-idf/esp32",   "esp-rtos?/esp32"]
+esp32c6 = ["esp-hal/esp32c6", "esp-bootloader-esp-idf/esp32c6", "esp-rtos?/esp32c6", "esp-println?/esp32c6"]
+esp32c3 = ["esp-hal/esp32c3", "esp-bootloader-esp-idf/esp32c3", "esp-rtos?/esp32c3", "esp-println?/esp32c3"]
+esp32   = ["esp-hal/esp32",   "esp-bootloader-esp-idf/esp32",   "esp-rtos?/esp32",   "esp-println?/esp32"]
 unstable = ["esp-hal/unstable"]
 led-effects = ["dep:led-effects"]
 smart-leds = ["dep:smart-leds"]
 rt = ["esp-hal/rt"]
+esp-println = ["dep:esp-println"]
 async = ["dep:esp-rtos", "dep:embassy-time", "dep:embassy-executor", "esp-hal/unstable", "esp-rtos/embassy"]
 
 [[example]]

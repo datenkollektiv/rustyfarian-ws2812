@@ -25,6 +25,7 @@ timeline
 
     Near term : AVR hardware test with wiring guide
               : Reliable AVR WS2812 backend (4 MHz SPI experiment, then bit-bang)
+              : Fix esp-println dev-dep chip feature conflict (done)
 
     Mid term  : Remove send_and_wait workaround (esp-idf-hal fix)
               : Guard against rgb version divergence
@@ -37,6 +38,17 @@ timeline
               : embedded-graphics-core evaluation
               : Monitor esp-idf-hal for async RMT support
 ```
+
+## Build Fixes
+
+### ~~Fix `esp-println` dev-dependency chip feature conflict~~ — Done
+
+Moved `esp-println` from `[dev-dependencies]` (with hardcoded `esp32c6` feature) to `[dependencies]`
+as an optional dep with per-chip feature forwarding (`esp-println?/esp32c6`, `esp-println?/esp32c3`, `esp-println?/esp32`).
+Build scripts updated to include `esp-println` in base HAL features.
+Also fixed all 11 blocking examples: `Ws2812Rmt::<N>` → `Ws2812Rmt::<_, N>` (pre-existing breakage from v0.4.0 async type parameter).
+
+---
 
 ## Ecosystem Integration
 
