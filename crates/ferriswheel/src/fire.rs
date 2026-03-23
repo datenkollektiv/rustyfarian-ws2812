@@ -92,6 +92,9 @@ pub struct FireEffect {
     rng_state: u32,
     /// Seed stored at construction / `with_seed` time; restored by `reset()`.
     initial_seed: u32,
+    /// When true, heat diffusion wraps around: `heat[n-1]` feeds back into
+    /// `heat[0]`, producing a symmetric ring fire with no cold seam.
+    wrap: bool,
 }
 
 impl FireEffect {
@@ -116,6 +119,7 @@ impl FireEffect {
             sparking: 120,
             rng_state: DEFAULT_SEED,
             initial_seed: DEFAULT_SEED,
+            wrap: false,
         })
     }
 
@@ -135,6 +139,16 @@ impl FireEffect {
     /// Values 1–254 give a `sparking / 256` probability.
     pub fn with_sparking(mut self, sparking: u8) -> Self {
         self.sparking = sparking;
+        self
+    }
+
+    /// Enables or disables circular heat diffusion.
+    ///
+    /// When `true`, heat wraps around from the tip (index `n-1`) back to the
+    /// base (index 0), producing a symmetric ring fire with no cold seam.
+    /// When `false` (default), heat diffuses linearly from base to tip.
+    pub fn with_wrap(mut self, wrap: bool) -> Self {
+        self.wrap = wrap;
         self
     }
 
@@ -210,10 +224,21 @@ impl FireEffect {
         }
 
         // Stage 2: diffuse heat upward (toward higher indices).
-        // Iterate from the tip downward so each read uses un-mutated values.
         // Weighted average (a + a + b) / 3 gives double weight to the nearer
         // neighbour — the same convention used in the FastLED fire simulation.
-        if n >= 3 {
+        if self.wrap && n >= 2 {
+            // Circular: every index averages its two predecessors (wrapping).
+            // A snapshot avoids read-after-write: computing heat[0] reads
+            // heat[n-1], which is also modified in this pass.
+            let snapshot: [u8; MAX_LEDS] = self.heat;
+            for i in (0..n).rev() {
+                let a = snapshot[(i + n - 1) % n] as u16;
+                let b = snapshot[(i + n - 2) % n] as u16;
+                self.heat[i] = ((a + a + b) / 3) as u8;
+            }
+        } else if n >= 3 {
+            // Linear: indices 0 and 1 are "base" anchors, not diffused.
+            // Iterate from the tip downward so each read uses un-mutated values.
             for i in (2..n).rev() {
                 let a = self.heat[i - 1] as u16;
                 let b = self.heat[i - 2] as u16;
@@ -585,6 +610,75 @@ mod tests {
             buf_before, buf_after,
             "trait reset must replay the same sequence"
         );
+    }
+
+    // ── wrap-around diffusion ───────────────────────────────────────────────
+
+    #[test]
+    fn test_wrap_default_is_false() {
+        let effect = FireEffect::new(12).unwrap();
+        assert!(!effect.wrap, "wrap should default to false");
+    }
+
+    #[test]
+    fn test_wrap_enabled_propagates_tip_to_base() {
+        // With wrap enabled, heat at the tip should influence index 0.
+        // Use high sparking + zero cooling so heat accumulates and spreads.
+        let mut wrap_effect = FireEffect::new(8)
+            .unwrap()
+            .with_sparking(255)
+            .with_cooling(0)
+            .with_wrap(true)
+            .with_seed(42);
+        let mut linear_effect = FireEffect::new(8)
+            .unwrap()
+            .with_sparking(255)
+            .with_cooling(0)
+            .with_wrap(false)
+            .with_seed(42);
+
+        let mut wrap_buf = [RGB8::default(); 8];
+        let mut linear_buf = [RGB8::default(); 8];
+
+        // Run enough ticks for heat to propagate through the ring.
+        for _ in 0..20 {
+            wrap_effect.update(&mut wrap_buf).unwrap();
+            linear_effect.update(&mut linear_buf).unwrap();
+        }
+
+        // With the same seed, wrap and linear must produce different output
+        // because the diffusion algorithm differs.
+        assert_ne!(
+            wrap_buf, linear_buf,
+            "wrap-around diffusion should produce different output than linear"
+        );
+    }
+
+    #[test]
+    fn test_wrap_single_led_no_panic() {
+        let mut effect = FireEffect::new(1)
+            .unwrap()
+            .with_sparking(255)
+            .with_cooling(0)
+            .with_wrap(true);
+        let mut buffer = [RGB8::default(); 1];
+        // n=1 with wrap: modulo arithmetic averages heat[0] with itself.
+        // Must not panic or produce unexpected results.
+        for _ in 0..5 {
+            effect.update(&mut buffer).unwrap();
+        }
+    }
+
+    #[test]
+    fn test_wrap_two_leds_no_panic() {
+        let mut effect = FireEffect::new(2)
+            .unwrap()
+            .with_sparking(255)
+            .with_wrap(true);
+        let mut buffer = [RGB8::default(); 2];
+        for _ in 0..5 {
+            effect.update(&mut buffer).unwrap();
+        }
     }
 
     #[test]
