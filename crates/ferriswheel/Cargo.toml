@@ -6,8 +6,12 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "RGB LED ring effects and animations"
-keywords = ["led", "rgb", "ring", "ws2812", "neopixel", "rainbow"]
+keywords = ["led", "ring", "ws2812", "neopixel", "rainbow"]
 categories = ["embedded", "no-std"]
+
+[features]
+smart-leds-compat = ["dep:smart-leds-trait"]
 
 [dependencies]
 rgb.workspace = true
+smart-leds-trait = { workspace = true, default-features = false, optional = true }
