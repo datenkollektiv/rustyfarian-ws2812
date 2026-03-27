@@ -20,6 +20,7 @@ smart-leds = { workspace = true, optional = true }
 esp-rtos = { workspace = true, optional = true }
 embassy-time = { workspace = true, optional = true }
 embassy-executor = { workspace = true, optional = true }
+embassy-sync = { workspace = true, optional = true }
 esp-println = { workspace = true, optional = true, default-features = false, features = ["jtag-serial"] }
 
 [dev-dependencies]
@@ -35,7 +36,7 @@ led-effects = ["dep:led-effects"]
 smart-leds = ["dep:smart-leds"]
 rt = ["esp-hal/rt"]
 esp-println = ["dep:esp-println"]
-async = ["dep:esp-rtos", "dep:embassy-time", "dep:embassy-executor", "esp-hal/unstable", "esp-rtos/embassy"]
+async = ["dep:esp-rtos", "dep:embassy-time", "dep:embassy-executor", "dep:embassy-sync", "esp-hal/unstable", "esp-rtos/embassy"]
 
 [[example]]
 name = "hal_c3_pulse"
@@ -96,3 +97,7 @@ required-features = ["esp32c6", "rt", "async"]
 [[example]]
 name = "hal_esp32_pulse_async"
 required-features = ["esp32", "rt", "async"]
+
+[[example]]
+name = "hal_c6_multitask_async"
+required-features = ["esp32c6", "rt", "async", "esp-println"]
