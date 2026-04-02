@@ -62,7 +62,13 @@ mod tests {
         let _: () = StatusLed::set_color(&mut led, RGB8::new(128, 64, 32)).unwrap();
     }
 
-    fn block_on<F: core::future::Future>(f: F) -> F::Output {
+    /// Drives a future that is contractually guaranteed to be ready on the first poll.
+    ///
+    /// Uses a no-op waker; if the future ever returns `Poll::Pending` it will panic
+    /// rather than spin or deadlock. Intended only for `NoLed`'s async impls, which
+    /// complete synchronously. Do **not** copy this helper into contexts where the
+    /// future may suspend — use a real executor (embassy, tokio) instead.
+    fn block_on_ready<F: core::future::Future>(f: F) -> F::Output {
         use core::pin::pin;
         use core::task::{Context, Poll, RawWaker, RawWakerVTable, Waker};
         const VTABLE: RawWakerVTable = RawWakerVTable::new(
@@ -79,14 +85,17 @@ mod tests {
         let mut f = pin!(f);
         match f.as_mut().poll(&mut cx) {
             Poll::Ready(v) => v,
-            Poll::Pending => panic!("future returned Pending"),
+            Poll::Pending => panic!(
+                "block_on_ready: future returned Poll::Pending, but the contract \
+                 requires it to complete on the first poll (no real executor here)"
+            ),
         }
     }
 
     #[test]
     fn async_set_color_always_returns_ok() {
         let mut led = NoLed;
-        block_on(async {
+        block_on_ready(async {
             assert!(AsyncStatusLed::set_color(&mut led, RGB8::new(255, 0, 0))
                 .await
                 .is_ok());
@@ -99,7 +108,7 @@ mod tests {
     #[test]
     fn async_error_type_is_infallible() {
         let mut led = NoLed;
-        block_on(async {
+        block_on_ready(async {
             let _: () = AsyncStatusLed::set_color(&mut led, RGB8::new(128, 64, 32))
                 .await
                 .unwrap();
