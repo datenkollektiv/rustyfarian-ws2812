@@ -331,6 +331,19 @@ mod tests {
     }
 
     #[test]
+    fn test_new_with_too_many_leds_returns_error() {
+        use crate::effect::MAX_LEDS;
+        let result = FlashEffect::new(MAX_LEDS + 1);
+        assert_eq!(
+            result.unwrap_err(),
+            EffectError::TooManyLeds {
+                requested: MAX_LEDS + 1,
+                max: MAX_LEDS
+            }
+        );
+    }
+
+    #[test]
     fn test_oversized_buffer_accepted() {
         let sentinel = RGB8::new(0xDE, 0xAD, 0xFF);
         let effect = FlashEffect::new(4).unwrap();
