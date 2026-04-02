@@ -17,10 +17,12 @@ use rgb::RGB8;
 /// use led_effects::AsyncStatusLed;
 /// use rgb::RGB8;
 ///
-/// async fn set_status(led: &mut impl AsyncStatusLed) {
-///     led.set_color(RGB8::new(0, 255, 0)).await.unwrap();
+/// async fn set_status<L: AsyncStatusLed>(led: &mut L) -> Result<(), L::Error> {
+///     led.set_color(RGB8::new(0, 255, 0)).await?;
+///     Ok(())
 /// }
 /// ```
+#[allow(async_fn_in_trait)]
 pub trait AsyncStatusLed {
     /// The error type returned by async LED operations.
     type Error;

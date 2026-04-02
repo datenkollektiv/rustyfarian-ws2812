@@ -1,5 +1,4 @@
 #![cfg_attr(not(test), no_std)]
-#![allow(async_fn_in_trait)]
 //! LED animation effects for embedded projects.
 //!
 //! This crate provides reusable animation effects that work with RGB LEDs.

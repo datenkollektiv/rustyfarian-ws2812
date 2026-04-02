@@ -36,7 +36,7 @@
 //! just flash idf_c6_twinkle
 //! ```
 
-use ferriswheel::{Effect, TwinkleEffect};
+use ferriswheel::TwinkleEffect;
 use rgb::RGB8;
 use rustyfarian_esp_idf_ws2812::WS2812RMT;
 use std::thread;
