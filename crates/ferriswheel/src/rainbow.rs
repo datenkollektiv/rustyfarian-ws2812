@@ -1,7 +1,7 @@
 //! Rainbow animation effect for LED rings.
 //!
 //! Creates smooth rainbow animations that cycle through the full color spectrum.
-//! Works with any LED ring size.
+//! Supports ring sizes in the range `1..=MAX_LEDS`.
 
 use crate::effect::{
     validate_buffer, validate_num_leds, validate_speed, Direction, Effect, EffectError,
@@ -41,11 +41,13 @@ impl RainbowEffect {
     ///
     /// # Arguments
     ///
-    /// * `num_leds` - Number of LEDs in the ring (must be > 0)
+    /// * `num_leds` - Number of LEDs in the ring (`1..=MAX_LEDS`)
     ///
     /// # Errors
     ///
     /// Returns `EffectError::ZeroLeds` if `num_leds` is 0.
+    ///
+    /// Returns `EffectError::TooManyLeds` if `num_leds` exceeds `MAX_LEDS`.
     ///
     /// # Default Configuration
     ///
@@ -264,6 +266,29 @@ mod tests {
         let first = buffer[0];
         let middle = buffer[3];
         assert_ne!(first, middle, "LEDs should have different colors");
+    }
+
+    #[test]
+    fn test_hue_distribution_matches_adr_002() {
+        // Regression guard for ADR 002 (docs/adr/002-rainbow-effect-led-limit.md):
+        // hues are computed multiplication-first as `floor(i * 256 / num_leds)`
+        // — not `i * floor(256 / num_leds)` — so the gradient stays smooth on
+        // ring sizes that don't divide 256 evenly. The 256 here is the size of
+        // the u8 hue space; coincidentally also `MAX_LEDS`, but unrelated.
+        let effect = RainbowEffect::new(12).unwrap();
+        let mut buffer = [RGB8::default(); 12];
+        effect.current(&mut buffer).unwrap();
+
+        let expected_hues = [0u8, 21, 42, 64, 85, 106, 128, 149, 170, 192, 213, 234];
+
+        for (i, expected_hue) in expected_hues.into_iter().enumerate() {
+            assert_eq!(
+                buffer[i],
+                hsv_to_rgb(expected_hue, 255, 255),
+                "unexpected hue mapping at LED {}",
+                i
+            );
+        }
     }
 
     #[test]

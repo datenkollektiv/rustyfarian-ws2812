@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-The `RainbowEffect` in `led-effects` distributes hue values (0–255) across LEDs in a ring to create a rainbow gradient.
+The `RainbowEffect` in `ferriswheel` distributes hue values (0–255) across LEDs in a ring to create a rainbow gradient.
 The original implementation used this calculation:
 
 ```rust
@@ -58,5 +58,5 @@ The implementation:
 
 **Migration:**
 
-None required.
-This is a new constraint on a new API.
+None for current users of `ferriswheel`.
+This constraint is already part of the existing API contract.

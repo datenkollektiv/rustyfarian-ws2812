@@ -161,6 +161,7 @@ loop {
 ### Rainbow Effect
 
 For LED rings, use `RainbowEffect` from the `ferriswheel` crate:
+`RainbowEffect::new(num_leds)` accepts `1..=MAX_LEDS` LEDs (currently 256).
 
 ```rust
 use rustyfarian_esp_idf_ws2812::WS2812RMT;
