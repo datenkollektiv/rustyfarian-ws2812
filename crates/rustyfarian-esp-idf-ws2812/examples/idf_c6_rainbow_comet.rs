@@ -1,13 +1,13 @@
 //! ESP32-C6 Rainbow Comet Example (ESP-IDF)
 //!
-//! Runs a [`RainbowCometEffect`] on a 12-LED WS2812B ring — a comet whose
+//! Runs a [`RainbowCometEffect`] on a 24-LED WS2812B ring — a comet whose
 //! tail cycles through the color wheel, using the ESP-IDF RMT peripheral on
 //! GPIO18.
 //!
 //! ## Components
 //!
 //! - ESP32-C6 development board
-//! - WS2812B LED ring, 12 LEDs
+//! - WS2812B LED ring, 24 LEDs
 //! - 300–500 Ω resistor (data line protection)
 //!
 //! ## Wiring
@@ -47,7 +47,7 @@ fn main() -> anyhow::Result<()> {
 
     let peripherals = esp_idf_hal::peripherals::Peripherals::take()?;
 
-    const NUM_LEDS: usize = 12;
+    const NUM_LEDS: usize = 24;
     let mut ws = WS2812RMT::new(peripherals.pins.gpio18)?;
     let mut effect = RainbowCometEffect::new(NUM_LEDS)
         .unwrap()
