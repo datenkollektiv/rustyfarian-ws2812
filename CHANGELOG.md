@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `ws2812-pure`: `grid` module with `GridBuffer` (`fill`, `set_pixel`, `set_brightness`, `as_slice`), `GridLayout` (`RowMajor`, `ColumnMajorBottomUp`), `GAMMA_2_0` LUT, and `apply_brightness_gamma` helper for rectangular LED matrices, extracted from rustbox-rgb-puzzle matrix firmware
 - `rustyfarian-avr-ws2812` — WS2812 LED driver for AVR/ATmega328P using SPI prerendered encoding via `embedded-hal 1.0` `SpiBus`
 - `rustyfarian-avr-ws2812`: `Ws2812BitBang<P, PORT_ADDR, PIN_BIT>` — cycle-counted inline-`asm!` bit-bang backend (feature `bitbang`), the recommended default per [ADR 007](docs/adr/007-avr-ws2812-driver-strategy.md). Const-generic over port-register address and pin bit; supports any pin on PORTB / PORTC / PORTD on ATmega328P at 16 MHz; wraps the asm loop in `avr_device::interrupt::free` internally
 - `rustyfarian-avr-ws2812`: `smart_leds_trait::SmartLedsWrite` impl for both `Ws2812Spi` and `Ws2812BitBang` (feature `smart-leds-trait`) — matches the sister ESP drivers for ecosystem parity

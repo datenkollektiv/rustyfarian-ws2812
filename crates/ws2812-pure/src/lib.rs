@@ -12,6 +12,13 @@
 //! WS2812 transmission (4 SPI bits per WS2812 data bit, 12 bytes per LED).
 //! The encoding is byte-for-byte compatible with
 //! [`ws2812-spi`](https://crates.io/crates/ws2812-spi) v0.5.1's prerendered module.
+//!
+//! ## Grid primitives
+//!
+//! The [`grid`] module provides `GridLayout`, `GridBuffer`, and gamma/brightness
+//! helpers for addressing WS2812 LEDs wired as a rectangular matrix.
+
+pub mod grid;
 
 use rgb::RGB8;
 
