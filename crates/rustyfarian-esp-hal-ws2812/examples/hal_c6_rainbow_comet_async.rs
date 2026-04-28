@@ -85,8 +85,9 @@ async fn main(_spawner: Spawner) -> ! {
         .with_carrier_modulation(false);
     let channel = rmt
         .channel0
-        .configure_tx(peripherals.GPIO18, config)
-        .unwrap();
+        .configure_tx(&config)
+        .unwrap()
+        .with_pin(peripherals.GPIO18);
 
     println!("RTOS started, RMT configured");
 

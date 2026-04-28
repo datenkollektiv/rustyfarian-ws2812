@@ -41,7 +41,7 @@
 //!     .with_idle_output_level(Level::Low)
 //!     .with_idle_output(true)
 //!     .with_carrier_modulation(false);
-//! let channel = rmt.channel0.configure_tx(peripherals.GPIO8, config).unwrap();
+//! let channel = rmt.channel0.configure_tx(&config).unwrap().with_pin(peripherals.GPIO8);
 //!
 //! let mut led = Ws2812Rmt::<_, N>::new(channel);
 //! led.set_pixel(RGB8::new(255, 0, 0)).unwrap();
@@ -73,7 +73,7 @@
 //!     .with_idle_output_level(Level::Low)
 //!     .with_idle_output(true)
 //!     .with_carrier_modulation(false);
-//! let channel = rmt.channel0.configure_tx(peripherals.GPIO18, config).unwrap();
+//! let channel = rmt.channel0.configure_tx(&config).unwrap().with_pin(peripherals.GPIO18);
 //!
 //! let mut ws = Ws2812Rmt::<_, N>::new(channel);
 //! let colors = [RGB8::new(255, 0, 0); NUM_LEDS];
@@ -295,7 +295,7 @@ impl<'d, Dm: esp_hal::DriverMode, const N: usize> Ws2812Rmt<'d, Dm, N> {
     ///     .with_idle_output_level(Level::Low)
     ///     .with_idle_output(true)
     ///     .with_carrier_modulation(false);
-    /// let channel = rmt.channel0.configure_tx(peripherals.GPIO8, config).unwrap();
+    /// let channel = rmt.channel0.configure_tx(&config).unwrap().with_pin(peripherals.GPIO8);
     ///
     /// let mut led = Ws2812Rmt::<_, N>::new(channel);
     /// ```

@@ -74,8 +74,9 @@ fn main() -> ! {
         .with_carrier_modulation(false);
     let channel = rmt
         .channel0
-        .configure_tx(peripherals.GPIO18, config)
-        .unwrap();
+        .configure_tx(&config)
+        .unwrap()
+        .with_pin(peripherals.GPIO18);
 
     let mut ws = Ws2812Rmt::<_, N>::new(channel);
     let mut effect = KnightRiderEffect::new(NUM_LEDS)

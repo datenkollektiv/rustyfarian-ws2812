@@ -41,7 +41,7 @@
 esp_bootloader_esp_idf::esp_app_desc!();
 
 use embassy_executor::Spawner;
-use embassy_sync::blocking_mutex::raw::NoopRawMutex;
+use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::signal::Signal;
 use embassy_time::Timer;
 use esp_hal::{
@@ -65,10 +65,12 @@ const DEBOUNCE_MS: u64 = 200;
 
 /// Effect selection signal — written by button task, read by render task.
 ///
-/// Both tasks run on the same `#[esp_rtos::main]` thread-mode executor, so
-/// `NoopRawMutex` is sufficient and zero-cost. Switch to `CriticalSectionRawMutex`
-/// only if the signal would be written from an ISR or a different executor.
-static EFFECT_SIGNAL: Signal<NoopRawMutex, u8> = Signal::new();
+/// `CriticalSectionRawMutex` is required here because the signal lives in a
+/// `static`, and `embassy-sync 0.8` made `NoopRawMutex` `!Sync` (using
+/// `PhantomData<*mut ()>`) so that it can no longer be placed in shared
+/// statics — the compiler enforces the executor-local intent.
+/// `ThreadModeRawMutex` would also work but is gated to cortex-m targets.
+static EFFECT_SIGNAL: Signal<CriticalSectionRawMutex, u8> = Signal::new();
 
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
@@ -197,8 +199,9 @@ async fn main(spawner: Spawner) -> ! {
         .with_carrier_modulation(false);
     let channel = rmt
         .channel0
-        .configure_tx(peripherals.GPIO18, config)
-        .unwrap();
+        .configure_tx(&config)
+        .unwrap()
+        .with_pin(peripherals.GPIO18);
 
     // Configure button on GPIO9 (BOOT button on most C6 dev boards).
     let button_config = InputConfig::default().with_pull(Pull::Up);
@@ -208,8 +211,8 @@ async fn main(spawner: Spawner) -> ! {
 
     println!("Peripherals configured, spawning tasks");
 
-    spawner.spawn(button_task(button)).unwrap();
-    spawner.spawn(render_task(ws)).unwrap();
+    spawner.spawn(button_task(button).expect("button_task spawn token"));
+    spawner.spawn(render_task(ws).expect("render_task spawn token"));
 
     println!("Tasks spawned, main parking");
 

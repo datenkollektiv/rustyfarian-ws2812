@@ -2,10 +2,13 @@
 
 *Last updated: May 2026*
 
-This roadmap is informed by the [ecosystem comparison](ecosystem-comparison.md) conducted in February 2026.
-The AVR WS2812 driver (`rustyfarian-avr-ws2812`) was code-complete in March 2026 across three phases:
-SPI encoding in `ws2812-pure`, the `embedded-hal 1.0` hardware wrapper, and build validation against `avr-none`.
-Hardware bring-up in May 2026 surfaced an SPI prerendered encoding limitation; a follow-up driver strategy (4 MHz SPI experiment, then cycle-counted `asm!` bit-bang) is now the active near-term focus.
+AVR driver and async Embassy support are complete (v0.4.0).
+Chromatic Clash M1 (multi-task single board) is done; M2 (ESP-NOW hello world) is next.
+Near-term focus is the Chromatic Clash demo, AVR hardware validation (blocked on physical hardware),
+and upgrading the `esp-hal` stack to the April 2026 release wave.
+Mid-term priorities are removing the `esp-idf-hal` workaround when the upstream fix lands
+and `SmartLedsWriteAsync` for the async driver.
+All completed items are documented in the [CHANGELOG](../CHANGELOG.md).
 
 ```mermaid
 %%{init: {
@@ -26,11 +29,13 @@ timeline
     Near term : AVR hardware test with wiring guide
               : Reliable AVR WS2812 backend (4 MHz SPI experiment, then bit-bang)
               : Fix esp-println dev-dep chip feature conflict (done)
+              : Upgrade esp-hal stack (April 2026 release wave)
 
     Mid term  : Remove send_and_wait workaround (esp-idf-hal fix)
               : Guard against rgb version divergence (done)
               : SmartLedsWriteAsync for esp-hal async driver
               : AsyncStatusLed trait in led-effects (done)
+              : esp-hal RMT hang on GPIO8 fixed by 1.1.0 (done)
 
     Recurring : Audit deny.toml exceptions (each minor release)
 
@@ -88,6 +93,15 @@ Purely defensive — not urgent until `smart-leds-trait` signals an `rgb` bump.
 ---
 
 ## Hardware Driver Improvements
+
+### Upgrade esp-hal stack to the April 2026 release wave
+
+Every crate in the bare-metal `esp-hal` stack used by `rustyfarian-esp-hal-ws2812` has a newer release than `Cargo.lock` resolves (`esp-hal 1.0.0` → `1.1.0`, plus coordinated minor bumps for `esp-rtos`, `esp-bootloader-esp-idf`, and `esp-println` released 2026-04-16).
+The workspace `Cargo.toml` does not declaratively pin these (e.g. `esp-hal = "1.0.0"` is `^1.0.0`), so today's pinning is `Cargo.lock` only.
+A coordinated workspace upgrade is needed because the pre-1.0 crates' minor bumps typically signal breaking API changes.
+This is also a prerequisite for the GPIO8 debug task below — the hang may already be fixed upstream.
+
+Full version table, decisions, constraints, migration steps, and open questions: [`docs/features/esp-hal-stack-upgrade-april-2026-v1.md`](features/esp-hal-stack-upgrade-april-2026-v1.md).
 
 ### Remove `send_and_wait` workaround when `esp-idf-hal` fixes `EncoderWrapper`
 
@@ -202,7 +216,7 @@ Deliverables:
 
 - ~~**Wiring and flashing guide**~~ — **Done.** Combined into [`docs/avr-getting-started.md`](avr-getting-started.md): pin connections, data line resistor, decoupling capacitor, toolchain setup (Rust nightly + GNU AVR + ravedude), build and flash pipeline.
 - ~~**Minimal example**~~ — **Done.** `examples/avr-nano-rainbow/` — standalone project using `avr-hal`'s SPI with `Ws2812Spi`, demonstrating the full stack from `ferriswheel` `RainbowEffect` → `prerender_spi` → SPI hardware → LEDs.
-- **Smoke test confirmation** — **Blocked by encoding issue.** Hardware testing on 2026-05-04 (both CH340 Nano clone and genuine Arduino Nano with the same WS2812 strip that runs cleanly on ESP32) revealed the SPI prerendered encoding produces stable white-ish output with chain misalignment. Root cause documented in [`docs/key-insights.md`](key-insights.md) "AVR WS2812 Driver: SPI Prerendered Encoding Limitation". External research saved to [`docs/research-avr-ws2812-driver-options.md`](research-avr-ws2812-driver-options.md). Continued under "Reliable AVR WS2812 backend" below.
+- **Smoke test confirmation** — **Blocked by encoding issue.** Hardware testing on 2026-05-04 (both CH340 Nano clone and genuine Arduino Nano with the same WS2812 strip that runs cleanly on ESP32) revealed the SPI prerendered encoding produces stable white-ish output with chain misalignment. Root cause documented in [`docs/project-lore.md`](project-lore.md) "AVR WS2812 Driver: SPI Prerendered Encoding Limitation". External research saved to [`docs/research-avr-ws2812-driver-options.md`](research-avr-ws2812-driver-options.md). Continued under "Reliable AVR WS2812 backend" below.
 
 ### Reliable AVR WS2812 backend (4 MHz SPI experiment, then bit-bang)
 

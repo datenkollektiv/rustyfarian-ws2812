@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `ferriswheel`: `smart-leds-compat` feature — optional `smart-leds-trait` dependency with a compile-time type-identity assertion that fails the build if the two crates resolve to incompatible `rgb` versions (no runtime impact)
 - `ferriswheel`: `FireEffect::with_wrap(bool)` — circular heat diffusion for ring displays; heat wraps from tip back to base, eliminating the cold seam
 - `ferriswheel`: `FireEffect::with_base_range(usize)` — configurable ignition zone width; default `num_leds.min(3)`, clamped to `1..=num_leds`
+- `rustyfarian-esp-hal-ws2812`: `hal_c6_multitask_async` example — multi-task Embassy demo with cooperating render and button tasks via `embassy-sync` primitives (Chromatic Clash M1)
 
 ### Changed
 
@@ -29,10 +30,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `rustyfarian-avr-ws2812`: dropped the `avr-device` dependency. The bit-bang backend now uses raw inline `cli` + `SREG` save/restore asm for its critical section instead of `avr_device::interrupt::free`. This removes the deprecated `bare-metal` crate (RUSTSEC-2026-0110) and the GPL-3.0 `atdf2svd` build-tool from the workspace dep graph entirely. No behaviour change for users.
 - `rustyfarian-esp-hal-ws2812`: `esp-println` moved from dev-dependency to optional dependency with per-chip feature forwarding — fixes cross-chip example builds (C3/ESP32 examples no longer conflict with C6's `esp-println` features)
 - `rustyfarian-esp-hal-ws2812`: all blocking examples updated from `Ws2812Rmt::<N>` to `Ws2812Rmt::<_, N>` to match the v0.4.0 `Dm: DriverMode` type parameter
+- `esp-hal` upgraded `1.0.0` → `1.1.0`; coordinated bump of the April 2026 monorepo wave: `esp-rtos 0.2 → 0.3`, `esp-bootloader-esp-idf 0.4 → 0.5`, `esp-println 0.16 → 0.17`
+- `embassy-executor 0.9 → 0.10`, `embassy-sync 0.7 → 0.8`, `embassy-time 0.5.0 → 0.5.1` — aligned with `esp-rtos 0.3` transitive resolution
+- All `hal_*` examples migrated to the new `esp-hal 1.1.0` RMT API: `configure_tx(&config).unwrap().with_pin(pin)` chained pattern (was `configure_tx(pin, config).unwrap()`)
+- `hal_c6_multitask_async`: migrated to `embassy-executor 0.10` task-spawn pattern (`spawner.spawn(task().expect("…"))` — task functions now return `Result<SpawnToken, SpawnError>`); `EFFECT_SIGNAL` switched from `NoopRawMutex` to `CriticalSectionRawMutex` because `embassy-sync 0.8` made `NoopRawMutex` `!Sync` and it can no longer appear in a `static`
+- `docs/esp-hal-1.0.0-version-matrix.md` renamed to `docs/esp-hal-version-matrix.md` and gained a current-state header for the 1.1.0 wave
 
 ### Fixed
 
 - `ferriswheel`: `MeteorEffect::new()` now clamps the default `tail_length` to `num_leds - 1`, preventing a subtract overflow when `num_leds < 7`
+- Workspace `Cargo.toml`: `esp-hal` constraint comment claimed "exact 1.0.0 pinning" but the bare `"1.0.0"` constraint is `^1.0.0` to Cargo. Switched to true exact pinning with `"=1.1.0"` (and `"=…"` for every coordinated companion crate) and updated the comment to match — the workspace ignores `Cargo.lock`, so caret drift here was the actual risk
+- `rustyfarian-esp-hal-ws2812`: GPIO8 RMT blocking transmit hang on ESP32-C6-DevKitC-1 (`Channel<Blocking, Tx>::transmit(&buffer).wait()` would lock up indefinitely on the onboard SK68XXMINI LED) is resolved by the `esp-hal 1.1.0` upgrade — confirmed by hardware retest (2026-04-29). The bare-metal driver can now drive the onboard LED on GPIO8 directly
 
 ## [0.4.0] - 2026-03-13
 
