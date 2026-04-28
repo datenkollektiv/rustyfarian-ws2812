@@ -24,20 +24,25 @@ ws2812-pure = { path = "crates/ws2812-pure" }
 
 # ESP32 dependencies
 esp-idf-hal = { version = "0.46" }
-# Pinned to exact 1.0.0: the "unstable" feature gate covers RMT and the GPIO
-# matrix APIs we rely on; patch bumps can break that surface silently.
+# Exact pins are intentional: this stack uses `esp-hal/unstable` RMT and GPIO
+# matrix APIs, and companion crates are released as coordinated waves. Bumps
+# should land via the maintenance workflow (see `maintenance-plan.md`) rather
+# than transparent fresh-resolution drift. Re-run `just check-hal` after any bump.
 # Chip selection and "unstable" are forwarded via features in the driver crate.
-esp-hal = { version = "1.0.0" }
+esp-hal = { version = "=1.1.0" }
 # App descriptor required for IDF bootloader compatibility; chip feature forwarded from the driver crate.
-esp-bootloader-esp-idf = { version = "0.4.0", default-features = false }
+esp-bootloader-esp-idf = { version = "=0.5.0", default-features = false }
 # Bare-metal serial output via USB-JTAG ROM; no esp-hal dependency.
-esp-println = { version = "0.16", default-features = false }
+esp-println = { version = "=0.17.0", default-features = false }
 # Async runtime for esp-hal (merged from esp-hal-embassy); embassy feature enables embassy-time driver.
-esp-rtos = { version = "0.2", default-features = false }
-# Embassy timer API (Timer::after_millis etc.); version compatible with embassy-executor 0.9 used by esp-rtos.
-embassy-time = { version = "0.5.0", default-features = false }
+esp-rtos = { version = "=0.3.0", default-features = false }
+# Embassy timer API (Timer::after_millis etc.); version aligned with what `esp-rtos`
+# pulls transitively — refresh after each `esp-rtos` bump.
+embassy-time = { version = "=0.5.1", default-features = false }
 # Embassy executor; needed for the Spawner type in #[esp_rtos::main] async entry points.
-embassy-executor = { version = "0.9", default-features = false }
+# Version aligned with what `esp-rtos` pulls transitively.
+embassy-executor = { version = "=0.10.0", default-features = false }
 # Embassy synchronization primitives (Signal, Channel, Mutex); all no_std, zero-alloc.
-# Version 0.7 matches what esp-rtos 0.2 pulls transitively.
-embassy-sync = { version = "0.7", default-features = false }
+# Version aligned with what `esp-rtos` pulls transitively — must match exactly or
+# duplicate `Signal`/`Channel` types appear and don't interoperate at task boundaries.
+embassy-sync = { version = "=0.8.0", default-features = false }

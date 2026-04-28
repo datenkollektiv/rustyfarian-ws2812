@@ -28,7 +28,7 @@ Hardware bring-up on 2026-05-04 against an ATmega328P (both a CH340 Nano clone a
 A `NUM_LEDS = 1` test exposed chain-leakage to LEDs 2 and 3 — mechanical proof that LED 1 is not reliably consuming exactly 24 bits.
 
 Diagnostic dead-ends ruled out: crystal frequency mismatch, GRB color order, strip variant (works on ESP), `PulseEffect` math, USB power supply, cable length, and Arduino board (clone vs genuine).
-Full root-cause record in [`docs/key-insights.md`](../key-insights.md) "AVR WS2812 Driver: SPI Prerendered Encoding Limitation."
+Full root-cause record in [`docs/project-lore.md`](../project-lore.md) "AVR WS2812 Driver: SPI Prerendered Encoding Limitation."
 
 External research ([`docs/research-avr-ws2812-driver-options.md`](../research-avr-ws2812-driver-options.md)) found:
 
@@ -160,7 +160,7 @@ Open work tracked separately, not part of this ADR's accepted scope:
 ## References
 
 - [`docs/features/avr-bitbang-driver.md`](../features/avr-bitbang-driver.md) — full design + Track A / Track B experiment records.
-- [`docs/key-insights.md`](../key-insights.md) — "AVR WS2812 Driver: SPI Prerendered Encoding Limitation" lore entry.
+- [`docs/project-lore.md`](../project-lore.md) — "AVR WS2812 Driver: SPI Prerendered Encoding Limitation" lore entry.
 - [`docs/research-avr-ws2812-driver-options.md`](../research-avr-ws2812-driver-options.md) — external ecosystem research.
 - [`docs/ROADMAP.md`](../ROADMAP.md) — "Reliable AVR WS2812 backend" entry.
 - ADR 005 — "Dual-HAL Strategy" (now triple-HAL with the AVR addition).

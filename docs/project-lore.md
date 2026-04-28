@@ -1,4 +1,4 @@
-# Key Insights
+# Project Lore
 
 This file records non-obvious technical discoveries: facts that caused surprising
 failures, took significant time to debug, or would save a future developer 30+
@@ -46,7 +46,7 @@ Fix: set `MCU="esp32${chip_variant}"` in the justfile recipe as a shell-level pr
 
 ---
 
-## esp-hal + IDF Bootloader: App Descriptor Required
+## esp-hal Bare-Metal Driver
 
 **`esp-hal` bare-metal binaries must embed an IDF-compatible app descriptor or the IDF v5.3.3 bootloader will reject them with `boot_comm: Image requires efuse blk rev >= vX.Y, but chip is v0.3`.**
 The bootloader's `boot_comm` module reads `min_efuse_blk_rev_full` from the offset where `esp_app_desc_t` is expected.
@@ -57,14 +57,25 @@ forward the chip feature (`esp32c6 = ["esp-hal/esp32c6", "esp-bootloader-esp-idf
 and invoke `esp_bootloader_esp_idf::esp_app_desc!();` at module level in each bare-metal example.
 Note: this applies to both `--release` and debug builds — `--release` only changes which garbage bytes appear at the descriptor offset.
 
----
-
-## esp-hal Build Profile
-
 **`esp-hal` bare-metal examples must be built with `--release`; debug builds may malfunction on timing-sensitive peripherals.**
 esp-hal emits a compile-time warning if the dev profile is used: "The dev profile can potentially be one or more orders of magnitude slower than release, and may cause issues with timing-sensitive peripherals and/or devices."
 For WS2812 RMT examples the LED output may appear to work in debug mode (hardware RMT timing is not CPU-bound), but the binary is larger, slower, and the warning indicates real risk for other peripherals.
 Fix: always pass `--release` to `cargo build` for `hal_*` examples; the output binary is at `target/<triple>/release/examples/<name>`, not `debug/`.
+
+**`esp-hal 1.1.0` split the RMT TX builder: `configure_tx(pin, config)` is gone — the new pattern is `configure_tx(&config).unwrap().with_pin(pin)`.**
+The pin moved from a `configure_tx` parameter to a chained `.with_pin(...)` call so that channel configuration can be reused independently of pin assignment.
+The migration is mechanical for our examples but invasive — every `hal_*` example uses this pattern.
+Compile-time error in 1.1.0 with the old call site: `error[E0061]: this method takes 1 argument but 2 arguments were supplied … unexpected argument #1 of type 'GPIO18<'static>'`.
+
+**`embassy-executor 0.10.0` reshaped the task-spawn API: `Spawner::spawn` now returns `()`, and `#[embassy_executor::task]` functions return `Result<SpawnToken, SpawnError>`.**
+The old idiom `spawner.spawn(task()).unwrap()` no longer compiles; the unwrap moves *inside* the spawn argument: `spawner.spawn(task().unwrap())`.
+`Spawner::must_spawn` does not exist on `embassy-executor 0.10.0` despite the compiler suggesting "method `spawn` with a similar name" — the explicit pattern is the supported one.
+Prefer `spawner.spawn(task().expect("<task name> spawn token"))` over a bare `unwrap()` on embedded targets; named messages survive into release-mode panic prints and make field debugging tractable.
+
+**`embassy-sync 0.8.0` made `NoopRawMutex` `!Sync` (carries `PhantomData<*mut ()>`), so any `Signal<NoopRawMutex, _>` or `Mutex<NoopRawMutex, _>` placed in a `static` now fails to compile with `*mut () cannot be shared between threads safely`.**
+The change is intentional upstream: `NoopRawMutex` represents "single executor, no contention", which is fundamentally incompatible with global static storage that the language treats as `Sync` by default.
+Fix: switch the static to `CriticalSectionRawMutex`. `ThreadModeRawMutex` would also satisfy `Sync` but is gated to `cfg(cortex_m)`, so it is unavailable on the RISC-V ESP32-C3/C6 targets.
+For non-static, executor-local primitives (e.g. a signal owned by a task and passed by reference), `NoopRawMutex` continues to work and remains the zero-cost choice.
 
 ---
 
@@ -129,9 +140,8 @@ Fix: add `sdkconfig.defaults` at the workspace root with `CONFIG_ESP_MAIN_TASK_S
 ## Scripts & Shell
 
 **`set -eo pipefail` causes silent script exit when `ls` targets an unmatched glob inside a command substitution.**
-`ls glob-pattern 2>/dev/null | head -1` exits non-zero when the glob matches nothing; with `pipefail`, the pipeline's non-zero exit propagates through `var=$(...)`, and bash exits the script before the `if [ -z "$var" ]` guard runs.
+`ls glob-pattern 2>/dev/null | head -1` exits non-zero when the glob matches nothing; with `pipefail`, the pipeline's non-zero exit propagates through `var=$(...)`, and bash exits the script before any `if [ -z "$var" ]` guard runs.
 The failure is invisible: the script exits with code 1 and no output, so the parent script and `just` recipe fail with only a line number.
-This was the root cause of `just run hal_c3_pulse` failing on line 65 — `ensure-bootloader.sh` was silently aborting at the bootloader-cache lookup, never reaching the IDF build that populates the cache.
 Fix: append `|| true` to the pipeline: `var=$(ls glob 2>/dev/null | head -1 || true)`.
 
 ---
@@ -163,6 +173,11 @@ If a real token is needed for specific steps, scope it narrowly with a step-leve
 ---
 
 ## Developer Tooling
+
+**`.claude/hooks/just-enforcer.sh` blocks Bash commands whose first word matches a binary used by any `justfile` recipe — but does **not** block tools that no recipe wraps (e.g. `sed`, `perl`, `find`, `git`).**
+This means batch text edits via `sed -i ''` or multi-line `perl -i -0pe` substitutions remain available even though direct `cargo` is funnelled through `just`.
+Particularly useful during coordinated upstream API migrations that touch dozens of similar call sites at once (e.g. the 19-site `configure_tx` migration during the `esp-hal 1.1.0` upgrade).
+A side effect worth knowing during settings cleanup: any `Bash(cargo *)` permission entries in `.claude/settings*.json` are functionally **dead** while the enforcer is active — they look granted but the hook intercepts before the permission resolver.
 
 **Claude Code Stop hooks only support `type: "command"`; `type: "prompt"` is not a valid hook type and produces "Stop hook error: JSON validation failed".**
 There is no built-in AI-evaluation hook type; the schema rejects unrecognised `type` values immediately.
