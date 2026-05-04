@@ -39,10 +39,19 @@ case "$prefix" in
             *) printf 'Unknown chip "%s" in example "%s". Supported: c3, c6, esp32\n' "$chip" "$example" >&2; exit 1 ;;
         esac
         # Base features required by all HAL examples.
-        # esp-println uses jtag-serial which is only supported on C3/C6/H2/P4/S3 — skip for esp32 (Xtensa).
+        #
+        # esp-println is enabled per-chip, based on what current examples actually use:
+        #   - C6:    every example today calls esp_println::println from its panic handler.
+        #            If a future C6 example is silent, this rule will over-enable for it —
+        #            convert to a per-example case below or drop esp-println for that example.
+        #   - C3:    examples use a silent panic handler; esp-println is not needed.
+        #   - esp32: the esp-println dep is pinned to features = ["jtag-serial"] in Cargo.toml.
+        #            That transport requires USB-Serial-JTAG hardware which is RISC-V only
+        #            (C3/C6/H2/P4/S3); Xtensa LX6 lacks the peripheral. Switching to a
+        #            different transport (uart, rtt) is possible but not currently wired up.
         case "$chip" in
-            c3|c6) hal_features="${mcu},unstable,led-effects,rt,esp-println" ;;
-            *)     hal_features="${mcu},unstable,led-effects,rt" ;;
+            c6) hal_features="${mcu},unstable,led-effects,rt,esp-println" ;;
+            *)  hal_features="${mcu},unstable,led-effects,rt" ;;
         esac
         # Append optional features required by specific examples.
         name=$(printf '%s' "$example" | cut -d_ -f3-)

@@ -2,8 +2,10 @@ use rgb::RGB8;
 
 /// Async counterpart of [`StatusLed`](crate::StatusLed) for drivers with async I/O.
 ///
-/// This trait mirrors `StatusLed` but uses `async fn`, allowing implementations
-/// to yield to an executor during hardware operations (e.g., RMT transmission).
+/// This trait mirrors `StatusLed` but uses `async fn` in trait position
+/// (stable since Rust 1.75), allowing implementations to yield to an executor
+/// during hardware operations (e.g., RMT transmission). The workspace MSRV
+/// (see project README) is well past this stabilisation point.
 ///
 /// # Object safety
 ///

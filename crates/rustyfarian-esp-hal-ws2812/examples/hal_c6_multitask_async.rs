@@ -41,7 +41,7 @@
 esp_bootloader_esp_idf::esp_app_desc!();
 
 use embassy_executor::Spawner;
-use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
+use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 use embassy_sync::signal::Signal;
 use embassy_time::Timer;
 use esp_hal::{
@@ -64,7 +64,11 @@ const FRAME_DELAY_MS: u64 = 30;
 const DEBOUNCE_MS: u64 = 200;
 
 /// Effect selection signal — written by button task, read by render task.
-static EFFECT_SIGNAL: Signal<CriticalSectionRawMutex, u8> = Signal::new();
+///
+/// Both tasks run on the same `#[esp_rtos::main]` thread-mode executor, so
+/// `NoopRawMutex` is sufficient and zero-cost. Switch to `CriticalSectionRawMutex`
+/// only if the signal would be written from an ISR or a different executor.
+static EFFECT_SIGNAL: Signal<NoopRawMutex, u8> = Signal::new();
 
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
@@ -73,16 +77,22 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 }
 
 /// Cycles through effects on each button press (GPIO9, active low).
+///
+/// Debounce strategy: after a falling edge, wait `DEBOUNCE_MS` for contact bounce
+/// to settle before accepting the press, then wait for the rising edge (button
+/// release) before re-arming. This filters both press-side bounce and avoids
+/// auto-repeating on a held button.
 #[embassy_executor::task]
 async fn button_task(mut button: Input<'static>) {
     let mut current: u8 = 0;
     println!("button_task: ready, press BOOT button to cycle effects");
     loop {
         button.wait_for_falling_edge().await;
+        Timer::after_millis(DEBOUNCE_MS).await;
         current = (current + 1) % NUM_EFFECTS;
         println!("button_task: switching to effect {}", current);
         EFFECT_SIGNAL.signal(current);
-        Timer::after_millis(DEBOUNCE_MS).await;
+        button.wait_for_rising_edge().await;
     }
 }
 

@@ -58,6 +58,14 @@ use rustyfarian_esp_hal_ws2812::{buffer_size, Ws2812Rmt, RMT_CLK_DIV};
 const NUM_LEDS: usize = 12;
 const N: usize = buffer_size(NUM_LEDS);
 
+fn scale(color: RGB8, brightness: u8) -> RGB8 {
+    RGB8::new(
+        ((color.r as u16 * brightness as u16) / 255) as u8,
+        ((color.g as u16 * brightness as u16) / 255) as u8,
+        ((color.b as u16 * brightness as u16) / 255) as u8,
+    )
+}
+
 #[panic_handler]
 fn panic(_: &core::panic::PanicInfo) -> ! {
     loop {}
@@ -68,6 +76,10 @@ async fn main(_spawner: Spawner) -> ! {
     let peripherals = esp_hal::init(esp_hal::Config::default());
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
+    // `esp_rtos::start` takes a second `SoftwareInterrupt<'static, 0>` argument only on
+    // RISC-V targets (it is gated by `#[cfg(riscv)]` in esp-rtos 0.2). On Xtensa LX6
+    // (the original ESP32) the parameter does not exist, so this single-arg call is
+    // correct here and the C3/C6 examples deliberately differ.
     esp_rtos::start(timg0.timer0);
 
     let rmt = Rmt::new(peripherals.RMT, Rate::from_mhz(80))
@@ -90,13 +102,9 @@ async fn main(_spawner: Spawner) -> ! {
     let mut increasing = true;
 
     loop {
-        let scaled = RGB8::new(
-            ((base_color.r as u16 * brightness as u16) / 255) as u8,
-            ((base_color.g as u16 * brightness as u16) / 255) as u8,
-            ((base_color.b as u16 * brightness as u16) / 255) as u8,
-        );
-
-        AsyncStatusLed::set_color(&mut ws, scaled).await.unwrap();
+        AsyncStatusLed::set_color(&mut ws, scale(base_color, brightness))
+            .await
+            .unwrap();
 
         if increasing {
             if brightness >= 64 {
