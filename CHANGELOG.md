@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-05-05
+
 ### Added
 
 - `ws2812-pure`: `grid` module with `GridBuffer` (`fill`, `set_pixel`, `set_brightness`, `as_slice`), `GridLayout` (`RowMajor`, `ColumnMajorBottomUp`), `GAMMA_2_0` LUT, and `apply_brightness_gamma` helper for rectangular LED matrices, extracted from rustbox-rgb-puzzle matrix firmware
