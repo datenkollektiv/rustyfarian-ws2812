@@ -48,3 +48,9 @@ jobs:
         run: |
           host_target="$(rustc -vV | awk '/^host:/ {print $2}')"
           cargo test -p ws2812-pure -p ferriswheel -p led-effects --target "${host_target}"
+
+      - name: Check ferriswheel smart-leds-compat (rgb version divergence guard)
+        shell: bash
+        run: |
+          host_target="$(rustc -vV | awk '/^host:/ {print $2}')"
+          cargo check -p ferriswheel --features smart-leds-compat --target "${host_target}"
