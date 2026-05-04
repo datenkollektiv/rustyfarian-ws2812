@@ -22,5 +22,6 @@ embedded-hal.workspace = true
 rgb.workspace = true
 smart-leds-trait = { workspace = true, optional = true }
 
-[target.'cfg(target_arch = "avr")'.dependencies]
-avr-device = { version = "0.8.1", features = ["atmega328p"] }
+# No avr-device dependency: the bit-bang backend disables global interrupts via
+# raw `cli` + `SREG` save/restore inline asm in `bitbang_avr.rs`. This avoids
+# pulling in the deprecated `bare-metal` crate (RUSTSEC-2026-0110) transitively.

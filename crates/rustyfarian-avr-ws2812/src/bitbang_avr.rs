@@ -21,6 +21,51 @@
 
 use core::arch::asm;
 
+/// Run `f` with global interrupts disabled, then restore the previous interrupt-enable state.
+///
+/// Implemented via raw `cli` + `SREG`-save/restore so this crate does not depend on
+/// `avr-device` (which transitively pulls in the deprecated `bare-metal` crate,
+/// [RUSTSEC-2026-0110](https://rustsec.org/advisories/RUSTSEC-2026-0110)).
+///
+/// `SREG` (Status Register) lives at I/O address `0x3F`. Bit 7 is the global
+/// interrupt-enable flag. Reading it before `cli` and writing it back after the
+/// closure preserves the caller's interrupt state — re-enabling only if interrupts
+/// were enabled on entry.
+///
+/// # Compiler ordering
+///
+/// Both `asm!` blocks are written without `nomem`, `pure`, or `readonly` options.
+/// Per the Rust reference, that default is treated as "may have side effects" and
+/// "may read or write memory" — so the optimizer cannot move the closure's loads
+/// or stores out of the critical section. We deliberately do **not** add
+/// `preserves_flags` to the first block: `cli` clears bit 7 of `SREG`, which is
+/// the AVR's flag register.
+///
+/// SAFETY: must run on AVR (enforced at module level via `#[cfg(target_arch = "avr")]`
+/// in `lib.rs`, and reinforced here by the per-function `cfg` attribute). The I/O
+/// address `0x3F` (SREG) is fixed by the AVR ISA.
+#[cfg(target_arch = "avr")]
+#[inline(always)]
+pub(crate) fn with_interrupts_disabled<F: FnOnce()>(f: F) {
+    let sreg: u8;
+    unsafe {
+        asm!(
+            "in {sreg}, 0x3F", // 1 cy — read SREG (I bit + flags)
+            "cli",             // 1 cy — clear global interrupt enable
+            sreg = out(reg) sreg,
+            options(nostack),
+        );
+    }
+    f();
+    unsafe {
+        asm!(
+            "out 0x3F, {sreg}", // 1 cy — restore SREG (re-enables interrupts iff bit 7 was set)
+            sreg = in(reg) sreg,
+            options(nostack),
+        );
+    }
+}
+
 /// Send one byte MSB-first to `PORT_ADDR` bit `PIN_BIT` with cycle-counted asm.
 ///
 /// # Timing model
