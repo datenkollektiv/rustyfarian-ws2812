@@ -29,11 +29,35 @@ timeline
     Mid term  : Remove send_and_wait workaround (esp-idf-hal fix)
               : Guard against rgb version divergence
 
+    Recurring : Audit deny.toml exceptions (each minor release)
+
     Long term : Upstream contribution evaluation
               : embedded-graphics-core evaluation
 ```
 
 ## Ecosystem Integration
+
+### Recurring: audit `deny.toml` exceptions
+
+Each ignored advisory or per-crate license exception in [`deny.toml`](../deny.toml)
+should be re-checked periodically — the underlying upstream bug, deprecation, or
+licensing situation may have been resolved, in which case the exception can be
+removed and the dep graph cleans up.
+
+Current entries (as of 2026-05):
+
+- `RUSTSEC-2024-0436` — `paste` unmaintained; transitive through `esp-hal 1.0.0` /
+  `riscv 0.15.0`. Re-check when those crates bump or when a successor proc-macro
+  ships in the smart-leds / esp-rs ecosystem.
+
+(The `bare-metal` / `atdf2svd` exceptions previously needed for `rustyfarian-avr-ws2812`
+were eliminated 2026-05 by switching the bit-bang backend to raw `cli` + `SREG`
+save/restore inline asm, dropping the `avr-device` dependency entirely.)
+
+Cadence: revisit at every minor release, or when a new exception is added.
+Mechanism: walk each entry, run `cargo update` against the relevant upstream, and
+attempt to remove the exception. If the advisory or licence still fires, leave it
+in place but refresh the rationale comment with the current upstream state.
 
 ### Guard against `rgb` version divergence between `ferriswheel` and `smart-leds-trait`
 

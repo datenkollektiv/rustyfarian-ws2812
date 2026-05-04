@@ -39,7 +39,7 @@ use core::fmt;
 use rgb::RGB8;
 
 #[cfg(target_arch = "avr")]
-use crate::bitbang_avr::send_byte;
+use crate::bitbang_avr::{send_byte, with_interrupts_disabled};
 
 /// AVR I/O addresses for the ATmega328P GPIO ports in low I/O space.
 ///
@@ -148,9 +148,11 @@ impl<P, const PORT_ADDR: u8, const PIN_BIT: u8> Ws2812BitBang<P, PORT_ADDR, PIN_
 
     /// Send a buffer of `RGB8` colors to the LED chain (GRB byte order on the wire).
     ///
-    /// On AVR (`target_arch = "avr"`) this wraps the asm loop in
-    /// `avr_device::interrupt::free(..)` so global interrupts stay disabled for the
-    /// duration of the frame — required for cycle-accurate WS2812 timing.
+    /// On AVR (`target_arch = "avr"`) this disables global interrupts for the duration
+    /// of the frame via a small `cli` + `SREG`-save/restore helper — required for
+    /// cycle-accurate WS2812 timing. The caller does **not** need to provide a critical
+    /// section. The crate intentionally does not depend on `avr-device` for this
+    /// (avr-device transitively pulls in the deprecated `bare-metal` crate).
     ///
     /// # Host (non-AVR) behavior
     ///
@@ -169,11 +171,11 @@ impl<P, const PORT_ADDR: u8, const PIN_BIT: u8> Ws2812BitBang<P, PORT_ADDR, PIN_
     pub fn write(&mut self, colors: &[RGB8]) -> Result<(), BitBangError> {
         #[cfg(target_arch = "avr")]
         {
-            avr_device::interrupt::free(|_| {
+            with_interrupts_disabled(|| {
                 for pixel in colors {
-                    // SAFETY: PORT_ADDR is a const-generic compile-time port address;
-                    // the caller has configured the pin as output; `interrupt::free`
-                    // guarantees the asm timing.
+                    // SAFETY: PORT_ADDR is a const-generic compile-time port address
+                    // (validated at compile time); the caller has configured the pin as
+                    // output; `with_interrupts_disabled` guarantees the asm timing.
                     unsafe {
                         send_byte::<PORT_ADDR, PIN_BIT>(pixel.g);
                         send_byte::<PORT_ADDR, PIN_BIT>(pixel.r);

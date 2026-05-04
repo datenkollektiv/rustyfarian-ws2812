@@ -66,6 +66,10 @@ check-avr-target-bitbang:
 build-avr-example:
     cd examples/avr-nano-rainbow && cargo +{{ avr_nightly }} build --release -Z build-std=core
 
+# build every binary in the AVR Nano example crate (default + bitbang_demo + spi_rainbow + bitbang_spike)
+build-avr-example-all-bins:
+    cd examples/avr-nano-rainbow && cargo +{{ avr_nightly }} build --release -Z build-std=core --bins
+
 # build and flash the AVR Nano rainbow demo — bit-bang backend, recommended (requires: just setup-avr, avr-gcc, ravedude)
 flash-avr-example:
     cd examples/avr-nano-rainbow && cargo +{{ avr_nightly }} run --release -Z build-std=core
