@@ -61,6 +61,14 @@ use rustyfarian_esp_hal_ws2812::{buffer_size, Ws2812Rmt, RMT_CLK_DIV};
 const NUM_LEDS: usize = 12;
 const N: usize = buffer_size(NUM_LEDS);
 
+fn scale(color: RGB8, brightness: u8) -> RGB8 {
+    RGB8::new(
+        ((color.r as u16 * brightness as u16) / 255) as u8,
+        ((color.g as u16 * brightness as u16) / 255) as u8,
+        ((color.b as u16 * brightness as u16) / 255) as u8,
+    )
+}
+
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
     println!("PANIC: {}", info);
@@ -98,13 +106,9 @@ async fn main(_spawner: Spawner) -> ! {
 
     println!("Entering async pulse loop (AsyncStatusLed)");
     loop {
-        let scaled = RGB8::new(
-            ((base_color.r as u16 * brightness as u16) / 255) as u8,
-            ((base_color.g as u16 * brightness as u16) / 255) as u8,
-            ((base_color.b as u16 * brightness as u16) / 255) as u8,
-        );
-
-        AsyncStatusLed::set_color(&mut ws, scaled).await.unwrap();
+        AsyncStatusLed::set_color(&mut ws, scale(base_color, brightness))
+            .await
+            .unwrap();
 
         if increasing {
             if brightness >= 64 {

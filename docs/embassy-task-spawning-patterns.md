@@ -176,10 +176,10 @@ It implements `const fn new()`, making it usable in `static` initializers withou
 Multiple tasks can reference the same `static Signal` by shared reference (`&'static Signal<...>`).
 
 ```rust
-use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
+use embassy_sync::blocking_mutex::raw::NoopRawMutex;
 use embassy_sync::signal::Signal;
 
-static EFFECT_SIGNAL: Signal<CriticalSectionRawMutex, u8> = Signal::new();
+static EFFECT_SIGNAL: Signal<NoopRawMutex, u8> = Signal::new();
 ```
 
 This is valid `no_std` code and needs no `#[link_section]`, `unsafe`, or nightly features.
@@ -192,10 +192,11 @@ This is valid `no_std` code and needs no `#[link_section]`, `unsafe`, or nightly
 | `NoopRawMutex`            | Signal used only within a single executor, never from an ISR                         |
 | `ThreadModeRawMutex`      | Same as `NoopRawMutex` but also enforces single-executor singleton semantics         |
 
-For button-press → LED effect switching, where an ISR or a different executor context
-might signal the change, `CriticalSectionRawMutex` is the safe choice.
-For two tasks in the same `#[esp_rtos::main]` executor, `NoopRawMutex` is sufficient
-and slightly cheaper.
+For two tasks in the same `#[esp_rtos::main]` executor — the most common Embassy
+pattern on `esp-rtos` — `NoopRawMutex` is the right choice: it's zero-cost and
+correctly captures the single-executor invariant.
+Reach for `CriticalSectionRawMutex` only if the signal is touched from an ISR or
+shared across multiple executors (e.g., a separate interrupt-mode executor).
 
 ### Task sharing pattern
 
@@ -277,7 +278,7 @@ any ownership transfer.
 Tasks access it by name (as a module-level `static`) or via a shared reference:
 
 ```rust
-static EFFECT_SIGNAL: Signal<CriticalSectionRawMutex, u8> = Signal::new();
+static EFFECT_SIGNAL: Signal<NoopRawMutex, u8> = Signal::new();
 
 #[embassy_executor::task]
 async fn button_task(mut button: Input<'static>) {

@@ -94,7 +94,7 @@ Each example name encodes the driver, chip, and effect: `{driver}_{chip}_{effect
 | `idf_c6_knight_rider`        | ESP-IDF (std)    | ESP32-C6                  | Knight Rider / scanner | GPIO18     |                         |
 | `idf_c6_rainbow_comet`       | ESP-IDF (std)    | ESP32-C6                  | Rainbow comet          | GPIO18     |                         |
 | `idf_c6_smart_leds`          | ESP-IDF (std)    | ESP32-C6                  | smart-leds interop     | GPIO18     | `--features smart-leds` |
-| `avr-nano-rainbow`           | AVR SPI (no_std) | Arduino Nano (ATmega328P) | Rainbow                | D11 (MOSI) | Standalone project      |
+| `avr-nano-rainbow`           | AVR SPI (no_std) | Arduino Nano (ATmega328P) | Rainbow                | D11 (MOSI) | Standalone project — see [docs/avr-getting-started.md](docs/avr-getting-started.md) |
 
 Flash and open the serial monitor on a connected board:
 
