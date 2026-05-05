@@ -5,7 +5,7 @@
 //! using the `esp-hal` RMT peripheral.
 //! It is the `no_std` counterpart to `rustyfarian-esp-idf-ws2812`.
 //!
-//! Pure color utilities are available in the `ws2812-pure` crate for testing.
+//! Pure color utilities are available in the `bunting` crate for testing.
 //!
 //! # Buffer Sizing
 //!
@@ -143,6 +143,7 @@
 //! If `esp-idf-hal` gains async RMT in a future release, async support can be added there
 //! under a separate feature flag without affecting this crate.
 
+use bunting::rgb_to_grb;
 #[cfg(feature = "async")]
 use esp_hal::Async;
 use esp_hal::{
@@ -152,7 +153,6 @@ use esp_hal::{
 };
 use rgb::RGB8;
 use smart_leds_trait::SmartLedsWrite;
-use ws2812_pure::rgb_to_grb;
 
 /// Clock divider for the RMT peripheral to achieve the required 10 MHz timing clock.
 ///

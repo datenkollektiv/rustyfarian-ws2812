@@ -39,4 +39,4 @@ jobs:
         shell: bash
         run: |
           host_target="$(rustc -vV | awk '/^host:/ {print $2}')"
-          cargo clippy -p ws2812-pure -p ferriswheel -p led-effects --target "${host_target}" -- -D warnings
+          cargo clippy -p bunting -p ferriswheel -p led-effects --target "${host_target}" -- -D warnings

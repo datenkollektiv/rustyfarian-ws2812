@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Renamed `ws2812-pure` → `bunting`** to lift the pure-logic crate out of the crowded `ws2812-*` crates.io namespace and align it with the fairground naming family (`ferriswheel`, `lantern`). No behaviour or API changes. Migration: replace `ws2812-pure = ...` with `bunting = ...` in your `Cargo.toml`, and `use ws2812_pure::...` with `use bunting::...` in your source. Decision recorded in [`docs/features/crates-io-publication-v1.md`](docs/features/crates-io-publication-v1.md).
+
 ### Fixed
 
 - `ferriswheel`: `FireEffect` now picks the base-spark index with rejection sampling instead of `rng_byte() % base_range`, removing modulo bias for non-power-of-2 `with_base_range` values (negligible at the default 1–3, noticeable for wider bases)

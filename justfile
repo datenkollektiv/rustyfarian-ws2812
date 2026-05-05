@@ -5,7 +5,7 @@
 # explicitly passes --target to override it.
 
 host_target := `scripts/host-target.sh`
-pure_crates := "-p ws2812-pure -p ferriswheel -p led-effects -p rustyfarian-avr-ws2812"
+pure_crates := "-p bunting -p ferriswheel -p led-effects -p rustyfarian-avr-ws2812"
 hal_target := "riscv32imac-unknown-none-elf"
 hal_crate := "-p rustyfarian-esp-hal-ws2812"
 avr_nightly := "nightly-2025-04-27"

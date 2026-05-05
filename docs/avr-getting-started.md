@@ -200,8 +200,8 @@ features = ["arduino-nano"]
 [dependencies.rustyfarian-avr-ws2812]
 path = "../../crates/rustyfarian-avr-ws2812"
 
-[dependencies.ws2812-pure]
-path = "../../crates/ws2812-pure"
+[dependencies.bunting]
+path = "../../crates/bunting"
 
 [dependencies.ferriswheel]
 path = "../../crates/ferriswheel"

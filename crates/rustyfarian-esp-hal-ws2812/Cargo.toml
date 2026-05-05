@@ -13,7 +13,7 @@ categories = ["embedded", "hardware-support", "no-std"]
 esp-hal.workspace = true
 esp-bootloader-esp-idf.workspace = true
 rgb.workspace = true
-ws2812-pure.workspace = true
+bunting.workspace = true
 smart-leds-trait = { workspace = true, default-features = false }
 led-effects = { workspace = true, optional = true }
 smart-leds = { workspace = true, optional = true }

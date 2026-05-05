@@ -1,7 +1,7 @@
 # ws2812-spi Prerendered Module — Encoding Deep Dive
 
 Authoritative reference for the exact SPI bit encoding used by `ws2812-spi` v0.5.1's prerendered module,
-confirming all parameters needed to implement a compatible `prerender_spi` function in `ws2812-pure`.
+confirming all parameters needed to implement a compatible `prerender_spi` function in `bunting`.
 
 > **Note on `docs/research-avr-ws2812.md`**:
 > That document contains one inaccuracy in its buffer-sizing explanation.
@@ -160,19 +160,19 @@ self.write_byte(item.b)?;  // Blue third
 
 The caller passes `RGB8` values (as used by `smart-leds-trait`).
 `ws2812-spi` internally swaps to GRB before encoding.
-A `prerender_spi` function in `ws2812-pure` must therefore either:
+A `prerender_spi` function in `bunting` must therefore either:
 
 - Accept pre-ordered GRB bytes directly and document that expectation, or
 - Accept `Rgb` values and apply the GRB swap internally (as `ws2812-spi` does) before encoding.
 
-The second approach is consistent with how `ws2812-pure` already handles GRB conversion
-(see `rgb_to_grb` in `ws2812-pure`).
+The second approach is consistent with how `bunting` already handles GRB conversion
+(see `rgb_to_grb` in `bunting`).
 
 ---
 
 ## Encoding Summary — Implementation Reference
 
-For a `prerender_spi` function in `ws2812-pure`:
+For a `prerender_spi` function in `bunting`:
 
 ```
 Input:  &[Rgb]  — RGB pixel values, one per LED
