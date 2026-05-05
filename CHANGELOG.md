@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `ferriswheel`: `FireEffect` now picks the base-spark index with rejection sampling instead of `rng_byte() % base_range`, removing modulo bias for non-power-of-2 `with_base_range` values (negligible at the default 1–3, noticeable for wider bases)
+- `ferriswheel`: corrected the `FireEffect.heat` doc comment — peak heat (255) maps to bright yellow via `fire_color`, not white
+
 ## [0.5.0] - 2026-05-05
 
 ### Added

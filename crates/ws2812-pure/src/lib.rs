@@ -104,7 +104,7 @@ pub const SPI_RESET_BYTES_2MHZ: usize = 80;
 /// | `01` | `0x8E` | bit0=low, bit1=high (`1110`) |
 /// | `10` | `0xE8` | bit0=high, bit1=low          |
 /// | `11` | `0xEE` | bit0=high, bit1=high         |
-const SPI_PATTERNS: [u8; 4] = [0b1000_1000, 0b1000_1110, 0b1110_1000, 0b1110_1110];
+const SPI_PATTERNS: [u8; 4] = [0x88, 0x8E, 0xE8, 0xEE];
 
 /// Pre-renders `colors` into a WS2812-compatible SPI byte buffer.
 ///

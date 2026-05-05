@@ -38,6 +38,14 @@ After any `esp-hal` minor bump, spot-check at least one example per chip family
 ### Hardware tests
 End-to-end animation validation requires real boards. Connect over USB,
 then `just run <example>` builds, flashes, and opens the serial monitor.
+
+Pass criteria (required for "hardware-target validation" to pass):
+- LEDs render the expected pattern and colour order for the selected example (no channel swap, e.g. GRB/RGB mismatch).
+- No visible flicker, random flashes, or frame tearing during a continuous 60-second run.
+- Brightness changes and animations are smooth and repeatable across at least 3 consecutive runs.
+- Serial monitor shows normal startup/output only (no panic, watchdog reset, backtrace, or repeated error logs).
+- Board remains stable for the full run (no unexpected reboot/disconnect), and rerunning the same command yields the same visual result.
+
 At minimum, exercise:
 - `just run hal_c6_pulse` — basic blocking RMT on C6.
 - `just run hal_c6_multitask_async` — exercises the migrated Embassy task-spawn
@@ -193,7 +201,7 @@ Documents that should be reviewed for staleness during quarterly cycles:
       family that's available; always include `hal_c6_multitask_async`.
 - [ ] Review `docs/project-lore.md` entries for accuracy; remove resolved items.
 - [ ] Refresh `docs/esp-hal-version-matrix.md` if the stack moved.
-- [ ] Verify `MAX_LEDS = 256` and the `Effect` trait contract are still correct.
+- [ ] Verify `MAX_LEDS = 256` is still valid for supported targets, and confirm the `Effect` trait contract still matches current implementations and examples (method signatures, buffer-size assumptions, and any trait bounds).
 - [ ] Re-evaluate ignored advisories in `deny.toml`.
 
 ## Maintenance Protocol
@@ -210,9 +218,23 @@ maintenance cycle (dependency bumps, API migrations, bug fixes) belong in
 `CHANGELOG.md ## [Unreleased]`; deferred or recurring concerns belong in
 `docs/ROADMAP.md`; non-obvious technical insights belong in `docs/project-lore.md`.
 
-The 2026-04-29 quarterly cycle's three files demonstrate the structure end-to-end
-and can be used as local templates (they live in `audit/` on each contributor's
-working tree).
+The 2026-04-29 quarterly cycle's three files demonstrate the structure end-to-end.
+Because `audit/` is git-ignored, do not rely on those local files for bootstrap in
+a fresh clone; use the following minimal templates instead:
+
+- `YYYY-MM-DD-<cadence>-audit.md`
+  - Scope and cadence (`monthly` / `quarterly`)
+  - Toolchain + environment snapshot
+  - Findings by area (build, deps, security, CI, hardware)
+  - Risk/impact summary and recommended actions
+- `YYYY-MM-DD-<cadence>-plan.md`
+  - Ordered action list derived from the audit
+  - Preconditions, commands to run, and expected outcomes
+  - Rollback/deferral notes per action
+- `YYYY-MM-DD-<cadence>-maintenance.md`
+  - Actions actually executed (with timestamps if useful)
+  - Command outputs/results and any deviations from plan
+  - Deferred items and follow-up ownership/location
 
 A typical cycle takes 2–4 hours of focused work for a coordinated `esp-hal` wave
 (longer the first time encountering each new upstream API change), or under
