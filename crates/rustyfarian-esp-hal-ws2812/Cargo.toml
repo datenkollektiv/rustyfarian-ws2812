@@ -15,7 +15,7 @@ esp-bootloader-esp-idf.workspace = true
 rgb.workspace = true
 bunting.workspace = true
 smart-leds-trait = { workspace = true, default-features = false }
-led-effects = { workspace = true, optional = true }
+pennant = { workspace = true, optional = true }
 smart-leds = { workspace = true, optional = true }
 esp-rtos = { workspace = true, optional = true }
 embassy-time = { workspace = true, optional = true }
@@ -27,12 +27,12 @@ esp-println = { workspace = true, optional = true, default-features = false, fea
 ferriswheel = { workspace = true }
 
 [features]
-default = ["esp32c6", "unstable", "led-effects"]
+default = ["esp32c6", "unstable", "pennant"]
 esp32c6 = ["esp-hal/esp32c6", "esp-bootloader-esp-idf/esp32c6", "esp-rtos?/esp32c6", "esp-println?/esp32c6"]
 esp32c3 = ["esp-hal/esp32c3", "esp-bootloader-esp-idf/esp32c3", "esp-rtos?/esp32c3", "esp-println?/esp32c3"]
 esp32   = ["esp-hal/esp32",   "esp-bootloader-esp-idf/esp32",   "esp-rtos?/esp32",   "esp-println?/esp32"]
 unstable = ["esp-hal/unstable"]
-led-effects = ["dep:led-effects"]
+pennant = ["dep:pennant"]
 smart-leds = ["dep:smart-leds"]
 rt = ["esp-hal/rt"]
 esp-println = ["dep:esp-println"]

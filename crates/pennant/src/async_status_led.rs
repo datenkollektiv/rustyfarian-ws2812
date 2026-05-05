@@ -16,7 +16,7 @@ use rgb::RGB8;
 /// # Example
 ///
 /// ```ignore
-/// use led_effects::AsyncStatusLed;
+/// use pennant::AsyncStatusLed;
 /// use rgb::RGB8;
 ///
 /// async fn set_status<L: AsyncStatusLed>(led: &mut L) -> Result<(), L::Error> {

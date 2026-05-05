@@ -18,15 +18,15 @@ ferriswheel = { workspace = true }
 [dependencies]
 anyhow.workspace = true
 esp-idf-hal.workspace = true
-led-effects = { workspace = true, optional = true }
+pennant = { workspace = true, optional = true }
 rgb.workspace = true
 smart-leds-trait = { workspace = true, default-features = false }
 smart-leds = { workspace = true, optional = true }
 bunting.workspace = true
 
 [features]
-default = ["led-effects"]
-led-effects = ["dep:led-effects"]
+default = ["pennant"]
+pennant = ["dep:pennant"]
 smart-leds = ["dep:smart-leds"]
 
 [[example]]

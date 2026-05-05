@@ -15,7 +15,7 @@
 //!
 //! ```ignore
 //! use esp_idf_hal::gpio::PinDriver;
-//! use led_effects::{SimpleLed, StatusLed};
+//! use pennant::{SimpleLed, StatusLed};
 //!
 //! let pin = PinDriver::output(peripherals.pins.gpio35)?;
 //! let mut led = SimpleLed::new(pin);

@@ -17,7 +17,7 @@ Six workspace members under `crates/`, plus one standalone example:
 |:------|:-----|:-------|
 | `bunting` | color conversion, bit encoding, grid layout | `no_std` |
 | `ferriswheel` | 14 ring animations + `Effect` trait | `no_std` |
-| `led-effects` | status-LED adapter + `StatusLed` / `AsyncStatusLed` traits | `no_std` |
+| `pennant` | status-LED adapter + `StatusLed` / `AsyncStatusLed` traits | `no_std` |
 | `rustyfarian-esp-idf-ws2812` | ESP-IDF RMT driver | `std` (ESP-IDF) |
 | `rustyfarian-esp-hal-ws2812` | esp-hal RMT driver, blocking + async | `no_std` (bare-metal) |
 | `rustyfarian-avr-ws2812` | AVR SPI + bit-bang driver | `no_std` |

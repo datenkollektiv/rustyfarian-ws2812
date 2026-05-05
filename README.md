@@ -36,7 +36,7 @@ just run idf_c6_effects
 
 This library embodies the principle of **extracting testable pure logic from hardware-specific code**—a pattern common in application development but rare in embedded Rust.
 
-- Pure functions belong in `no_std` crates (`bunting`, `led-effects`, `ferriswheel`)
+- Pure functions belong in `no_std` crates (`bunting`, `pennant`, `ferriswheel`)
 - Hardware-specific wrappers should be thin, delegating logic to pure functions
 - If you can unit test it without hardware, it should be in a testable crate
 - Ring-specific animations live in `ferriswheel` so they can be reused and tested independently
@@ -56,7 +56,7 @@ See [Why Yet Another WS2812 Crate?](docs/why-yet-another-ws2812-crate.md) for th
 | Crate                                                             | Description                                                                                                                                             | Target               |
 |:------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|:---------------------|
 | [`ferriswheel`](crates/ferriswheel)                               | RGB LED ring animations (rainbow, pulse, breathe, spinner, meteor, twinkle, fire, cylon, knight rider, chase, flash, progress, sections, rainbow comet) | `no_std` compatible  |
-| [`led-effects`](crates/led-effects)                               | LED status effects (pulse, simple LED adapter)                                                                                                          | `no_std` compatible  |
+| [`pennant`](crates/pennant)                                       | LED status effects (pulse, simple LED adapter)                                                                                                          | `no_std` compatible  |
 | [`bunting`](crates/bunting)                                       | Pure Rust WS2812 utilities (color conversion, bit encoding)                                                                                             | `no_std` compatible  |
 | [`rustyfarian-esp-idf-ws2812`](crates/rustyfarian-esp-idf-ws2812) | WS2812 driver using ESP-IDF RMT peripheral                                                                                                              | ESP-IDF (std)        |
 | [`rustyfarian-esp-hal-ws2812`](crates/rustyfarian-esp-hal-ws2812) | WS2812 driver using esp-hal RMT peripheral                                                                                                              | esp-hal (no_std)     |
@@ -126,15 +126,24 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rustyfarian-esp-idf-ws2812 = { git = "https://github.com/datenkollektiv/rustyfarian-ws2812" }
+ferriswheel = "0.5"
+pennant = "0.5"
+bunting = "0.5"
 ```
 
-For `no_std` projects that only need the pure utilities:
+`pennant` ships the `StatusLed`/`AsyncStatusLed` traits, `PulseEffect`, and `NoLed` by default.
+Enable the `hal` feature for the `SimpleLed` adapter (RGB → on/off GPIO via `embedded-hal` 1.0):
+
+```toml
+pennant = { version = "0.5", features = ["hal"] }
+```
+
+To track the unreleased `main` branch (e.g. for contributors):
 
 ```toml
 [dependencies]
 ferriswheel = { git = "https://github.com/datenkollektiv/rustyfarian-ws2812" }
-led-effects = { git = "https://github.com/datenkollektiv/rustyfarian-ws2812", default-features = false }
+pennant = { git = "https://github.com/datenkollektiv/rustyfarian-ws2812", default-features = false }
 bunting = { git = "https://github.com/datenkollektiv/rustyfarian-ws2812" }
 ```
 
@@ -142,7 +151,7 @@ bunting = { git = "https://github.com/datenkollektiv/rustyfarian-ws2812" }
 
 ```rust
 use rustyfarian_esp_idf_ws2812::WS2812RMT;
-use led_effects::PulseEffect;
+use pennant::PulseEffect;
 use rgb::RGB8;
 
 // Initialize driver

@@ -6,6 +6,7 @@ exclude = ["examples/avr-nano-rainbow"]
 [workspace.package]
 authors = ["datenkollektiv"]
 edition = "2021"
+rust-version = "1.88"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/datenkollektiv/rustyfarian-ws2812"
 
@@ -18,9 +19,9 @@ smart-leds = "0.4.0"
 embedded-hal = { version = "1.0", default-features = false }
 
 # Internal crates
-ferriswheel = { path = "crates/ferriswheel" }
-led-effects = { path = "crates/led-effects" }
-bunting = { path = "crates/bunting" }
+ferriswheel = { path = "crates/ferriswheel", version = "0.5" }
+pennant = { path = "crates/pennant", version = "0.5" }
+bunting = { path = "crates/bunting", version = "0.5" }
 
 # ESP32 dependencies
 esp-idf-hal = { version = "0.46" }

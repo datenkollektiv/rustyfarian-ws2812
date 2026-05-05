@@ -8,7 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
-- **Renamed `ws2812-pure` → `bunting`** to lift the pure-logic crate out of the crowded `ws2812-*` crates.io namespace and align it with the fairground naming family (`ferriswheel`, `lantern`). No behaviour or API changes. Migration: replace `ws2812-pure = ...` with `bunting = ...` in your `Cargo.toml`, and `use ws2812_pure::...` with `use bunting::...` in your source. Decision recorded in [`docs/features/crates-io-publication-v1.md`](docs/features/crates-io-publication-v1.md).
+- **Renamed `ws2812-pure` → `bunting`** to lift the pure-logic crate out of the crowded `ws2812-*` crates.io namespace and align it with the fairground naming family (`ferriswheel`, `pennant`). No behaviour or API changes. Migration: replace `ws2812-pure = ...` with `bunting = ...` in your `Cargo.toml`, and `use ws2812_pure::...` with `use bunting::...` in your source. Decision recorded in [`docs/features/crates-io-publication-v1.md`](docs/features/crates-io-publication-v1.md).
+- **Renamed `led-effects` → `pennant`** to align with the fairground naming family (`ferriswheel`, `bunting`) and to claim a name that is free on crates.io — the originally chosen `lantern` was found taken on re-verification. `pennant` (a single triangular flag) pairs naturally with `bunting`, which is literally a string of pennants. No behaviour or API changes. Migration: replace `led-effects = ...` with `pennant = ...` in your `Cargo.toml`, and `use led_effects::...` with `use pennant::...` in your source. The Cargo feature flag on `rustyfarian-esp-hal-ws2812` and `rustyfarian-esp-idf-ws2812` was renamed in lockstep — `--features led-effects` callers must switch to `--features pennant`. Decision recorded in [`docs/features/crates-io-publication-v1.md`](docs/features/crates-io-publication-v1.md).
 
 ### Fixed
 

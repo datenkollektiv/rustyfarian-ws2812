@@ -12,7 +12,7 @@
 - **The EUPL-1.2 licence is the single biggest practical barrier** to adopting `blinksy` as a dependency.
   It is a copyleft licence that is not on the list of licences compatible with MIT or Apache-2.0.
   Including it as a Cargo dependency in a project that ships under MIT/Apache-2.0 carries legal risk that legal counsel would need to evaluate.
-- **There is no crates.io name collision** for `bunting`, `lantern`, or `ferriswheel` against the `blinksy` namespace.
+- **There is no crates.io name collision** for `bunting`, `pennant`, or `ferriswheel` against the `blinksy` namespace.
   `blinksy` does not re-export or shadow any of our planned crate names.
 - **The projects fill genuinely different niches**: `blinksy` is framework-complete for spatial LED installations (art, lighting controllers); `ferriswheel` is focused on small embedded rings with a simple, testable effect loop.
   They are complementary rather than redundant.
@@ -268,7 +268,7 @@ The `smart-leds-rs` upstream contribution path remains the better long-term targ
 ### Name collision check
 
 - `bunting` — not present on crates.io; not used by `blinksy` or its sub-crates. **No collision.**
-- `lantern` — only `lantern-ai` (an unrelated AI scaffolding tool) exists on crates.io; not used by `blinksy`. **No collision.** Re-verify with `cargo search lantern` before first publish as the feature doc requires.
+- `pennant` — verified free on crates.io (HTTP 200 check, 2026-05-06); not used by `blinksy`. **No collision.** Selected after `lantern` was found taken — the earlier "free" claim was based on a `cargo search latern` typo.
 - `ferriswheel` — no crates.io results; not used by `blinksy`. **No collision.** Re-verify with `cargo search ferriswheel` before first publish as the feature doc requires.
 
 ---
