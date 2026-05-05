@@ -122,7 +122,10 @@ The Feather ESP32 V2 examples additionally use the Xtensa toolchain (`+esp`) wit
 
 ## Usage
 
-Add to your `Cargo.toml`:
+The library crates are published on crates.io.
+Driver crates currently ship via git dependency until their own crates.io release wave.
+
+For `no_std` projects that only need the pure utilities:
 
 ```toml
 [dependencies]
@@ -145,6 +148,13 @@ To track the unreleased `main` branch (e.g. for contributors):
 ferriswheel = { git = "https://github.com/datenkollektiv/rustyfarian-ws2812" }
 pennant = { git = "https://github.com/datenkollektiv/rustyfarian-ws2812", default-features = false }
 bunting = { git = "https://github.com/datenkollektiv/rustyfarian-ws2812" }
+```
+
+ESP32 driver crates (not yet on crates.io):
+
+```toml
+[dependencies]
+rustyfarian-esp-idf-ws2812 = { git = "https://github.com/datenkollektiv/rustyfarian-ws2812" }
 ```
 
 ## Example

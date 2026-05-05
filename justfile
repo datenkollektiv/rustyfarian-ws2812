@@ -277,3 +277,29 @@ verify:
 
 # CI-equivalent verification (non-modifying): format check, deny, check, lint, test
 ci: fmt-check deny check clippy test
+
+# --- Release --------------------------------------------------------------
+#
+# First-wave publish targets `bunting`, `pennant`, and `ferriswheel`. The three
+# crates do not depend on each other, so any order works — but the canonical
+# order recorded in `docs/features/crates-io-publication-v1.md` is
+# bunting → pennant → ferriswheel.
+#
+# `cargo publish --dry-run` packages the crate and runs verification on the
+# host target without uploading. The host-target override is required because
+# the workspace defaults to an ESP cross-compile target via `.cargo/config.toml`.
+
+# verify all v1 publish-target crates package cleanly (no upload)
+release-dry-run: verify
+    cargo publish --dry-run -p bunting --target {{ host_target }}
+    cargo publish --dry-run -p pennant --target {{ host_target }}
+    cargo publish --dry-run -p ferriswheel --target {{ host_target }}
+
+# verify one crate packages cleanly (no upload). Use: just release-dry-run-crate bunting
+release-dry-run-crate crate:
+    cargo publish --dry-run -p {{ crate }} --target {{ host_target }}
+
+# publish one crate to crates.io (dep order: bunting → pennant → ferriswheel). Use: just release-publish bunting
+[confirm]
+release-publish crate:
+    cargo publish -p {{ crate }} --target {{ host_target }}
