@@ -54,3 +54,9 @@ jobs:
         run: |
           host_target="$(rustc -vV | awk '/^host:/ {print $2}')"
           cargo check -p ferriswheel --features smart-leds-compat --target "${host_target}"
+
+      - name: Test pennant hal feature (SimpleLed adapter — off by default)
+        shell: bash
+        run: |
+          host_target="$(rustc -vV | awk '/^host:/ {print $2}')"
+          cargo test -p pennant --features hal --target "${host_target}"

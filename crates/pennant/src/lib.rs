@@ -15,10 +15,11 @@
 //! [`NoLed`] is a zero-size stub that implements `StatusLed` with an `Infallible` error type.
 //! Use it when a type parameter requires a `StatusLed` but no physical LED is present.
 //!
-//! # SimpleLed (requires `hal` feature, enabled by default)
+//! # SimpleLed (opt-in via `hal` feature)
 //!
-//! For simple on/off GPIO LEDs (not RGB), use the [`SimpleLed`] adapter which
-//! implements `StatusLed` by mapping RGB colors to on/off based on brightness.
+//! For simple on/off GPIO LEDs (not RGB), enable the `hal` feature to get the
+//! [`SimpleLed`] adapter, which implements `StatusLed` by mapping RGB colors to
+//! on/off based on brightness.
 //! It is generic over [`embedded_hal::digital::OutputPin`], so it works with
 //! any HAL or test mock.
 //!

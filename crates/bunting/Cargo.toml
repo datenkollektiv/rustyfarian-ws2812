@@ -3,9 +3,12 @@ name = "bunting"
 version = "0.5.0"
 authors.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "Pure Rust WS2812 color utilities - no hardware dependencies"
+documentation = "https://docs.rs/bunting"
+readme = "README.md"
 keywords = ["ws2812", "neopixel", "led", "no-std"]
 categories = ["embedded", "no-std"]
 
