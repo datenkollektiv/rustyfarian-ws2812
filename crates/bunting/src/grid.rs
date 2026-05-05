@@ -8,7 +8,7 @@
 //!
 //! ```
 //! use rgb::RGB8;
-//! use ws2812_pure::grid::{GridBuffer, GridLayout};
+//! use bunting::grid::{GridBuffer, GridLayout};
 //!
 //! // 8×8 grid, LEDs wired column-major bottom-to-top.
 //! let mut grid: GridBuffer<8, 8, 64> = GridBuffer::new(GridLayout::ColumnMajorBottomUp);

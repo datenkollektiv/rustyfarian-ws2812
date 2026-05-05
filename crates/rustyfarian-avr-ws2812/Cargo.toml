@@ -17,7 +17,7 @@ bitbang = []
 smart-leds-trait = ["dep:smart-leds-trait"]
 
 [dependencies]
-ws2812-pure.workspace = true
+bunting.workspace = true
 embedded-hal.workspace = true
 rgb.workspace = true
 smart-leds-trait = { workspace = true, optional = true }

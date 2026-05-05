@@ -36,12 +36,12 @@ just run idf_c6_effects
 
 This library embodies the principle of **extracting testable pure logic from hardware-specific code**—a pattern common in application development but rare in embedded Rust.
 
-- Pure functions belong in `no_std` crates (`ws2812-pure`, `led-effects`, `ferriswheel`)
+- Pure functions belong in `no_std` crates (`bunting`, `led-effects`, `ferriswheel`)
 - Hardware-specific wrappers should be thin, delegating logic to pure functions
 - If you can unit test it without hardware, it should be in a testable crate
 - Ring-specific animations live in `ferriswheel` so they can be reused and tested independently
 
-The radical separation into multiple crates means `ws2812-pure` (color conversion logic) and `ferriswheel` (ring animations) can be fully unit-tested on your laptop without an ESP32 or ESP toolchain.
+The radical separation into multiple crates means `bunting` (color conversion logic) and `ferriswheel` (ring animations) can be fully unit-tested on your laptop without an ESP32 or ESP toolchain.
 Most embedded LED libraries require a device to verify even pure logic.
 
 Where [`blinksy`](https://crates.io/crates/blinksy) targets spatial LED *installations* (panels, art, 1D/2D/3D layouts) with a coordinate-driven pattern model, `ferriswheel` targets embedded *rings* with a small, testable effect loop — the two are complementary, not competing.
@@ -57,7 +57,7 @@ See [Why Yet Another WS2812 Crate?](docs/why-yet-another-ws2812-crate.md) for th
 |:------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|:---------------------|
 | [`ferriswheel`](crates/ferriswheel)                               | RGB LED ring animations (rainbow, pulse, breathe, spinner, meteor, twinkle, fire, cylon, knight rider, chase, flash, progress, sections, rainbow comet) | `no_std` compatible  |
 | [`led-effects`](crates/led-effects)                               | LED status effects (pulse, simple LED adapter)                                                                                                          | `no_std` compatible  |
-| [`ws2812-pure`](crates/ws2812-pure)                               | Pure Rust WS2812 utilities (color conversion, bit encoding)                                                                                             | `no_std` compatible  |
+| [`bunting`](crates/bunting)                                       | Pure Rust WS2812 utilities (color conversion, bit encoding)                                                                                             | `no_std` compatible  |
 | [`rustyfarian-esp-idf-ws2812`](crates/rustyfarian-esp-idf-ws2812) | WS2812 driver using ESP-IDF RMT peripheral                                                                                                              | ESP-IDF (std)        |
 | [`rustyfarian-esp-hal-ws2812`](crates/rustyfarian-esp-hal-ws2812) | WS2812 driver using esp-hal RMT peripheral                                                                                                              | esp-hal (no_std)     |
 | [`rustyfarian-avr-ws2812`](crates/rustyfarian-avr-ws2812)         | WS2812 driver using SPI prerendered encoding (`embedded-hal` 1.0)                                                                                       | AVR (no_std)         |
@@ -135,7 +135,7 @@ For `no_std` projects that only need the pure utilities:
 [dependencies]
 ferriswheel = { git = "https://github.com/datenkollektiv/rustyfarian-ws2812" }
 led-effects = { git = "https://github.com/datenkollektiv/rustyfarian-ws2812", default-features = false }
-ws2812-pure = { git = "https://github.com/datenkollektiv/rustyfarian-ws2812" }
+bunting = { git = "https://github.com/datenkollektiv/rustyfarian-ws2812" }
 ```
 
 ## Example

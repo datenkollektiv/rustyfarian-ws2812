@@ -15,7 +15,7 @@ Six workspace members under `crates/`, plus one standalone example:
 
 | Crate | Role | Target |
 |:------|:-----|:-------|
-| `ws2812-pure` | color conversion, bit encoding, grid layout | `no_std` |
+| `bunting` | color conversion, bit encoding, grid layout | `no_std` |
 | `ferriswheel` | 14 ring animations + `Effect` trait | `no_std` |
 | `led-effects` | status-LED adapter + `StatusLed` / `AsyncStatusLed` traits | `no_std` |
 | `rustyfarian-esp-idf-ws2812` | ESP-IDF RMT driver | `std` (ESP-IDF) |

@@ -5,7 +5,7 @@
 //! It works with any ESP32 variant that supports RMT via ESP-IDF.
 //!
 //! For bare-metal (no_std) projects using `esp-hal`, see `rustyfarian-esp-hal-ws2812`.
-//! Pure color utilities are available in the `ws2812-pure` crate for testing.
+//! Pure color utilities are available in the `bunting` crate for testing.
 //!
 //! # Example
 //!
@@ -32,6 +32,7 @@
 // Uses a workaround for send_and_wait bug present in 0.46.2
 // (see transmit_bytes and ROADMAP.md).
 use anyhow::Result;
+use bunting::rgb_to_grb;
 use core::time::Duration;
 use esp_idf_hal::{
     gpio::OutputPin,
@@ -43,7 +44,6 @@ use esp_idf_hal::{
     units::Hertz,
 };
 use rgb::RGB8;
-use ws2812_pure::rgb_to_grb;
 
 /// WS2812 LED driver using RMT peripheral.
 ///

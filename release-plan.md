@@ -31,7 +31,7 @@ Before any release:
 
 Files to update when bumping to `X.Y.Z`:
 
-- `crates/ws2812-pure/Cargo.toml` — `version = "X.Y.Z"`
+- `crates/bunting/Cargo.toml` — `version = "X.Y.Z"`
 - `crates/ferriswheel/Cargo.toml` — `version = "X.Y.Z"`
 - `crates/led-effects/Cargo.toml` — `version = "X.Y.Z"`
 - `crates/rustyfarian-esp-idf-ws2812/Cargo.toml` — `version = "X.Y.Z"`

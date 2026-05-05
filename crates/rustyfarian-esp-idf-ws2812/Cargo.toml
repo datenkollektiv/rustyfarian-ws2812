@@ -22,7 +22,7 @@ led-effects = { workspace = true, optional = true }
 rgb.workspace = true
 smart-leds-trait = { workspace = true, default-features = false }
 smart-leds = { workspace = true, optional = true }
-ws2812-pure.workspace = true
+bunting.workspace = true
 
 [features]
 default = ["led-effects"]

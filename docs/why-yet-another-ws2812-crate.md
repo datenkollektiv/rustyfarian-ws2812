@@ -5,7 +5,7 @@ Your RGB clock benefits from battle-tested color math without needing an ESP32 p
 
 ## Testability Without Hardware
 
-The radical separation into three crates means `ws2812-pure` (color conversion logic) can be fully unit-tested on your machine without an ESP32 or ESP toolchain.
+The radical separation into three crates means `bunting` (color conversion logic) can be fully unit-tested on your machine without an ESP32 or ESP toolchain.
 Most embedded LED libraries require a device to verify even pure logic.
 
 ## The StatusLed Trait Abstraction
@@ -24,7 +24,7 @@ This makes your code testable (e.g., mock LEDs for tests, real WS2812s for produ
 
 ## `no_std` at the Core
 
-`ws2812-pure` and `led-effects` are fully `no_std` with zero allocations.
+`bunting` and `led-effects` are fully `no_std` with zero allocations.
 The ESP-specific parts only exist in `rustyfarian-esp-idf-ws2812`.
 This separation is unusual among LED crates and is significant because it keeps the core logic portable, easily testable on a desktop, and usable on bare-metal targets while confining platform-specific code to a single crate.
 Most LED crates assume `std` throughout.

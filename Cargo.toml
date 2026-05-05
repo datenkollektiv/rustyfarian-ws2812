@@ -20,7 +20,7 @@ embedded-hal = { version = "1.0", default-features = false }
 # Internal crates
 ferriswheel = { path = "crates/ferriswheel" }
 led-effects = { path = "crates/led-effects" }
-ws2812-pure = { path = "crates/ws2812-pure" }
+bunting = { path = "crates/bunting" }
 
 # ESP32 dependencies
 esp-idf-hal = { version = "0.46" }

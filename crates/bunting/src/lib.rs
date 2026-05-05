@@ -33,7 +33,7 @@ use rgb::RGB8;
 /// # Example
 ///
 /// ```
-/// use ws2812_pure::rgb_to_grb;
+/// use bunting::rgb_to_grb;
 /// use rgb::RGB8;
 ///
 /// let red = RGB8::new(255, 0, 0);
@@ -51,7 +51,7 @@ pub fn rgb_to_grb(rgb: RGB8) -> u32 {
 /// # Example
 ///
 /// ```
-/// use ws2812_pure::color_to_bits;
+/// use bunting::color_to_bits;
 ///
 /// let bits = color_to_bits(0b101010101010101010101010);
 /// assert_eq!(bits[0], true);  // MSB
@@ -124,7 +124,7 @@ const SPI_PATTERNS: [u8; 4] = [0x88, 0x8E, 0xE8, 0xEE];
 /// # Example
 ///
 /// ```
-/// use ws2812_pure::prerender_spi;
+/// use bunting::prerender_spi;
 /// use rgb::RGB8;
 ///
 /// let colors = [RGB8::new(0, 0, 0)]; // black

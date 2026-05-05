@@ -7,7 +7,7 @@
 //!
 //! Both backends share the same `&[RGB8]`-based public API and run every
 //! [`ferriswheel`](https://crates.io/crates/ferriswheel) effect unchanged.
-//! All animation logic stays in `ferriswheel` / `ws2812-pure`; these drivers are
+//! All animation logic stays in `ferriswheel` / `bunting`; these drivers are
 //! thin hardware wrappers.
 //!
 //! # Choosing a Backend
@@ -35,7 +35,7 @@
 //! # SPI Prerendered Backend
 //!
 //! [`Ws2812Spi`] drives WS2812/NeoPixel LEDs over SPI using the prerendered encoding
-//! from [`ws2812-pure`](https://crates.io/crates/ws2812-pure) — 4 SPI bits per WS2812 bit,
+//! from [`bunting`](https://crates.io/crates/bunting) — 4 SPI bits per WS2812 bit,
 //! 12 SPI bytes per LED. The encoding is byte-for-byte compatible with
 //! [`ws2812-spi`](https://crates.io/crates/ws2812-spi) v0.5.1's prerendered module.
 //!
@@ -133,10 +133,10 @@
 //! - `just flash-avr-spi-rainbow` — SPI prerendered comparison, **diagnostic only** (`bin/spi_rainbow`)
 //! - `just flash-avr-bitbang-spike` — frozen low-level reference, no driver crate (`bin/bitbang_spike`)
 
+use bunting::{prerender_spi, spi_data_len, SpiEncodeError, SPI_RESET_BYTES_2MHZ};
 use core::fmt;
 use embedded_hal::spi::SpiBus;
 use rgb::RGB8;
-use ws2812_pure::{prerender_spi, spi_data_len, SpiEncodeError, SPI_RESET_BYTES_2MHZ};
 
 /// Errors that can occur during WS2812 SPI operations.
 #[derive(Debug)]
@@ -293,8 +293,8 @@ mod tests {
     extern crate std;
 
     use super::*;
+    use bunting::SpiEncodeError;
     use std::string::ToString;
-    use ws2812_pure::SpiEncodeError;
 
     // --- spi_buffer_size tests -----------------------------------------------
 
