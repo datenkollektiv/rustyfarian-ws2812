@@ -89,7 +89,7 @@ pub(crate) fn fire_color(heat: u8) -> RGB8 {
 #[derive(Debug, Clone, PartialEq)]
 pub struct FireEffect {
     num_leds: usize,
-    /// Per-LED heat (0 = cold/black, 255 = peak/white).
+    /// Per-LED heat (0 = cold/black, 255 = peak/bright yellow).
     /// Only indices `0..num_leds` are active; the rest are always 0.
     heat: [u8; MAX_LEDS],
     /// Cooling rate per tick. Higher = shorter, cooler flames.
@@ -274,7 +274,19 @@ impl FireEffect {
 
         // Stage 3: randomly ignite the base.
         if self.sparking == 255 || (self.sparking > 0 && self.rng_byte() < self.sparking) {
-            let y = (self.rng_byte() as usize) % self.base_range;
+            // Choose y in [0, base_range) without modulo bias.
+            // Draw from 0..=255 and reject values in the incomplete top bucket.
+            // base_range is upheld at >= 1 by `new` and `with_base_range`; the
+            // assert guards `256 / range` from a division-by-zero panic.
+            debug_assert!(self.base_range >= 1, "base_range invariant: must be >= 1");
+            let range = self.base_range as u16;
+            let limit = (256 / range) * range;
+            let y = loop {
+                let r = self.rng_byte() as u16;
+                if r < limit {
+                    break (r % range) as usize;
+                }
+            };
             let boost = self.rng_byte().saturating_add(100);
             self.heat[y] = self.heat[y].saturating_add(boost);
         }
