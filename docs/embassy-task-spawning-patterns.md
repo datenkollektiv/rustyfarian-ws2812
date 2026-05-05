@@ -4,7 +4,7 @@ This document answers five concrete questions about spawning Embassy tasks on ES
 with `esp-hal 1.0.0` and `esp-rtos 0.2`.
 All answers are grounded in the actual versions pinned in this workspace's `Cargo.toml`
 and verified against the official docs and release notes.
- 
+
 ## `make_static!` — Where Does it Live?
 
 `make_static!` is a macro in the `static_cell` crate (not in `esp-hal` or `esp-rtos`).
