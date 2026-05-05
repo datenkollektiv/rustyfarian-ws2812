@@ -1,0 +1,80 @@
+# Feature: crates.io Publication v1
+
+First-wave publication of the three pure-logic library crates to crates.io.
+The maintainer's downstream projects will switch from git dependencies to
+versioned dependencies, and the broader Rust ecosystem will be able to discover
+the crates through the standard index.
+
+## Decisions
+
+| Decision                                                                                                         | Reason                                                                                                                                                                                                                                                                                                                     | Rejected Alternative                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+|:-----------------------------------------------------------------------------------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| First wave covers only the three `no_std` library crates: `bunting`, `lantern`, `ferriswheel`                    | Most stable APIs; lowest publish risk; covers all pure-logic crates that have no hardware dependencies                                                                                                                                                                                                                     | Publish drivers at the same time — drivers carry HAL-version risk and platform-specific concerns better deferred to v2                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Manual `just release` recipe drives the publish                                                                  | Consistent with existing workspace tooling (`just verify`, `just pre-commit`, `just ci`); first run benefits from human-in-the-loop discovery of rough edges                                                                                                                                                               | CI-driven automation (`release-plz`, `cargo-release`) — overhead before we know the workflow shape                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Continue the existing `v0.5.x` version series                                                                    | Continuity with git history and existing CHANGELOG; downstream consumers see a coherent version trajectory                                                                                                                                                                                                                 | Restart at `v0.1.0` — misaligns published versions from in-repo workspace versions and adds one-time bookkeeping cost                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Publish order: `bunting` → `lantern` → `ferriswheel`                                                             | `bunting` (renamed from `ws2812-pure`) has no internal workspace deps; `lantern` and `ferriswheel` depend on it transitively                                                                                                                                                                                               | Reverse order — would fail dependency resolution at `cargo publish` time                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Internal workspace deps use the dual `{ path = "...", version = "0.5" }` form                                    | Required for crates that are both consumed locally during workspace development and published to crates.io: `cargo publish` strips `path` and uses `version` for the published manifest                                                                                                                                    | Path-only — breaks `cargo publish` resolution; version-only — breaks local workspace builds before crates.io has the dep available                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Rename `led-effects` → `lantern` before first publish                                                            | Avoid semantic collision with the existing `smart_led_effects` crate; "lantern" is unambiguously visual (no audio interpretation), pairs with `ferriswheel` as a sibling metaphor (single LED vs ring of LEDs), and was confirmed free on crates.io                                                                        | `ferriswheel-effects` (misleading — implies ring scope but content is single-LED); `firefly` (taken; collides with the Firefly Zero gaming ecosystem on crates.io); `glowworm` (taken by an unrelated hashing library); `rustyfarian-firefly` (asymmetric with the unnamespaced `ferriswheel`)                                                                                                                                                                                                                                                        |
+| Rename `ws2812-pure` → `bunting` before first publish                                                            | Pulls the third pure-logic crate out of the crowded `ws2812-*` namespace and into the fairground naming family alongside `ferriswheel` and `lantern`; `bunting` semantically maps onto a strung sequence of coloured units, which is exactly what a WS2812 strip is. Free on crates.io, no meaningful external collisions. | `tinsel` (free, but the Christmas-tree connotation overshadows the fairground theme); `chameleon` (taken on crates.io + collides with the Pyramid framework's Python template engine); `harlequin` (free on crates.io but collides with the well-known Python SQL IDE at harlequin.sh); painter's-studio candidates `pigment`/`swatch`/`primer`/`canvas`/`easel` (all blocked or carry severe external collisions); keep `ws2812-pure` (rejected — too generic against the crowded `ws2812-*` prefix and inconsistent with the other two crate names) |
+| Sole crates.io ownership: `fwaibel@datenkollektiv.de`                                                            | Maintainer is the sole publisher today; matches current contribution reality                                                                                                                                                                                                                                               | GitHub team owner up front — premature without contributors; can be added retroactively                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Apply standard pre-publish hygiene during the `just release` run rather than pre-locking it as separate v1 gates | The `cargo publish --dry-run` step is the natural enforcement point for metadata completeness, docs.rs build correctness, and API surface review                                                                                                                                                                           | Pre-flight every check as a separate v1 gate — adds friction without changing the outcome                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+
+## Constraints
+
+- v1 covers only the three pure-logic library crates (`bunting`, `lantern`, `ferriswheel`).
+  Driver crates (`rustyfarian-esp-idf-ws2812`, `rustyfarian-esp-hal-ws2812`, `rustyfarian-avr-ws2812`) publish in a later iteration once the workflow is proven.
+- No CI automation in v1 — manual `just release` flow only.
+- Standard pre-publish hygiene applied during the run:
+  complete `Cargo.toml` metadata (`description`, `license`, `repository`, `keywords`, `categories`, `documentation`, `readme`),
+  `cargo publish --dry-run` clean for each crate,
+  docs.rs build green,
+  public API audit before the first publish.
+- The renames `led-effects` → `lantern` and `ws2812-pure` → `bunting` are breaking changes for any current git-dep consumer.
+  CHANGELOG entries required under `## [Unreleased]` calling out both renames and the migration paths
+  (`use led_effects::...` → `use lantern::...`; `use ws2812_pure::...` → `use bunting::...`).
+
+## Open Questions
+
+- [x] Verify `ferriswheel`, `lantern`, and `bunting` availability on crates.io before first publish. **Confirmed 2026-05-05** — all three names free per `cargo search` and the crates.io API.
+- [ ] Do `bunting`, `lantern`, and `ferriswheel` each have their own per-crate `README.md` for the docs.rs landing page?
+      If not, write or generate them as part of v1. Verify by inspecting `crates/<name>/README.md` and the `Cargo.toml` `readme = "README.md"` field for each crate.
+- [x] **`blinksy` evaluation** — resolved 2026-05-05 via `research-analyst` pass; full analysis in [`docs/blinksy-ecosystem-evaluation.md`](../blinksy-ecosystem-evaluation.md).
+      Outcome: `blinksy` is complementary, not competing — different niche (spatial installations vs embedded rings), different abstraction model (stateless coordinate-driven vs stateful effect loop), and EUPL-1.2 licensing makes it un-adoptable as a Cargo dependency in any case.
+      No name collisions in the `blinksy` namespace.
+      Does not affect v1 publish scope, crate names, or upstream-contribution strategy (the long-term roadmap target remains `smart-leds-rs`).
+      Positioning paragraphs added to `README.md` and `docs/why-yet-another-ws2812-crate.md`.
+- [ ] CHANGELOG cutover style — keep workspace-level `CHANGELOG.md` as the single source of truth for all published crates and link to it from each crate's `repository` URL, or move to per-crate changelogs?
+      Default for v1: keep workspace-level.
+      Revisit if downstream users complain about coarse-grained release notes.
+- [ ] Future ownership migration trigger — when do we transition from sole owner (`fwaibel@datenkollektiv.de`) to a GitHub team owner (e.g. `github:datenkollektiv:wheel`)?
+      Candidate triggers: first external contributor's PR merged, or at the `v1.0.0` cut.
+
+## State
+
+- [x] Design approved
+- [ ] Core implementation (renames: `led-effects` → `lantern` and `ws2812-pure` → `bunting`; add per-crate metadata; add `just release` recipe; per-crate READMEs)
+- [ ] Tests passing (`cargo publish --dry-run` clean for each of the three crates; full test suite green on host target)
+- [ ] Documentation updated (top-level README install snippets switch from git deps to versioned deps; CHANGELOG entries under `## [Unreleased]` for both renames and the publish event)
+
+## Session Log
+
+- 2026-05-05 — Feature doc created via /feature dialog.
+  Captured: publish scope (three pure-logic crates), manual `just release` flow,
+  version policy (continue `v0.5.x`), publish order, dual-path-version dep form,
+  `led-effects` → `lantern` rename, sole ownership, pre-publish hygiene posture.
+  Discovered `blinksy` during cargo-search work — queued for follow-up `research-analyst` pass.
+- 2026-05-05 — Resolved the `blinksy` open question via `research-analyst` pass
+  (full analysis in `docs/blinksy-ecosystem-evaluation.md`).
+  Added complementary-positioning paragraph to `README.md` and a "Distinction
+  from Spatial LED Frameworks" section to `docs/why-yet-another-ws2812-crate.md`.
+  v1 publish scope unchanged.
+- 2026-05-05 — Reconsidered the `ws2812-pure` keep-as-is decision after the
+  maintainer raised crowded-namespace concerns. Brainstormed carnival-themed
+  and painter-studio alternatives via `research-analyst`; ruled out `chameleon`
+  (taken on crates.io + Pyramid template-engine collision), `harlequin`
+  (collides with the Python SQL IDE), `kaleidoscope` (Keyboardio firmware),
+  and the painter-studio set (`pigment`, `swatch`, `primer`, `canvas`, `easel`
+  — all blocked or with severe external collisions). Maintainer chose
+  `bunting`: free on crates.io, semantically a strung sequence of coloured
+  units (matching a WS2812 strip), and consistent with the fairground theme
+  alongside `ferriswheel` and `lantern`.

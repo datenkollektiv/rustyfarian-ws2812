@@ -5,7 +5,9 @@
 The April 2026 `esp-hal` release wave (`v0.5.0`) is shipped, the AVR bit-bang
 driver is the recommended backend (per ADR 007), and the GPIO8 RMT hang is
 resolved upstream.
-Near-term focus is the Chromatic Clash demo (M2 — ESP-NOW hello world).
+The 2026-05-05 vision review confirmed AVR as a first-class supported MCU
+family, ruled in-workspace networking demos (e.g. ESP-NOW) out of scope, and
+made publishing the library crates to crates.io the near-term focus.
 Mid-term priorities are removing the `esp-idf-hal` `send_and_wait` workaround
 when the upstream fix lands and `SmartLedsWriteAsync` for the async driver.
 All completed items are documented in the [CHANGELOG](../CHANGELOG.md).
@@ -14,30 +16,61 @@ All completed items are documented in the [CHANGELOG](../CHANGELOG.md).
 %%{init: {
   "theme": "base",
   "themeVariables": {
-    "cScale0": "#c8f7c5",
-    "cScaleLabel0": "#1b5e20",
-    "cScale1": "#fff3cd",
-    "cScaleLabel1": "#7a5a00",
-    "cScale2": "#e3f2fd",
-    "cScaleLabel2": "#0d47a1"
+    "cScale0": "#e8f5e9",
+    "cScaleLabel0": "#2e7d32",
+    "cScale1": "#c8f7c5",
+    "cScaleLabel1": "#1b5e20",
+    "cScale2": "#fff3cd",
+    "cScaleLabel2": "#7a5a00",
+    "cScale3": "#e3f2fd",
+    "cScaleLabel3": "#0d47a1"
   }
 }}%%
 
 timeline
     title Fuzzy Rustyfarian WS2812 Roadmap
 
-    Near term : Chromatic Clash M2 — ESP-NOW hello world
+    Ready     : Publish library crates to crates.io (feature-doc)
+              : Confirm esp-hal stack on ESP32 / WROOM-32 Xtensa target (feature-doc)
+
+    Near term : (none)
 
     Mid term  : Remove send_and_wait workaround (esp-idf-hal fix)
               : SmartLedsWriteAsync for esp-hal async driver
-              : Confirm esp-hal stack on ESP32 / WROOM-32 Xtensa target
-
-    Recurring : Audit deny.toml exceptions (each minor release)
 
     Long term : Upstream contribution evaluation
               : embedded-graphics-core evaluation
               : Monitor esp-idf-hal for async RMT support
 ```
+
+## Publishing & Distribution
+
+### Near term: publish library crates to crates.io
+
+The pure-logic crates are currently consumed via git dependency.
+The maintainer's downstream projects would benefit from versioned crates.io
+releases — cleaner `Cargo.toml` entries, semver-driven updates, and the option
+for outside users to discover the crates through the ecosystem index.
+
+First wave: the `no_std`-compatible library trio that has the most stable API
+and the lowest publication risk —
+[`ws2812-pure`](../crates/ws2812-pure),
+[`led-effects`](../crates/led-effects), and
+[`ferriswheel`](../crates/ferriswheel).
+Driver crates (`rustyfarian-esp-idf-ws2812`, `rustyfarian-esp-hal-ws2812`,
+`rustyfarian-avr-ws2812`) follow in a later iteration once the first wave has
+proven the publishing workflow.
+
+Open questions for the feature doc:
+
+- Versioning policy at first publication — keep `v0.5.x` line, or restart at `v0.1.0` for the published crates?
+- README install snippets must switch from `git = "..."` to versioned dependencies.
+- `cargo publish` order — `ws2812-pure` first (no internal deps), then `led-effects` and `ferriswheel`.
+- Crate ownership / publishers on crates.io.
+
+A feature doc captures the full plan before the first `cargo publish`.
+
+---
 
 ## Ecosystem Integration
 

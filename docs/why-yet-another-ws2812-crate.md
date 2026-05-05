@@ -42,3 +42,25 @@ Your downstream RGB project can consume these as building blocks rather than for
 ## Optional Feature Coupling
 
 The `led-effects` integration is behind a feature flag, so minimal projects can skip the abstraction layer entirely.
+
+## Distinction from Spatial LED Frameworks
+
+[`blinksy`](https://crates.io/crates/blinksy) is a separate, spatially-oriented Rust LED framework targeting 1D, 2D, and (planned) 3D LED *installations* — panels, art pieces, lighting controllers.
+It uses a stateless `Pattern<Dim, Layout>` model that computes colours from coordinates and elapsed time.
+
+This is genuinely complementary to `ferriswheel`, not redundant.
+Three things `ferriswheel` provides that `blinksy` does not:
+
+- **Host-runnable unit tests for every effect.**
+  `ferriswheel` ships 316 unit tests that run on a laptop via `cargo test --target <host-triple>`, with no hardware in the loop.
+  `blinksy` ships visual simulation (`blinksy-desktop`) but no unit tests.
+- **A ring-specific effect vocabulary.**
+  More than a dozen effects (rainbow, pulse, breathe, spinner, meteor, twinkle, fire, cylon, knight rider, chase, flash, progress, sections, rainbow comet) all designed with the topology of a ring in mind, behind a stateful `Effect` trait.
+  `blinksy` ships two patterns (Rainbow, Noise) and represents a ring as a special case of a 2D arc.
+- **MIT / Apache-2.0 dual licensing.**
+  `blinksy` is licensed under EUPL-1.2, which is incompatible with permissive licences as a Cargo dependency in MIT/Apache-2.0 projects.
+
+Choose `blinksy` for spatial lighting installations and panel-style displays.
+Choose `ferriswheel` for embedded rings with a small, testable effect loop.
+
+A full comparison is in [docs/blinksy-ecosystem-evaluation.md](blinksy-ecosystem-evaluation.md).
