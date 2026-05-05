@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/datenkollektiv/rustyfarian-ws2812/actions/workflows/rust.yml/badge.svg)](https://github.com/datenkollektiv/rustyfarian-ws2812/actions/workflows/rust.yml)
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE)
-[![Rust](https://img.shields.io/badge/rust-1.77%2B-orange.svg)](https://www.rust-lang.org)
+[![Rust](https://img.shields.io/badge/rust-1.88%2B-orange.svg)](https://www.rust-lang.org)
 [![cargo fmt](https://github.com/datenkollektiv/rustyfarian-ws2812/actions/workflows/fmt.yml/badge.svg)](https://github.com/datenkollektiv/rustyfarian-ws2812/actions/workflows/fmt.yml)
 [![cargo clippy](https://github.com/datenkollektiv/rustyfarian-ws2812/actions/workflows/clippy.yml/badge.svg)](https://github.com/datenkollektiv/rustyfarian-ws2812/actions/workflows/clippy.yml)
 [![cargo audit](https://github.com/datenkollektiv/rustyfarian-ws2812/actions/workflows/audit.yml/badge.svg)](https://github.com/datenkollektiv/rustyfarian-ws2812/actions/workflows/audit.yml)
