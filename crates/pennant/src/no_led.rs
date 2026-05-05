@@ -16,7 +16,7 @@ use crate::StatusLed;
 /// # Example
 ///
 /// ```
-/// use led_effects::{NoLed, StatusLed};
+/// use pennant::{NoLed, StatusLed};
 /// use rgb::RGB8;
 ///
 /// let mut led = NoLed::default();

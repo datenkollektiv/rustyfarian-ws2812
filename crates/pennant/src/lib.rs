@@ -74,7 +74,7 @@ impl core::fmt::Display for PulseEffectError {
 /// # Example
 ///
 /// ```ignore
-/// use led_effects::StatusLed;
+/// use pennant::StatusLed;
 /// use rgb::RGB8;
 ///
 /// struct MyLed { /* ... */ }
@@ -107,7 +107,7 @@ pub const DEFAULT_BRIGHTNESS_THRESHOLD: u8 = 10;
 /// # Example
 ///
 /// ```
-/// use led_effects::max_channel_brightness;
+/// use pennant::max_channel_brightness;
 /// use rgb::RGB8;
 ///
 /// let color = RGB8::new(10, 50, 30);
@@ -127,7 +127,7 @@ pub fn max_channel_brightness(color: RGB8) -> u8 {
 /// # Example
 ///
 /// ```
-/// use led_effects::exceeds_threshold;
+/// use pennant::exceeds_threshold;
 /// use rgb::RGB8;
 ///
 /// let color = RGB8::new(0, 0, 15);
@@ -144,7 +144,7 @@ pub fn exceeds_threshold(color: RGB8, threshold: u8) -> bool {
 /// # Example
 ///
 /// ```
-/// use led_effects::PulseEffect;
+/// use pennant::PulseEffect;
 ///
 /// let mut pulse = PulseEffect::new();
 /// let base_color = (255, 0, 0); // Red

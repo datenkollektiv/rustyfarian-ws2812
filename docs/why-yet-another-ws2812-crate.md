@@ -10,7 +10,7 @@ Most embedded LED libraries require a device to verify even pure logic.
 
 ## The StatusLed Trait Abstraction
 
-The `led-effects` crate provides a `StatusLed` trait that decouples your application from the LED implementation:
+The `pennant` crate provides a `StatusLed` trait that decouples your application from the LED implementation:
 
 ```rust
 pub trait StatusLed {
@@ -24,7 +24,7 @@ This makes your code testable (e.g., mock LEDs for tests, real WS2812s for produ
 
 ## `no_std` at the Core
 
-`bunting` and `led-effects` are fully `no_std` with zero allocations.
+`bunting` and `pennant` are fully `no_std` with zero allocations.
 The ESP-specific parts only exist in `rustyfarian-esp-idf-ws2812`.
 This separation is unusual among LED crates and is significant because it keeps the core logic portable, easily testable on a desktop, and usable on bare-metal targets while confining platform-specific code to a single crate.
 Most LED crates assume `std` throughout.
@@ -41,7 +41,7 @@ Your downstream RGB project can consume these as building blocks rather than for
 
 ## Optional Feature Coupling
 
-The `led-effects` integration is behind a feature flag, so minimal projects can skip the abstraction layer entirely.
+The `pennant` integration is behind a feature flag, so minimal projects can skip the abstraction layer entirely.
 
 ## Distinction from Spatial LED Frameworks
 

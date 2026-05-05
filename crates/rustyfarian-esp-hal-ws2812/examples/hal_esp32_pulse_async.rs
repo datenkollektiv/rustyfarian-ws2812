@@ -51,7 +51,7 @@ use esp_hal::{
     time::Rate,
     timer::timg::TimerGroup,
 };
-use led_effects::AsyncStatusLed;
+use pennant::AsyncStatusLed;
 use rgb::RGB8;
 use rustyfarian_esp_hal_ws2812::{buffer_size, Ws2812Rmt, RMT_CLK_DIV};
 

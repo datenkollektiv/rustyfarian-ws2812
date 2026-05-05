@@ -159,8 +159,8 @@ impl<'d> WS2812RMT<'d> {
     }
 }
 
-#[cfg(feature = "led-effects")]
-impl led_effects::StatusLed for WS2812RMT<'_> {
+#[cfg(feature = "pennant")]
+impl pennant::StatusLed for WS2812RMT<'_> {
     type Error = anyhow::Error;
 
     fn set_color(&mut self, color: RGB8) -> Result<(), Self::Error> {

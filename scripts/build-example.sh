@@ -50,8 +50,8 @@ case "$prefix" in
         #            (C3/C6/H2/P4/S3); Xtensa LX6 lacks the peripheral. Switching to a
         #            different transport (uart, rtt) is possible but not currently wired up.
         case "$chip" in
-            c6) hal_features="${mcu},unstable,led-effects,rt,esp-println" ;;
-            *)  hal_features="${mcu},unstable,led-effects,rt" ;;
+            c6) hal_features="${mcu},unstable,pennant,rt,esp-println" ;;
+            *)  hal_features="${mcu},unstable,pennant,rt" ;;
         esac
         # Append optional features required by specific examples.
         name=$(printf '%s' "$example" | cut -d_ -f3-)

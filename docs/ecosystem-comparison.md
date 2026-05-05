@@ -278,7 +278,7 @@ Author acknowledges limited real-world testing (WS2812B strip on Arduino Uno R3 
 
 | Crate                                     | Pure/Testable Logic Layer                                           | HW Abstraction Quality                             | Animation Support                                | Tests on Host                                 | Maintenance                      |
 |:------------------------------------------|:--------------------------------------------------------------------|:---------------------------------------------------|:-------------------------------------------------|:----------------------------------------------|:---------------------------------|
-| **rustyfarian-ws2812** (this project)     | Yes — `bunting`, `ferriswheel`, `led-effects` with zero HW deps     | Thin RMT glue in separate crates                   | Yes — rainbow, pulse, spinner, progress, section | Yes — 139+ tests, `just test`                 | Active                           |
+| **rustyfarian-ws2812** (this project)     | Yes — `bunting`, `ferriswheel`, `pennant` with zero HW deps         | Thin RMT glue in separate crates                   | Yes — rainbow, pulse, spinner, progress, section | Yes — 139+ tests, `just test`                 | Active                           |
 | `esp-hal-smartled` (esp-rs community)     | No — single file, logic interleaved with HW                         | Wraps esp-hal RMT, delegates to `smart-leds-trait` | None                                             | No — requires ESP32 target                    | Active (0.17.0, Nov 2025)        |
 | `esp-hal-smartled` (kleinesfilmroellchen) | No — single crate, no workspace                                     | Better: generic type params for color/timing       | None                                             | No — requires ESP32 target                    | Active, small user base          |
 | `smart-leds-trait` + `smart-leds`         | Trait-only (no logic to separate)                                   | Excellent trait design, ecosystem foundation       | None                                             | N/A — no logic                                | Active (Sep 2025)                |
@@ -301,7 +301,7 @@ and enable future compatibility with `smart-leds`-based effect crates.
 
 **Note `ws2812-esp32-rmt-driver`'s mock pattern as validation.**
 That crate independently arrived at the same conclusion: hardware-level code must be substitutable for host tests to be meaningful.
-This project's approach — trait abstraction in `led-effects` plus separate pure-logic crates —
+This project's approach — trait abstraction in `pennant` plus separate pure-logic crates —
 is the more principled version of the same insight (testability-by-separation vs. testability-by-substitution).
 
 **Consider `kleinesfilmroellchen`'s compile-time buffer sizing.**
@@ -316,7 +316,7 @@ Ring topology (wrap-around indexing, angular position, radial symmetry) requires
 and isolating those in a `no_std`, host-testable crate with 111 passing unit tests is not replicated anywhere in the ecosystem.
 
 **Three-layer architecture as a first-class design constraint.**
-The `bunting` / `ferriswheel` / `led-effects` / ESP-driver layering
+The `bunting` / `ferriswheel` / `pennant` / ESP-driver layering
 is the only examined approach where testability on a laptop is enforced from the beginning, not retrofitted.
 
 ### Effect breadth backlog

@@ -4,7 +4,7 @@
 //! and the [`AsyncStatusLed`] trait.
 //! The animation loop uses [`embassy_time::Timer`] to yield between frames.
 //!
-//! This example demonstrates using `AsyncStatusLed` from `led-effects` with the
+//! This example demonstrates using `AsyncStatusLed` from `pennant` with the
 //! async HAL driver — the same pattern as blocking `StatusLed`, but with `.await`.
 //!
 //! ## Components
@@ -54,7 +54,7 @@ use esp_hal::{
     timer::timg::TimerGroup,
 };
 use esp_println::println;
-use led_effects::AsyncStatusLed;
+use pennant::AsyncStatusLed;
 use rgb::RGB8;
 use rustyfarian_esp_hal_ws2812::{buffer_size, Ws2812Rmt, RMT_CLK_DIV};
 

@@ -5,7 +5,7 @@
 # explicitly passes --target to override it.
 
 host_target := `scripts/host-target.sh`
-pure_crates := "-p bunting -p ferriswheel -p led-effects -p rustyfarian-avr-ws2812"
+pure_crates := "-p bunting -p ferriswheel -p pennant -p rustyfarian-avr-ws2812"
 hal_target := "riscv32imac-unknown-none-elf"
 hal_crate := "-p rustyfarian-esp-hal-ws2812"
 avr_nightly := "nightly-2025-04-27"
@@ -31,6 +31,10 @@ check:
 # check ferriswheel with the smart-leds-compat feature — exercises the rgb-version-divergence guard
 check-ferriswheel-smart-leds-compat:
     cargo check -p ferriswheel --features smart-leds-compat --target {{ host_target }}
+
+# test pennant with the hal feature — exercises the SimpleLed adapter (off by default)
+test-pennant-hal:
+    cargo test -p pennant --features hal --target {{ host_target }}
 
 # check all crates including ESP-IDF (requires espup; does NOT cover rustyfarian-esp-hal-ws2812 or rustyfarian-avr-ws2812 — use check-hal / check-avr)
 check-all:
@@ -269,6 +273,7 @@ verify:
     cargo check {{ pure_crates }} --target {{ host_target }}
     cargo clippy {{ pure_crates }} --target {{ host_target }} -- -D warnings
     cargo test {{ pure_crates }} --target {{ host_target }}
+    cargo test -p pennant --features hal --target {{ host_target }}
 
 # CI-equivalent verification (non-modifying): format check, deny, check, lint, test
 ci: fmt-check deny check clippy test

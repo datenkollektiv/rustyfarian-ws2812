@@ -628,8 +628,8 @@ mod tests {
     }
 }
 
-#[cfg(feature = "led-effects")]
-impl<'d, const N: usize> led_effects::StatusLed for Ws2812Rmt<'d, Blocking, N> {
+#[cfg(feature = "pennant")]
+impl<'d, const N: usize> pennant::StatusLed for Ws2812Rmt<'d, Blocking, N> {
     type Error = Error;
 
     fn set_color(&mut self, color: RGB8) -> Result<(), Self::Error> {
@@ -690,9 +690,9 @@ impl<'d, const N: usize> SmartLedsWrite for Ws2812Rmt<'d, Blocking, N> {
     }
 }
 
-#[cfg(all(feature = "async", feature = "led-effects"))]
+#[cfg(all(feature = "async", feature = "pennant"))]
 #[allow(async_fn_in_trait)]
-impl<'d, const N: usize> led_effects::AsyncStatusLed for Ws2812Rmt<'d, Async, N> {
+impl<'d, const N: usize> pennant::AsyncStatusLed for Ws2812Rmt<'d, Async, N> {
     type Error = Error;
 
     async fn set_color(&mut self, color: RGB8) -> Result<(), Self::Error> {

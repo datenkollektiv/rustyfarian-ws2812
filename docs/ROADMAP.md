@@ -55,7 +55,7 @@ for outside users to discover the crates through the ecosystem index.
 First wave: the `no_std`-compatible library trio that has the most stable API
 and the lowest publication risk —
 [`bunting`](../crates/bunting),
-[`led-effects`](../crates/led-effects), and
+[`pennant`](../crates/pennant), and
 [`ferriswheel`](../crates/ferriswheel).
 Driver crates (`rustyfarian-esp-idf-ws2812`, `rustyfarian-esp-hal-ws2812`,
 `rustyfarian-avr-ws2812`) follow in a later iteration once the first wave has
@@ -65,7 +65,7 @@ Open questions for the feature doc:
 
 - Versioning policy at first publication — keep `v0.5.x` line, or restart at `v0.1.0` for the published crates?
 - README install snippets must switch from `git = "..."` to versioned dependencies.
-- `cargo publish` order — `bunting` first (no internal deps), then `led-effects` and `ferriswheel`.
+- `cargo publish` order — `bunting` first (no internal deps), then `pennant` and `ferriswheel`.
 - Crate ownership / publishers on crates.io.
 
 A feature doc captures the full plan before the first `cargo publish`.
