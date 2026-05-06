@@ -1,5 +1,8 @@
 # ferriswheel
 
+[![crates.io version](https://img.shields.io/crates/v/ferriswheel.svg)](https://crates.io/crates/ferriswheel)
+[![docs.rs docs](https://img.shields.io/docsrs/ferriswheel)](https://docs.rs/ferriswheel)
+
 RGB LED ring effects and animations — fully `no_std`, fully unit-testable.
 
 Fourteen ring-specific effects (rainbow, pulse, breathe, spinner, meteor,

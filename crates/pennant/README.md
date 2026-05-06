@@ -1,5 +1,8 @@
 # pennant
 
+[![crates.io version](https://img.shields.io/crates/v/pennant.svg)](https://crates.io/crates/pennant)
+[![docs.rs docs](https://img.shields.io/docsrs/pennant)](https://docs.rs/pennant)
+
 Status-LED traits and effects for embedded Rust — fully `no_std`.
 
 Provides `StatusLed` and `AsyncStatusLed` traits that decouple application
