@@ -1,5 +1,8 @@
 # bunting
 
+[![crates.io version](https://img.shields.io/crates/v/bunting.svg)](https://crates.io/crates/bunting)
+[![docs.rs docs](https://img.shields.io/docsrs/bunting)](https://docs.rs/bunting)
+
 Pure Rust WS2812 colour utilities — no hardware dependencies, fully `no_std`.
 
 Encodes RGB pixel data into the bit and byte forms WS2812 hardware expects:
