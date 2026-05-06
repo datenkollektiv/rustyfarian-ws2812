@@ -6,17 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-### Changed
-
-- **Renamed `ws2812-pure` → `bunting`** to lift the pure-logic crate out of the crowded `ws2812-*` crates.io namespace and align it with the fairground naming family (`ferriswheel`, `pennant`). No behaviour or API changes. Migration: replace `ws2812-pure = ...` with `bunting = ...` in your `Cargo.toml`, and `use ws2812_pure::...` with `use bunting::...` in your source. Decision recorded in [`docs/features/crates-io-publication-v1.md`](docs/features/crates-io-publication-v1.md).
-- **Renamed `led-effects` → `pennant`** to align with the fairground naming family (`ferriswheel`, `bunting`) and to claim a name that is free on crates.io — the originally chosen `lantern` was found taken on re-verification. `pennant` (a single triangular flag) pairs naturally with `bunting`, which is literally a string of pennants. No behaviour or API changes. Migration: replace `led-effects = ...` with `pennant = ...` in your `Cargo.toml`, and `use led_effects::...` with `use pennant::...` in your source. The Cargo feature flag on `rustyfarian-esp-hal-ws2812` and `rustyfarian-esp-idf-ws2812` was renamed in lockstep — `--features led-effects` callers must switch to `--features pennant`. Decision recorded in [`docs/features/crates-io-publication-v1.md`](docs/features/crates-io-publication-v1.md).
-
-### Fixed
-
-- `ferriswheel`: `FireEffect` now picks the base-spark index with rejection sampling instead of `rng_byte() % base_range`, removing modulo bias for non-power-of-2 `with_base_range` values (negligible at the default 1–3, noticeable for wider bases)
-- `ferriswheel`: corrected the `FireEffect.heat` doc comment — peak heat (255) maps to bright yellow via `fire_color`, not white
-
-## [0.5.0] - 2026-05-05
+## [0.5.0] - 2026-05-06
 
 ### Added
 
@@ -37,6 +27,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Renamed `ws2812-pure` → `bunting`** to lift the pure-logic crate out of the crowded `ws2812-*` crates.io namespace and align it with the fairground naming family (`ferriswheel`, `pennant`). No behaviour or API changes. Migration: replace `ws2812-pure = ...` with `bunting = ...` in your `Cargo.toml`, and `use ws2812_pure::...` with `use bunting::...` in your source. Decision recorded in [`docs/features/crates-io-publication-v1.md`](docs/features/crates-io-publication-v1.md).
+- **Renamed `led-effects` → `pennant`** to align with the fairground naming family (`ferriswheel`, `bunting`) and to claim a name that is free on crates.io — the originally chosen `lantern` was found taken on re-verification. `pennant` (a single triangular flag) pairs naturally with `bunting`, which is literally a string of pennants. No behaviour or API changes. Migration: replace `led-effects = ...` with `pennant = ...` in your `Cargo.toml`, and `use led_effects::...` with `use pennant::...` in your source. The Cargo feature flag on `rustyfarian-esp-hal-ws2812` and `rustyfarian-esp-idf-ws2812` was renamed in lockstep — `--features led-effects` callers must switch to `--features pennant`. Decision recorded in [`docs/features/crates-io-publication-v1.md`](docs/features/crates-io-publication-v1.md).
 - `ferriswheel`: all 14 effect structs now derive `PartialEq`, enabling direct `assert_eq!` comparisons in tests
 - `examples/avr-nano-rainbow/src/main.rs` — default example now drives the bit-bang backend (the recommended path per ADR 007). The previous SPI rainbow content moved to `bin/spi_rainbow.rs` as a diagnostic comparison. `just flash-avr-example` now runs the bit-bang rainbow
 - `rustyfarian-avr-ws2812`: dropped the `avr-device` dependency. The bit-bang backend now uses raw inline `cli` + `SREG` save/restore asm for its critical section instead of `avr_device::interrupt::free`. This removes the deprecated `bare-metal` crate (RUSTSEC-2026-0110) and the GPL-3.0 `atdf2svd` build-tool from the workspace dep graph entirely. No behaviour change for users.
@@ -50,6 +42,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- `ferriswheel`: `FireEffect` now picks the base-spark index with rejection sampling instead of `rng_byte() % base_range`, removing modulo bias for non-power-of-2 `with_base_range` values (negligible at the default 1–3, noticeable for wider bases)
+- `ferriswheel`: corrected the `FireEffect.heat` doc comment — peak heat (255) maps to bright yellow via `fire_color`, not white
 - `ferriswheel`: `MeteorEffect::new()` now clamps the default `tail_length` to `num_leds - 1`, preventing a subtract overflow when `num_leds < 7`
 - Workspace `Cargo.toml`: `esp-hal` constraint comment claimed "exact 1.0.0 pinning" but the bare `"1.0.0"` constraint is `^1.0.0` to Cargo. Switched to true exact pinning with `"=1.1.0"` (and `"=…"` for every coordinated companion crate) and updated the comment to match — the workspace ignores `Cargo.lock`, so caret drift here was the actual risk
 - `rustyfarian-esp-hal-ws2812`: GPIO8 RMT blocking transmit hang on ESP32-C6-DevKitC-1 (`Channel<Blocking, Tx>::transmit(&buffer).wait()` would lock up indefinitely on the onboard SK68XXMINI LED) is resolved by the `esp-hal 1.1.0` upgrade — confirmed by hardware retest (2026-04-29). The bare-metal driver can now drive the onboard LED on GPIO8 directly
