@@ -3,11 +3,11 @@
 *Last updated: May 2026*
 
 The April 2026 `esp-hal` release wave (`v0.5.0`) is shipped, the AVR bit-bang
-driver is the recommended backend (per ADR 007), and the GPIO8 RMT hang is
-resolved upstream.
+driver is the recommended backend (per ADR 007), the GPIO8 RMT hang is
+resolved upstream, and the first crates.io wave (`bunting`, `pennant`,
+`ferriswheel` @ `0.5.0`) is live.
 The 2026-05-05 vision review confirmed AVR as a first-class supported MCU
-family, ruled in-workspace networking demos (e.g. ESP-NOW) out of scope, and
-made publishing the library crates to crates.io the near-term focus.
+family and ruled in-workspace networking demos (e.g. ESP-NOW) out of scope.
 Mid-term priorities are removing the `esp-idf-hal` `send_and_wait` workaround
 when the upstream fix lands and `SmartLedsWriteAsync` for the async driver.
 All completed items are documented in the [CHANGELOG](../CHANGELOG.md).
@@ -30,8 +30,7 @@ All completed items are documented in the [CHANGELOG](../CHANGELOG.md).
 timeline
     title Fuzzy Rustyfarian WS2812 Roadmap
 
-    Ready     : Publish library crates to crates.io (feature-doc)
-              : Confirm esp-hal stack on ESP32 / WROOM-32 Xtensa target (feature-doc)
+    Ready     : Confirm esp-hal stack on ESP32 / WROOM-32 Xtensa target (feature-doc)
 
     Near term : (none)
 
@@ -42,35 +41,6 @@ timeline
               : embedded-graphics-core evaluation
               : Monitor esp-idf-hal for async RMT support
 ```
-
-## Publishing & Distribution
-
-### Near term: publish library crates to crates.io
-
-The pure-logic crates are currently consumed via git dependency.
-The maintainer's downstream projects would benefit from versioned crates.io
-releases — cleaner `Cargo.toml` entries, semver-driven updates, and the option
-for outside users to discover the crates through the ecosystem index.
-
-First wave: the `no_std`-compatible library trio that has the most stable API
-and the lowest publication risk —
-[`bunting`](../crates/bunting),
-[`pennant`](../crates/pennant), and
-[`ferriswheel`](../crates/ferriswheel).
-Driver crates (`rustyfarian-esp-idf-ws2812`, `rustyfarian-esp-hal-ws2812`,
-`rustyfarian-avr-ws2812`) follow in a later iteration once the first wave has
-proven the publishing workflow.
-
-Open questions for the feature doc:
-
-- Versioning policy at first publication — keep `v0.5.x` line, or restart at `v0.1.0` for the published crates?
-- README install snippets must switch from `git = "..."` to versioned dependencies.
-- `cargo publish` order — `bunting` first (no internal deps), then `pennant` and `ferriswheel`.
-- Crate ownership / publishers on crates.io.
-
-A feature doc captures the full plan before the first `cargo publish`.
-
----
 
 ## Ecosystem Integration
 
