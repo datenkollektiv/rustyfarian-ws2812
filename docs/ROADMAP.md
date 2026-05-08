@@ -8,8 +8,11 @@ resolved upstream, and the first crates.io wave (`bunting`, `pennant`,
 `ferriswheel` @ `0.5.0`) is live.
 The 2026-05-05 vision review confirmed AVR as a first-class supported MCU
 family and ruled in-workspace networking demos (e.g. ESP-NOW) out of scope.
+Near-term priorities are hardening CI (AVR build), fixing a naming inconsistency
+in the ESP-IDF driver, and tightening the `cargo-deny` configuration.
 Mid-term priorities are removing the `esp-idf-hal` `send_and_wait` workaround
-when the upstream fix lands and `SmartLedsWriteAsync` for the async driver.
+when the upstream fix lands, `SmartLedsWriteAsync` for the async driver, and
+scoping `MAX_LEDS` correctly.
 All completed items are documented in the [CHANGELOG](../CHANGELOG.md).
 
 ```mermaid
@@ -32,21 +35,48 @@ timeline
 
     Ready     : Confirm esp-hal stack on ESP32 / WROOM-32 Xtensa target (feature-doc)
 
-    Near term : (none)
+    Near term : AVR build in CI
+              : Deprecate WS2812RMT → Ws2812Rmt (ESP-IDF driver)
+              : cargo-deny — ban multiple rgb versions
 
     Mid term  : Remove send_and_wait workaround (esp-idf-hal fix)
               : SmartLedsWriteAsync for esp-hal async driver
+              : Scope MAX_LEDS and fix positional effects for strips > 256 LEDs
+              : Add grid module to README + scope guard in grid.rs
+              : Document async support status in README driver table
 
-    Long term : Upstream contribution evaluation
+    Long term : Property tests for pure crates
+              : Track rgb 0.9 migration
+              : ferriswheel SemVer compatibility statement
+              : Upstream contribution evaluation
               : embedded-graphics-core evaluation
               : Monitor esp-idf-hal for async RMT support
 ```
+
+---
+
+## Continuous Integration
+
+### Add AVR build to CI
+
+`rustyfarian-avr-ws2812` is promoted to first-class (VISION.md, 2026-05-05)
+but the CI workflow has no AVR build job.
+Without this, a breaking change in `avr-hal` or a nightly regression silently
+rots the driver.
+
+Add a GitHub Actions job that:
+
+- installs `gcc-avr` via `apt` and the pinned nightly toolchain (see `justfile`'s `avr_nightly` variable),
+- runs `cargo +<nightly> build -Z build-std=core --target avr-none -p rustyfarian-avr-ws2812`,
+- is path-filtered to trigger only on pushes that touch `rustyfarian-avr-ws2812/**` or `Cargo.*`.
+
+---
 
 ## Ecosystem Integration
 
 ### Recurring: audit `deny.toml` exceptions
 
-Each ignored advisory or per-crate license exception in [`deny.toml`](../deny.toml)
+Each ignored advisory or per-crate licence exception in [`deny.toml`](../deny.toml)
 should be re-checked periodically — the underlying upstream bug, deprecation, or
 licensing situation may have been resolved, in which case the exception can be
 removed and the dep graph cleans up.
@@ -63,12 +93,60 @@ save/restore inline asm, dropping the `avr-device` dependency entirely.)
 
 Cadence: revisit at every minor release, or when a new exception is added.
 Mechanism: walk each entry, run `cargo update` against the relevant upstream, and
-attempt to remove the exception. If the advisory or licence still fires, leave it
-in place but refresh the rationale comment with the current upstream state.
+attempt to remove the exception.
+If the advisory or licence still fires, leave it in place but refresh the rationale
+comment with the current upstream state.
+
+### Add `multiple-versions = "deny"` for `rgb` in `deny.toml`
+
+`ferriswheel` includes a compile-time type-identity assertion that fails the
+build if its `rgb` and `smart-leds-trait`'s `rgb` resolve to different versions.
+That assertion is belt-and-braces for downstream consumers who don't run `cargo-deny`.
+The root-cause prevention is a `[bans]` rule that fails CI before the assertion
+ever fires:
+
+```toml
+[bans]
+multiple-versions = "deny"
+# add explicit [[bans.allow]] entries with rationale for any known-safe duplicates
+```
+
+Add an explicit `allow` entry for any crate that legitimately ships multiple
+versions in the dep graph at the time of the change.
 
 ---
 
 ## Hardware Driver Improvements
+
+### Deprecate `WS2812RMT` in favour of `Ws2812Rmt` (ESP-IDF driver)
+
+`rustyfarian-esp-idf-ws2812` exports `WS2812RMT` (all-caps acronym style).
+`rustyfarian-esp-hal-ws2812` exports `Ws2812Rmt` (Rust idiomatic UpperCamelCase,
+per RFC 0430).
+Both names appear in the same README, creating a permanent papercut for anyone
+working with both drivers.
+
+Fix: add a `#[deprecated]` type alias in the ESP-IDF crate:
+
+```rust
+#[deprecated(since = "0.6.0", note = "use `Ws2812Rmt` for consistency with the esp-hal driver")]
+pub type WS2812RMT<'a> = Ws2812Rmt<'a>;
+```
+
+Drop the alias in 0.7.0.
+Non-breaking until 0.7.0; update all examples and README references at the same time.
+
+### Document async support status in README driver table
+
+`rustyfarian-esp-hal-ws2812` has an `async` feature with `AsyncStatusLed`.
+`rustyfarian-esp-idf-ws2812` does not, and currently a user has to read the
+source to discover this.
+
+Add a column or note to the README driver table marking async as esp-hal-only
+by design: ESP-IDF users spawn threads; Embassy is the async runtime for
+bare-metal only (see ADR 008).
+If a future `esp-idf-hal` release adds async RMT (tracked below), this entry
+can be updated.
 
 ### Confirm `esp-hal` stack on the ESP32 / WROOM-32 Xtensa target
 
@@ -106,10 +184,41 @@ See [ADR 006](adr/006-async-support.md) and [ADR 008](adr/008-embassy-as-async-r
 
 ---
 
-## Animation Effects (`ferriswheel`)
+## Animation Effects & Pure Crates
 
 The current `ferriswheel` crate provides more than a dozen well-tested, ring-specific effects:
 `RainbowEffect`, `PulseEffect`, `BreatheEffect`, `SpinnerEffect`, `MeteorEffect`, `TwinkleEffect`, `FireEffect`, `CylonEffect`, `KnightRiderEffect`, `ChaseEffect`, `FlashEffect`, `ProgressEffect`, `SectionEffect`, and `RainbowCometEffect`.
+
+### Scope `MAX_LEDS` and fix positional effects for strips > 256 LEDs
+
+Two coupled constraints that must move together:
+
+**`MAX_LEDS = 256` is a crate-wide cap** whose rationale (256 distinct hues for `RainbowEffect`)
+only applies to that one effect.
+For `FireEffect` or `MeteorEffect` on a 300-LED strip — common for room lighting — the limit
+is artificial and surprising.
+Resolution: move the hue-count rationale to `RainbowEffect::MAX_USEFUL_HUES` and raise or
+remove the crate-wide cap.
+
+**`position: u8` in all positional effects** (`SpinnerEffect`, `ChaseEffect`, `RainbowEffect`,
+`MeteorEffect`) and in `advance_position` — safe only while `MAX_LEDS ≤ 256`; any increase
+silently truncates positions.
+Fix: change `advance_position` and all `position` fields to `usize`.
+
+These two items must move together: raising `MAX_LEDS` without fixing the `u8` positions is
+a soundness bug.
+
+### Add `grid` module to README crate table and scope guard in `grid.rs`
+
+`bunting` 0.5.0 added `GridBuffer` / `GridLayout` / `GAMMA_2_0`, but the `bunting` row in
+the README crate table makes no mention of it.
+A user searching for matrix/grid support will look in `ferriswheel` and conclude it doesn't exist.
+
+Two small changes:
+
+1. One sentence in the `bunting` README row: "also provides `grid` — pure data-layout types for matrix displays."
+2. A `// SCOPE:` comment at the top of `grid.rs` quoting the VISION non-goal
+   ("matrix-first animation vocabulary is out of scope") to guard against feature creep.
 
 ### Deferred follow-ups
 
@@ -122,13 +231,6 @@ Not blocking, but tracked here to avoid being lost.
   the semantics of `decay=0` (near-zero, not instant black), requiring test updates.
   Revisit only if a performance need or a `with_decay_pct(f32)` builder is added.
 
-- **`position: u8` hidden constraint in all positional effects** — `SpinnerEffect`, `ChaseEffect`,
-  `RainbowEffect`, and `MeteorEffect` all store `position: u8`; `advance_position` also returns `u8`.
-  With `MAX_LEDS = 256` the cast is lossless today (positions 0-255 map exactly), but raising
-  `MAX_LEDS` above 256 would silently truncate.
-  Fix is crate-wide: change `advance_position` + all four `position` fields to `usize`.
-  Not urgent until `MAX_LEDS` increases.
-
 ### FireEffect follow-up
 
 - **Gradient parameterisation** — `with_gradient(&'static [GradientStop])` for users who want a custom palette (e.g. blue ice, purple plasma). Requires a `GradientStop` type and piecewise-linear interpolation in `fire_color`. `no_std`-safe with a fixed-size slice; `Vec` is off the table.
@@ -136,6 +238,43 @@ Not blocking, but tracked here to avoid being lost.
 ---
 
 ## Long-term / Strategic
+
+### Add property tests for pure crates (`bunting`, `pennant`, `ferriswheel`)
+
+The unit tests are good, but for colour math (`hsv_to_rgb`, `lerp_color`, `scale_brightness`)
+and effect invariants (e.g. "`update` then `current` returns the same buffer", "`reset` returns
+to the same state as a fresh `new()`"), `proptest` or `quickcheck` would catch a class of bugs
+that unit tests won't.
+The `FireEffect` modulo-bias bug fixed in 0.5.0 is exactly the shape of bug a property test
+would surface earlier.
+Low urgency — the architecture is already test-friendly on the host target.
+
+### Track `rgb 0.9` migration
+
+`rgb 0.9` redesigns `RGB8` from a struct with public `r`/`g`/`b` fields to a wrapper around
+`[u8; 3]` with accessor methods.
+The workspace is pinned to `0.8`.
+Every downstream consumer that pulls in `rgb 0.9` (via another dep) will hit either a
+duplicate-version warning or a hard incompatibility through the type-identity assertion.
+
+Defensible position: "migrate when `esp-hal` moves to `rgb 0.9`."
+That position should be explicit rather than implicit.
+File a tracking issue; re-evaluate at each `esp-hal` minor release.
+
+### Add SemVer compatibility statement to `ferriswheel`
+
+`ferriswheel` is at `0.5.0` — pre-1.0 in Cargo SemVer means every minor bump can break.
+With 14 effects, an `Effect` trait with `PartialEq` derives, and `MAX_LEDS` as public API,
+there is real surface area worth committing to before third-party consumers pin the crate.
+
+Add a section to the crate-level rustdoc (or a `STABILITY.md`) along the lines of:
+
+> The `Effect` trait is the stable interface.
+> Concrete effect structs may gain new builder methods between minor versions;
+> existing builder methods will only be removed in major bumps.
+> The `MAX_LEDS` constant is part of the public API.
+
+Do this before publishing `ferriswheel` to new crates.io consumers.
 
 ### Evaluate upstream contribution to `smart-leds-rs`
 
