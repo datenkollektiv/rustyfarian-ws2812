@@ -37,7 +37,7 @@ use core::time::Duration;
 use esp_idf_hal::{
     gpio::OutputPin,
     rmt::{
-        config::{TransmitConfig, TxChannelConfig},
+        config::{MemoryAccess, TransmitConfig, TxChannelConfig},
         encoder::{BytesEncoder, BytesEncoderConfig},
         PinState, Pulse, Symbol, TxChannelDriver,
     },
@@ -97,7 +97,16 @@ fn transmit_bytes(
 }
 
 impl<'d> WS2812RMT<'d> {
-    /// Creates a new WS2812 driver.
+    /// Creates a new WS2812 driver with default channel configuration.
+    ///
+    /// The default uses one RMT memory block of 48 symbols, which is the block
+    /// size on ESP32-C3 and ESP32-C6. These chips have only two TX channels, so
+    /// the ESP-IDF default of 64 symbols would round up to two blocks and exhaust
+    /// all available TX candidates.
+    ///
+    /// For other ESP32 variants (classic ESP32, S2, S3) where each block holds 64
+    /// symbols, use [`new_with_channel_config`] to pass an appropriate
+    /// `TxChannelConfig`.
     ///
     /// # Arguments
     ///
@@ -108,14 +117,56 @@ impl<'d> WS2812RMT<'d> {
     /// ```ignore
     /// let mut led = WS2812RMT::new(peripherals.pins.gpio8)?;
     /// ```
+    ///
+    /// [`new_with_channel_config`]: WS2812RMT::new_with_channel_config
     pub fn new(led: impl OutputPin + 'd) -> Result<Self> {
+        // 48 symbols = one RMT memory block on ESP32-C3/C6 (default 64 would round
+        // up to 2 blocks, exhausting all TX channels on chips with only 2).
         let channel_config = TxChannelConfig {
             resolution: Hertz(10_000_000), // 100 ns/tick
+            memory_access: MemoryAccess::Indirect {
+                memory_block_symbols: 48,
+            },
             ..Default::default()
         };
+        Self::new_with_channel_config(led, channel_config)
+    }
+
+    /// Creates a new WS2812 driver with a custom `TxChannelConfig`.
+    ///
+    /// Use this when targeting ESP32 variants other than C3/C6, or when you
+    /// need to tune memory block size, DMA usage, or other channel parameters.
+    ///
+    /// The RMT channel resolution (`channel_config.resolution`) is also used to
+    /// derive WS2812 pulse durations, so it must be set to `Hertz(10_000_000)`
+    /// (100 ns/tick) for correct protocol timing.
+    ///
+    /// # Arguments
+    ///
+    /// * `led` - GPIO pin connected to the LED data line
+    /// * `channel_config` - RMT TX channel configuration; resolution must be 10 MHz
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use esp_idf_hal::rmt::config::{MemoryAccess, TxChannelConfig};
+    /// use esp_idf_hal::units::Hertz;
+    ///
+    /// // Classic ESP32: 64-symbol blocks, up to 8 TX channels.
+    /// let channel_config = TxChannelConfig {
+    ///     resolution: Hertz(10_000_000),
+    ///     memory_access: MemoryAccess::Indirect { memory_block_symbols: 64 },
+    ///     ..Default::default()
+    /// };
+    /// let mut led = WS2812RMT::new_with_channel_config(peripherals.pins.gpio18, channel_config)?;
+    /// ```
+    pub fn new_with_channel_config(
+        led: impl OutputPin + 'd,
+        channel_config: TxChannelConfig,
+    ) -> Result<Self> {
+        let resolution = channel_config.resolution;
         let tx = TxChannelDriver::new(led, &channel_config)?;
 
-        let resolution = Hertz(10_000_000);
         let t0h = Pulse::new_with_duration(resolution, PinState::High, Duration::from_nanos(350))?;
         let t0l = Pulse::new_with_duration(resolution, PinState::Low, Duration::from_nanos(800))?;
         let t1h = Pulse::new_with_duration(resolution, PinState::High, Duration::from_nanos(700))?;
