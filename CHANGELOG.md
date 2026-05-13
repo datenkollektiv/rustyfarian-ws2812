@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `rustyfarian-esp-idf-ws2812`: `WS2812RMT::new_with_channel_config(led, TxChannelConfig)` — new constructor for callers who need to override RMT channel parameters (memory block size, DMA mode, etc.) for ESP32 variants beyond C3/C6
+
+### Changed
+
+- `rustyfarian-esp-idf-ws2812`: `WS2812RMT::new()` now documents that its default `memory_block_symbols: 48` is specific to ESP32-C3/C6 (48-symbol blocks, only 2 TX channels); delegates to `new_with_channel_config` internally
+
 ## [0.5.0] - 2026-05-06
 
 ### Added
