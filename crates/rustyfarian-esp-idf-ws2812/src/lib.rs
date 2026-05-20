@@ -71,7 +71,7 @@ pub struct Ws2812Rmt<'a> {
 
 #[deprecated(
     since = "0.6.0",
-    note = "use `Ws2812Rmt` for consistency with the esp-hal driver"
+    note = "use `Ws2812Rmt` for consistency with the esp-hal driver; planned removal in 0.7.0"
 )]
 pub type WS2812RMT<'a> = Ws2812Rmt<'a>;
 

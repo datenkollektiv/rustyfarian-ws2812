@@ -22,7 +22,7 @@ Before any release:
 - [ ] Build passes: `just check`
 - [ ] Tests pass: `just test`
 - [ ] `cargo deny` clean: `just deny`
-- [ ] Crates.io dry-run clean: `just release-dry-run` (runs `verify` plus `cargo publish --dry-run` for each v1 crate)
+- [ ] Pure-crate dry-run clean: `just release-dry-run` (runs `verify` plus `cargo publish --dry-run` for `bunting`, `pennant`, `ferriswheel`; driver crates cannot dry-run until the pure 0.X crates are live on crates.io — see Publish Order below)
 - [ ] Changelog has an `[Unreleased]` section with content for this release
 - [ ] Version consistent across all crates: `crates/*/Cargo.toml`
 - [ ] No uncommitted changes: `git status --short` is empty
@@ -38,15 +38,16 @@ Files to update when bumping to `X.Y.Z`:
 - `crates/pennant/Cargo.toml` — `version = "X.Y.Z"`
 - `crates/rustyfarian-esp-idf-ws2812/Cargo.toml` — `version = "X.Y.Z"`
 - `crates/rustyfarian-esp-hal-ws2812/Cargo.toml` — `version = "X.Y.Z"`
+- `crates/rustyfarian-avr-ws2812/Cargo.toml` — `version = "X.Y.Z"`
 
 Post-release version bump: none (no snapshot pattern).
 
 ## Publish
 
-**Target — v1 library trio:** crates.io (`bunting`, `pennant`, `ferriswheel`).
-**Target — driver crates:** git tag only (`rustyfarian-esp-idf-ws2812`, `rustyfarian-esp-hal-ws2812`, `rustyfarian-avr-ws2812` — not yet on crates.io; their first publish is a separate later wave).
+**Target — pure-logic trio:** crates.io (`bunting`, `pennant`, `ferriswheel`) — published at `0.5.0`.
+**Target — driver crates:** crates.io (`rustyfarian-avr-ws2812`, `rustyfarian-esp-idf-ws2812`, `rustyfarian-esp-hal-ws2812`) — first published at `0.6.0`.
 **Credentials:** required for crates.io (see Authentication below).
-**Downstream consumption:** versioned `[dependencies]` from crates.io for v1 library crates; git deps for driver crates until their own publish wave.
+**Downstream consumption:** versioned `[dependencies]` from crates.io for all six published crates.
 
 ### Authentication
 
@@ -66,7 +67,7 @@ CARGO_REGISTRY_TOKEN=<token> just release-publish bunting
 
 ### Crate Ownership
 
-Sole owner of `bunting`, `pennant`, and `ferriswheel` today: `fwaibel@datenkollektiv.de`.
+Sole owner of all six published crates today: `fwaibel@datenkollektiv.de`.
 
 To add a co-owner (per crate):
 
@@ -74,25 +75,53 @@ To add a co-owner (per crate):
 cargo owner --add <github-username-or-team> bunting
 cargo owner --add <github-username-or-team> pennant
 cargo owner --add <github-username-or-team> ferriswheel
+cargo owner --add <github-username-or-team> rustyfarian-avr-ws2812
+cargo owner --add <github-username-or-team> rustyfarian-esp-idf-ws2812
+cargo owner --add <github-username-or-team> rustyfarian-esp-hal-ws2812
 ```
 
 Triggers for transition to a GitHub team owner (e.g. `github:datenkollektiv:wheel`): the first external contributor's PR merged, or at the `v1.0.0` cut.
 
 ### Publish Order
 
-The three v1 crates do not depend on each other, so any order works.
-The canonical order is `bunting → pennant → ferriswheel`, recorded in [`docs/features/crates-io-publication-v1.md`](docs/features/crates-io-publication-v1.md).
+Publishing must be staged: driver crates declare `bunting`, `pennant`, and `ferriswheel` as workspace dependencies, so `cargo publish --dry-run` against them fails until the pure crates are live on crates.io.
 
-Run each publish individually so you can verify the crates.io listing renders before moving on:
+**Stage 1 — pure-logic crates (any order, no cross-deps):**
 
 ```sh
-just release-publish bunting     # confirm Y/N at prompt; verify on https://crates.io/crates/bunting
-just release-publish pennant     # confirm Y/N at prompt; verify on https://crates.io/crates/pennant
-just release-publish ferriswheel # confirm Y/N at prompt; verify on https://crates.io/crates/ferriswheel
+just release-publish bunting
+just release-publish pennant
+just release-publish ferriswheel
 ```
 
-Each recipe runs `cargo publish -p <crate> --target <host>` after a `[confirm]` prompt.
-The `--target` override is required because `.cargo/config.toml` defaults the workspace to an ESP cross-compile target.
+Verify each listing on crates.io before continuing.
+
+**Stage 2 — dry-run driver crates** (now that pure `0.X` is live):
+
+The AVR driver builds against the host target; the ESP drivers require their own toolchain and target:
+
+```sh
+just release-dry-run-crate rustyfarian-avr-ws2812
+just release-dry-run-hal
+just release-dry-run-idf
+```
+
+**Stage 3 — publish driver crates (any order, no cross-deps between them):**
+
+```sh
+just release-publish rustyfarian-avr-ws2812
+just release-publish-hal
+just release-publish-idf
+```
+
+Verify each listing on crates.io: `https://crates.io/crates/<name>`.
+
+Each `release-publish` / `release-dry-run-crate` call uses the host target and suits pure crates and the AVR driver.
+`release-publish-hal` / `release-dry-run-hal` use `riscv32imac-unknown-none-elf` (requires `rustup target add riscv32imac-unknown-none-elf`).
+`release-publish-idf` / `release-dry-run-idf` use `cargo +esp` with `riscv32imac-esp-espidf` (requires `espup`).
+
+docs.rs will build `rustyfarian-esp-hal-ws2812` using the `[package.metadata.docs.rs]` target metadata.
+`rustyfarian-esp-idf-ws2812` docs.rs builds will fail (docs.rs lacks the ESP-IDF build environment); this is expected for ESP-IDF crates — users are directed to the README for usage guidance.
 
 ## Changelog
 
@@ -138,16 +167,17 @@ cargo yank --version X.Y.Z --undo bunting
 
 For pre-publish mistakes caught before any consumer locked on the version, yank the bad version, bump (`X.Y.Z+1`) everywhere, and re-run `just release-dry-run` followed by `just release-publish`.
 
-### Driver crates (git only)
+### Driver crates (crates.io — from 0.6.0 onwards)
 
-If a mistake is caught after tagging but before any downstream picks it up:
+Use `cargo yank` the same way as for the pure-logic crates:
 
-1. Delete remote tag: `git push --delete origin vX.Y.Z`
-2. Delete local tag: `git tag -d vX.Y.Z`
-3. Revert the version bump commit: `git revert HEAD`
-4. Push the revert: `git push origin main`
+```sh
+cargo yank --version X.Y.Z rustyfarian-avr-ws2812
+cargo yank --version X.Y.Z rustyfarian-esp-idf-ws2812
+cargo yank --version X.Y.Z rustyfarian-esp-hal-ws2812
+```
 
-Since driver crates are not yet on crates.io, a yanked tag is sufficient — no registry rollback required.
+Then delete the tag and revert the version bump commit as above.
 
 ## Release Record Location
 

@@ -53,14 +53,14 @@ See [Why Yet Another WS2812 Crate?](docs/why-yet-another-ws2812-crate.md) for th
 
 ## Crates
 
-| Crate                                                             | Description                                                                                                                                             | Target              | crates.io                                                                                                                              | docs.rs                                                                                                                                |
-|:------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|:--------------------|:---------------------------------------------------------------------------------------------------------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------|
-| [`ferriswheel`](crates/ferriswheel)                               | RGB LED ring animations (rainbow, pulse, breathe, spinner, meteor, twinkle, fire, cylon, knight rider, chase, flash, progress, sections, rainbow comet) | `no_std` compatible | [![crates.io version](https://img.shields.io/crates/v/ferriswheel.svg)](https://crates.io/crates/ferriswheel)                          | [![docs.rs](https://img.shields.io/docsrs/ferriswheel)](https://docs.rs/ferriswheel)                                                   |
-| [`pennant`](crates/pennant)                                       | LED status effects (pulse, simple LED adapter)                                                                                                          | `no_std` compatible | [![crates.io version](https://img.shields.io/crates/v/pennant.svg)](https://crates.io/crates/pennant)                                  | [![docs.rs](https://img.shields.io/docsrs/pennant)](https://docs.rs/pennant)                                                           |
-| [`bunting`](crates/bunting)                                       | Pure Rust WS2812 utilities (color conversion, bit encoding)                                                                                             | `no_std` compatible | [![crates.io version](https://img.shields.io/crates/v/bunting.svg)](https://crates.io/crates/bunting)                                  | [![docs.rs](https://img.shields.io/docsrs/bunting)](https://docs.rs/bunting)                                                           |
-| [`rustyfarian-esp-idf-ws2812`](crates/rustyfarian-esp-idf-ws2812) | WS2812 driver using ESP-IDF RMT peripheral                                                                                                              | ESP-IDF (std)       | [![pending v2](https://img.shields.io/badge/crates.io-pending%20v2-lightgrey)](#)                                                      | [![pending v2](https://img.shields.io/badge/docs.rs-pending%20v2-lightgrey)](#)                                                        |
-| [`rustyfarian-esp-hal-ws2812`](crates/rustyfarian-esp-hal-ws2812) | WS2812 driver using esp-hal RMT peripheral                                                                                                              | esp-hal (no_std)    | [![pending v2](https://img.shields.io/badge/crates.io-pending%20v2-lightgrey)](#)                                                      | [![pending v2](https://img.shields.io/badge/docs.rs-pending%20v2-lightgrey)](#)                                                        |
-| [`rustyfarian-avr-ws2812`](crates/rustyfarian-avr-ws2812)         | WS2812 driver using SPI prerendered encoding (`embedded-hal` 1.0)                                                                                       | AVR (no_std)        | [![pending v2](https://img.shields.io/badge/crates.io-pending%20v2-lightgrey)](#)                                                      | [![pending v2](https://img.shields.io/badge/docs.rs-pending%20v2-lightgrey)](#)                                                        |
+| Crate                                                             | Description                                                                                                                                             | Target              | crates.io                                                                                                                                   | docs.rs                                                                                                            |
+|:------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|:--------------------|:--------------------------------------------------------------------------------------------------------------------------------------------|:-------------------------------------------------------------------------------------------------------------------|
+| [`ferriswheel`](crates/ferriswheel)                               | RGB LED ring animations (rainbow, pulse, breathe, spinner, meteor, twinkle, fire, cylon, knight rider, chase, flash, progress, sections, rainbow comet) | `no_std` compatible | [![crates.io version](https://img.shields.io/crates/v/ferriswheel.svg)](https://crates.io/crates/ferriswheel)                               | [![docs.rs](https://img.shields.io/docsrs/ferriswheel)](https://docs.rs/ferriswheel)                               |
+| [`pennant`](crates/pennant)                                       | LED status effects (pulse, simple LED adapter)                                                                                                          | `no_std` compatible | [![crates.io version](https://img.shields.io/crates/v/pennant.svg)](https://crates.io/crates/pennant)                                       | [![docs.rs](https://img.shields.io/docsrs/pennant)](https://docs.rs/pennant)                                       |
+| [`bunting`](crates/bunting)                                       | Pure Rust WS2812 utilities (color conversion, bit encoding)                                                                                             | `no_std` compatible | [![crates.io version](https://img.shields.io/crates/v/bunting.svg)](https://crates.io/crates/bunting)                                       | [![docs.rs](https://img.shields.io/docsrs/bunting)](https://docs.rs/bunting)                                       |
+| [`rustyfarian-esp-idf-ws2812`](crates/rustyfarian-esp-idf-ws2812) | WS2812 driver using ESP-IDF RMT peripheral                                                                                                              | ESP-IDF (std)       | [![crates.io version](https://img.shields.io/crates/v/rustyfarian-esp-idf-ws2812.svg)](https://crates.io/crates/rustyfarian-esp-idf-ws2812) | [![docs.rs](https://img.shields.io/docsrs/rustyfarian-esp-idf-ws2812)](https://docs.rs/rustyfarian-esp-idf-ws2812) |
+| [`rustyfarian-esp-hal-ws2812`](crates/rustyfarian-esp-hal-ws2812) | WS2812 driver using esp-hal RMT peripheral                                                                                                              | esp-hal (no_std)    | [![crates.io version](https://img.shields.io/crates/v/rustyfarian-esp-hal-ws2812.svg)](https://crates.io/crates/rustyfarian-esp-hal-ws2812) | [![docs.rs](https://img.shields.io/docsrs/rustyfarian-esp-hal-ws2812)](https://docs.rs/rustyfarian-esp-hal-ws2812) |
+| [`rustyfarian-avr-ws2812`](crates/rustyfarian-avr-ws2812)         | WS2812 driver using SPI prerendered encoding (`embedded-hal` 1.0)                                                                                       | AVR (no_std)        | [![crates.io version](https://img.shields.io/crates/v/rustyfarian-avr-ws2812.svg)](https://crates.io/crates/rustyfarian-avr-ws2812)         | [![docs.rs](https://img.shields.io/docsrs/rustyfarian-avr-ws2812)](https://docs.rs/rustyfarian-avr-ws2812)         |
 
 ## Examples
 
@@ -122,23 +122,42 @@ The Feather ESP32 V2 examples additionally use the Xtensa toolchain (`+esp`) wit
 
 ## Usage
 
-The library crates are published on crates.io.
-Driver crates currently ship via git dependency until their own crates.io release wave.
+All crates are published on crates.io.
 
 For `no_std` projects that only need the pure utilities:
 
 ```toml
 [dependencies]
-ferriswheel = "0.5"
-pennant = "0.5"
-bunting = "0.5"
+ferriswheel = "0.6"
+pennant = "0.6"
+bunting = "0.6"
 ```
 
 `pennant` ships the `StatusLed`/`AsyncStatusLed` traits, `PulseEffect`, and `NoLed` by default.
 Enable the `hal` feature for the `SimpleLed` adapter (RGB → on/off GPIO via `embedded-hal` 1.0):
 
 ```toml
-pennant = { version = "0.5", features = ["hal"] }
+pennant = { version = "0.6", features = ["hal"] }
+```
+
+For ESP32 projects, pick the driver that matches your stack.
+
+Bare-metal / `no_std` (`esp-hal`, defaults to ESP32-C6):
+
+```toml
+rustyfarian-esp-hal-ws2812 = { version = "0.6" }
+```
+
+ESP-IDF / `std`:
+
+```toml
+rustyfarian-esp-idf-ws2812 = { version = "0.6" }
+```
+
+AVR (requires nightly and the `bitbang` feature):
+
+```toml
+rustyfarian-avr-ws2812 = { version = "0.6", features = ["bitbang"] }
 ```
 
 To track the unreleased `main` branch (e.g. for contributors):
@@ -148,13 +167,6 @@ To track the unreleased `main` branch (e.g. for contributors):
 ferriswheel = { git = "https://github.com/datenkollektiv/rustyfarian-ws2812" }
 pennant = { git = "https://github.com/datenkollektiv/rustyfarian-ws2812", default-features = false }
 bunting = { git = "https://github.com/datenkollektiv/rustyfarian-ws2812" }
-```
-
-ESP32 driver crates (not yet on crates.io):
-
-```toml
-[dependencies]
-rustyfarian-esp-idf-ws2812 = { git = "https://github.com/datenkollektiv/rustyfarian-ws2812" }
 ```
 
 ## Example

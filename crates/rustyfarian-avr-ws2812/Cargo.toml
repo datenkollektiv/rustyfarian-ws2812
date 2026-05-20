@@ -1,6 +1,6 @@
 [package]
 name = "rustyfarian-avr-ws2812"
-version = "0.5.0"
+version = "0.6.0"
 authors.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -11,6 +11,9 @@ readme = "README.md"
 documentation = "https://docs.rs/rustyfarian-avr-ws2812"
 keywords = ["ws2812", "neopixel", "avr", "spi", "led"]
 categories = ["embedded", "hardware-support", "no-std"]
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
 
 [features]
 # SPI prerendered backend is always available (no feature gate) — preserves the
