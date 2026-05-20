@@ -38,6 +38,7 @@ timeline
     Near term : AVR build in CI
               : Deprecate WS2812RMT → Ws2812Rmt (ESP-IDF driver)
               : cargo-deny — ban multiple rgb versions
+              : Publish HAL driver crates to crates.io (0.6.0 wave)
 
     Mid term  : Remove send_and_wait workaround (esp-idf-hal fix)
               : SmartLedsWriteAsync for esp-hal async driver
@@ -117,6 +118,30 @@ versions in the dep graph at the time of the change.
 ---
 
 ## Hardware Driver Improvements
+
+### Publish HAL driver crates to crates.io (0.6.0 wave)
+
+`bunting`, `pennant`, and `ferriswheel` were published as the first crates.io wave at `0.5.0`.
+The three HAL driver crates — `rustyfarian-esp-idf-ws2812`, `rustyfarian-esp-hal-ws2812`, and `rustyfarian-avr-ws2812` — remain unpublished.
+
+This item depends on two prerequisites already tracked above:
+
+1. **Xtensa target confirmation** (Ready band) — `rustyfarian-esp-hal-ws2812` documents three supported targets; the Xtensa path must be verified before the crate docs can make that claim.
+2. **`WS2812RMT` deprecation** (Near term) — the `Ws2812Rmt` rename alias must land in the ESP-IDF crate before `0.6.0` ships so it is the first version external users see.
+
+Once both are done:
+
+- Bump all three HAL crates to `0.6.0`.
+- Add or verify `[package.metadata.docs.rs]` in each crate's `Cargo.toml`: set `targets` to the appropriate cross-compilation target and `features` to the required chip feature (e.g. `esp32c6`).
+  `cargo doc` on a host target fails for both `rustyfarian-esp-hal-ws2812` (esp-hal rejects host) and `rustyfarian-esp-idf-ws2812` (esp-idf-sys fails on host), so docs.rs metadata is the only mechanism for a usable landing page.
+  Validate locally with `cargo doc -p <crate> --no-deps --target <cross-target> --features <chip>` before publishing.
+- Move `CHANGELOG.md`'s `## [Unreleased]` entries for the three driver crates to a new `## [0.6.0] — YYYY-MM-DD` section.
+- Verify crates.io name availability with the exact spelling before publishing.
+- Run `cargo publish --dry-run` for each in dependency order: `rustyfarian-avr-ws2812`, `rustyfarian-esp-idf-ws2812`, `rustyfarian-esp-hal-ws2812`.
+- Publish in the same order.
+- Add docs.rs badges to the README rows for all three crates.
+
+---
 
 ### Deprecate `WS2812RMT` in favour of `Ws2812Rmt` (ESP-IDF driver)
 
