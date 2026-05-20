@@ -19,9 +19,9 @@ smart-leds = "0.4.0"
 embedded-hal = { version = "1.0", default-features = false }
 
 # Internal crates
-ferriswheel = { path = "crates/ferriswheel", version = "0.5" }
-pennant = { path = "crates/pennant", version = "0.5" }
-bunting = { path = "crates/bunting", version = "0.5" }
+ferriswheel = { path = "crates/ferriswheel", version = "0.6" }
+pennant = { path = "crates/pennant", version = "0.6" }
+bunting = { path = "crates/bunting", version = "0.6" }
 
 # ESP32 dependencies
 esp-idf-hal = { version = "0.46" }

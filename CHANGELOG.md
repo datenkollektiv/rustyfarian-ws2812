@@ -6,8 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-05-20
+
 ### Added
 
+- **First crates.io publication** of `rustyfarian-avr-ws2812`, `rustyfarian-esp-idf-ws2812`, and `rustyfarian-esp-hal-ws2812` — all three driver crates are now available on crates.io alongside the pure-logic trio (`bunting`, `pennant`, `ferriswheel`)
 - `rustyfarian-esp-idf-ws2812`: `Ws2812Rmt::new_with_channel_config(led, TxChannelConfig)` — new constructor for callers who need to override RMT channel parameters (memory block size, DMA mode, etc.) for ESP32 variants beyond C3/C6
 - `rustyfarian-esp-hal-ws2812`: confirmed Xtensa ESP32 / WROOM-32 target (`xtensa-esp32-none-elf`) compiles clean under `esp-hal 1.1.0` with the `esp` toolchain (Xtensa Rust 1.95.0.0); `just check-hal-xtensa` added to the justfile for ongoing CI coverage
 

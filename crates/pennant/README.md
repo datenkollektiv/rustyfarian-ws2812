@@ -14,7 +14,7 @@ colours onto plain on/off GPIO pins via
 [`embedded-hal`](https://crates.io/crates/embedded-hal) 1.0:
 
 ```toml
-pennant = { version = "0.5", features = ["hal"] }
+pennant = { version = "0.6", features = ["hal"] }
 ```
 
 Part of the [`rustyfarian-ws2812`](https://github.com/datenkollektiv/rustyfarian-ws2812)

@@ -356,20 +356,42 @@ watch:
 
 # --- Release --------------------------------------------------------------
 
-# verify all publish-target crates package cleanly (no upload)
+# verify pure-logic crates package cleanly (no upload); driver crates require pure 0.X live on crates.io first — use release-dry-run-crate after Stage 1 publish
 [group('Release')]
 release-dry-run: verify
     cargo publish --dry-run -p bunting --target {{ host_target }}
     cargo publish --dry-run -p pennant --target {{ host_target }}
     cargo publish --dry-run -p ferriswheel --target {{ host_target }}
 
-# verify one crate packages cleanly (no upload). Use: just release-dry-run-crate bunting
+# verify one pure/AVR crate packages cleanly against host target (no upload). Use: just release-dry-run-crate rustyfarian-avr-ws2812
 [group('Release')]
 release-dry-run-crate crate:
     cargo publish --dry-run -p {{ crate }} --target {{ host_target }}
 
-# publish one crate to crates.io (dep order: bunting → pennant → ferriswheel). Use: just release-publish bunting
+# verify esp-hal driver packages cleanly against bare-metal target (no upload; requires riscv32imac-unknown-none-elf target installed)
+[group('Release')]
+release-dry-run-hal:
+    cargo publish --dry-run -p rustyfarian-esp-hal-ws2812 --target {{ hal_target }}
+
+# verify esp-idf driver packages cleanly against IDF target (no upload; requires espup)
+[group('Release')]
+release-dry-run-idf:
+    cargo +esp publish --dry-run -p rustyfarian-esp-idf-ws2812 --target riscv32imac-esp-espidf
+
+# publish one pure/AVR crate to crates.io. Use: just release-publish bunting
 [group('Release')]
 [confirm]
 release-publish crate:
     cargo publish -p {{ crate }} --target {{ host_target }}
+
+# publish esp-hal driver to crates.io (requires riscv32imac-unknown-none-elf target installed)
+[group('Release')]
+[confirm]
+release-publish-hal:
+    cargo publish -p rustyfarian-esp-hal-ws2812 --target {{ hal_target }}
+
+# publish esp-idf driver to crates.io (requires espup)
+[group('Release')]
+[confirm]
+release-publish-idf:
+    cargo +esp publish -p rustyfarian-esp-idf-ws2812 --target riscv32imac-esp-espidf

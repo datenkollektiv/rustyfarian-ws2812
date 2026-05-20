@@ -35,7 +35,6 @@ timeline
 
     Near term : AVR build in CI
               : cargo-deny — ban multiple rgb versions
-              : Publish HAL driver crates to crates.io (0.6.0 wave)
 
     Mid term  : Remove send_and_wait workaround (esp-idf-hal fix)
               : SmartLedsWriteAsync for esp-hal async driver
@@ -119,23 +118,13 @@ versions in the dep graph at the time of the change.
 
 ### Publish HAL driver crates to crates.io (0.6.0 wave)
 
-`bunting`, `pennant`, and `ferriswheel` were published as the first crates.io wave at `0.5.0`.
-The three HAL driver crates — `rustyfarian-esp-idf-ws2812`, `rustyfarian-esp-hal-ws2812`, and `rustyfarian-avr-ws2812` — remain unpublished.
-
-The Xtensa target (`xtensa-esp32-none-elf`) was confirmed clean 2026-05-20 under `esp-hal 1.1.0` via `just check-hal-xtensa`.
-The `WS2812RMT` deprecation gate is cleared: `Ws2812Rmt` is now the primary name, with `WS2812RMT` as a `#[deprecated]` alias.
-
-Remaining steps before publishing:
-
-- Bump all three HAL crates to `0.6.0`.
-- Add or verify `[package.metadata.docs.rs]` in each crate's `Cargo.toml`: set `targets` to the appropriate cross-compilation target and `features` to the required chip feature (e.g. `esp32c6`).
-  `cargo doc` on a host target fails for both `rustyfarian-esp-hal-ws2812` (esp-hal rejects host) and `rustyfarian-esp-idf-ws2812` (esp-idf-sys fails on host), so docs.rs metadata is the only mechanism for a usable landing page.
-  Validate locally with `cargo doc -p <crate> --no-deps --target <cross-target> --features <chip>` before publishing.
-- Move `CHANGELOG.md`'s `## [Unreleased]` entries for the three driver crates to a new `## [0.6.0] — YYYY-MM-DD` section.
-- Verify crates.io name availability with the exact spelling before publishing.
-- Run `cargo publish --dry-run` for each in dependency order: `rustyfarian-avr-ws2812`, `rustyfarian-esp-idf-ws2812`, `rustyfarian-esp-hal-ws2812`.
-- Publish in the same order.
-- Add docs.rs badges to the README rows for all three crates.
+All six workspace crates bumped to `0.6.0`.
+`rustyfarian-avr-ws2812`, `rustyfarian-esp-idf-ws2812`, and `rustyfarian-esp-hal-ws2812`
+are ready to publish: per-crate READMEs written, `readme`/`documentation`/`[package.metadata.docs.rs]`
+metadata added, `CHANGELOG.md` cut to `## [0.6.0] - 2026-05-20`, docs.rs badges added to the
+workspace README.
+Publish order: `just release-publish rustyfarian-avr-ws2812` → `just release-publish-idf` → `just release-publish-hal`
+(see `release-plan.md` for the full staged flow).
 
 ---
 
