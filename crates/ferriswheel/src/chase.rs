@@ -378,4 +378,50 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn test_initial_frame_correctness() {
+        // Default: color=white(255,255,255), segment_length=3, position=0, direction=Clockwise
+        let effect = ChaseEffect::new(8).unwrap();
+        let default_color = RGB8::new(255, 255, 255);
+        let default_segment_length: usize = 3;
+
+        let mut buffer = [RGB8::default(); 8];
+        // Call current() WITHOUT calling update() first
+        effect.current(&mut buffer).unwrap();
+
+        // First `segment_length` LEDs must equal the default color
+        for i in 0..default_segment_length {
+            assert_eq!(
+                buffer[i], default_color,
+                "LED {} should be the default color at initial state (no update called)",
+                i
+            );
+        }
+
+        // Remaining LEDs must be black
+        for i in default_segment_length..8 {
+            assert_eq!(
+                buffer[i],
+                RGB8::new(0, 0, 0),
+                "LED {} should be black (outside segment) at initial state",
+                i
+            );
+        }
+    }
+
+    #[test]
+    fn test_single_led_ring() {
+        let mut effect = ChaseEffect::new(1).unwrap();
+        let mut buffer = [RGB8::default(); 1];
+        for _ in 0..5 {
+            effect.update(&mut buffer).unwrap();
+        }
+        // The single LED must be set (default segment_length=3 clamped to 1 via modulo)
+        assert_ne!(
+            buffer[0],
+            RGB8::new(0, 0, 0),
+            "buffer[0] must be set for a single-LED ring"
+        );
+    }
 }

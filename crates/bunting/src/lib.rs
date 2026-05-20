@@ -382,6 +382,74 @@ mod tests {
     }
 
     #[test]
+    fn test_max_leds_encoding() {
+        // 256 LEDs is the practical maximum used throughout the workspace
+        const MAX_LEDS: usize = 256;
+        let pixels: Vec<RGB8> = (0..MAX_LEDS)
+            .map(|i| {
+                RGB8::new(
+                    (i % 256) as u8,
+                    ((i * 2) % 256) as u8,
+                    ((i * 3) % 256) as u8,
+                )
+            })
+            .collect();
+        let mut buf = vec![0u8; spi_data_len(MAX_LEDS)];
+        prerender_spi(&pixels, &mut buf).unwrap();
+        // The output buffer must be fully populated (no zeros left from a partial encode)
+        // Verify by checking the buffer length matches the required size exactly
+        assert_eq!(buf.len(), spi_data_len(MAX_LEDS));
+        // Every byte must be one of the four valid SPI patterns
+        for &b in &buf {
+            assert!(
+                b == 0x88 || b == 0x8E || b == 0xE8 || b == 0xEE,
+                "unexpected SPI byte: 0x{:02X}",
+                b
+            );
+        }
+    }
+
+    #[test]
+    fn test_rgb_to_grb_color_to_bits_composition() {
+        // RGB(255, 0, 0) in GRB order: G=0, R=255, B=0 → 0x00FF00
+        // Bits: 00000000 11111111 00000000
+        // Bit layout (MSB first):
+        //   bits[0..8]  = G byte = 0x00 → all false
+        //   bits[8..16] = R byte = 0xFF → all true
+        //   bits[16..24]= B byte = 0x00 → all false
+        let red = RGB8::new(255, 0, 0);
+        let grb = rgb_to_grb(red);
+        assert_eq!(grb, 0x00FF00, "rgb_to_grb(red) must be 0x00FF00");
+
+        let bits = color_to_bits(grb);
+
+        // Green byte (bits 0..8): all false — because green channel of red is 0
+        for i in 0..8 {
+            assert!(
+                !bits[i],
+                "bit {} (green byte) should be false for pure red (G=0)",
+                i
+            );
+        }
+        // Red byte (bits 8..16): all true — because red channel is 255
+        for i in 8..16 {
+            assert!(
+                bits[i],
+                "bit {} (red byte) should be true for pure red (R=255)",
+                i
+            );
+        }
+        // Blue byte (bits 16..24): all false — because blue channel of red is 0
+        for i in 16..24 {
+            assert!(
+                !bits[i],
+                "bit {} (blue byte) should be false for pure red (B=0)",
+                i
+            );
+        }
+    }
+
+    #[test]
     fn prerender_spi_conformance_ws2812_spi() {
         // Reference buffer produced by ws2812-spi v0.5.1's write_byte algorithm:
         //   for each color byte, extract 2-bit pairs MSB-first, index into

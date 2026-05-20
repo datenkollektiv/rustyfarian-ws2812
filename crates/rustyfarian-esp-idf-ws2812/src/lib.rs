@@ -137,14 +137,16 @@ impl<'d> WS2812RMT<'d> {
     /// Use this when targeting ESP32 variants other than C3/C6, or when you
     /// need to tune memory block size, DMA usage, or other channel parameters.
     ///
-    /// The RMT channel resolution (`channel_config.resolution`) is also used to
-    /// derive WS2812 pulse durations, so it must be set to `Hertz(10_000_000)`
-    /// (100 ns/tick) for correct protocol timing.
+    /// The RMT channel resolution (`channel_config.resolution`) is used to derive
+    /// WS2812 pulse durations and must be at least `Hertz(10_000_000)` (100 ns/tick)
+    /// for correct protocol timing.
+    /// Higher resolutions (e.g. 20 MHz) also work.
+    /// Returns an error if resolution is below 10 MHz.
     ///
     /// # Arguments
     ///
     /// * `led` - GPIO pin connected to the LED data line
-    /// * `channel_config` - RMT TX channel configuration; resolution must be 10 MHz
+    /// * `channel_config` - RMT TX channel configuration; resolution must be >= 10 MHz
     ///
     /// # Example
     ///
@@ -165,6 +167,11 @@ impl<'d> WS2812RMT<'d> {
         channel_config: TxChannelConfig,
     ) -> Result<Self> {
         let resolution = channel_config.resolution;
+        anyhow::ensure!(
+            resolution.0 >= 10_000_000,
+            "RMT resolution must be >= 10 MHz for WS2812 timing (got {} Hz)",
+            resolution.0
+        );
         let tx = TxChannelDriver::new(led, &channel_config)?;
 
         let t0h = Pulse::new_with_duration(resolution, PinState::High, Duration::from_nanos(350))?;

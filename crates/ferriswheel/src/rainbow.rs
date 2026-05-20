@@ -309,22 +309,49 @@ mod tests {
 
     #[test]
     fn test_counter_clockwise_decrements_hue() {
-        let mut effect = RainbowEffect::new(12)
+        // Both effects start at hue_offset 0 with speed=1.
+        // After one update, CW increments hue_offset by 1 (wrapping_add),
+        // CCW decrements hue_offset by 1 (wrapping_sub → 255).
+        // The second call to current() reflects the post-update state.
+        let mut cw_effect = RainbowEffect::new(12).unwrap().with_speed(1).unwrap();
+        let mut ccw_effect = RainbowEffect::new(12)
+            .unwrap()
+            .with_speed(1)
+            .unwrap()
+            .with_direction(Direction::CounterClockwise);
+
+        let mut cw_buf = [RGB8::default(); 12];
+        let mut ccw_buf = [RGB8::default(); 12];
+
+        // update() renders current state, then advances hue_offset
+        cw_effect.update(&mut cw_buf).unwrap();
+        ccw_effect.update(&mut ccw_buf).unwrap();
+
+        // Now read the post-update state for both
+        cw_effect.current(&mut cw_buf).unwrap();
+        ccw_effect.current(&mut ccw_buf).unwrap();
+
+        // CW hue_offset is now 1; CCW hue_offset is now 255 (wrapped downward).
+        // LED 0 color: CW = hsv(1,255,255), CCW = hsv(255,255,255).
+        // These must differ, confirming CW and CCW advance in opposite directions.
+        assert_ne!(
+            cw_buf[0], ccw_buf[0],
+            "CW and CCW effects starting at hue_offset=0 must produce different colors after one step"
+        );
+
+        // Additionally verify CCW shifts colors between consecutive updates
+        let mut buffer1 = [RGB8::default(); 12];
+        let mut buffer2 = [RGB8::default(); 12];
+        let mut ccw2 = RainbowEffect::new(12)
             .unwrap()
             .with_speed(30)
             .unwrap()
             .with_direction(Direction::CounterClockwise);
-
-        let mut buffer1 = [RGB8::default(); 12];
-        let mut buffer2 = [RGB8::default(); 12];
-
-        effect.update(&mut buffer1).unwrap();
-        effect.update(&mut buffer2).unwrap();
-
-        // Colors should have shifted between updates
+        ccw2.update(&mut buffer1).unwrap();
+        ccw2.update(&mut buffer2).unwrap();
         assert_ne!(
             buffer1[0], buffer2[0],
-            "Counter-clockwise should shift colors"
+            "Counter-clockwise should shift colors between updates"
         );
     }
 

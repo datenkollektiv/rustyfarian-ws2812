@@ -235,12 +235,18 @@ impl PulseEffect {
             if self.brightness >= self.max_brightness {
                 self.increasing = false;
             } else {
-                self.brightness = self.brightness.saturating_add(self.step);
+                self.brightness = self
+                    .brightness
+                    .saturating_add(self.step)
+                    .min(self.max_brightness);
             }
         } else if self.brightness <= self.min_brightness {
             self.increasing = true;
         } else {
-            self.brightness = self.brightness.saturating_sub(self.step);
+            self.brightness = self
+                .brightness
+                .saturating_sub(self.step)
+                .max(self.min_brightness);
         }
 
         color
@@ -424,5 +430,58 @@ mod tests {
 
         let err = PulseEffectError::ZeroStep;
         assert_eq!(format!("{}", err), "step must be greater than 0");
+    }
+
+    #[test]
+    fn test_pulse_reset() {
+        let mut pulse = PulseEffect::with_range(10, 200, 7).unwrap();
+
+        // Advance the animation so brightness moves away from min
+        for _ in 0..30 {
+            pulse.update((255, 0, 0));
+        }
+
+        // After several updates the brightness is somewhere above min_brightness (10)
+        // or may have reversed; either way, reset must bring it back.
+        pulse.reset();
+
+        // After reset, brightness must equal min_brightness (10)
+        assert_eq!(
+            pulse.brightness(),
+            10,
+            "reset must set brightness back to min_brightness"
+        );
+
+        // After reset the direction is increasing: the first update must raise brightness.
+        let brightness_before = pulse.brightness();
+        pulse.update((255, 0, 0));
+        let brightness_after = pulse.brightness();
+        assert!(
+            brightness_after >= brightness_before,
+            "first update after reset must not decrease brightness (direction must be increasing)"
+        );
+    }
+
+    #[test]
+    fn test_brightness_never_exceeds_max() {
+        let min_brightness: u8 = 10;
+        let max_brightness: u8 = 200;
+        let mut pulse = PulseEffect::with_range(min_brightness, max_brightness, 7).unwrap();
+
+        for _ in 0..500 {
+            pulse.update((255, 0, 0));
+            assert!(
+                pulse.brightness() <= max_brightness,
+                "brightness {} exceeds max_brightness {}",
+                pulse.brightness(),
+                max_brightness
+            );
+            assert!(
+                pulse.brightness() >= min_brightness,
+                "brightness {} is below min_brightness {}",
+                pulse.brightness(),
+                min_brightness
+            );
+        }
     }
 }

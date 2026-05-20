@@ -676,4 +676,20 @@ mod tests {
         assert!(buffer[1].r > 0, "tail at 1");
         assert!(buffer[0].r > 0, "tail at 0");
     }
+
+    #[test]
+    fn test_single_led_ring() {
+        // n=1: tail_length in new() = min(6, 1-1) = 0; head always at position 0.
+        let mut effect = RainbowCometEffect::new(1).unwrap();
+        let mut buffer = [RGB8::default(); 1];
+        for _ in 0..5 {
+            effect.update(&mut buffer).unwrap();
+        }
+        // The single LED must be set (head at position 0 % 1 == 0 = hsv_to_rgb(hue,...))
+        assert_ne!(
+            buffer[0],
+            RGB8::new(0, 0, 0),
+            "buffer[0] must be set for a single-LED ring"
+        );
+    }
 }

@@ -552,4 +552,19 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn test_single_led_ring() {
+        let mut effect = SpinnerEffect::new(1).unwrap();
+        let mut buffer = [RGB8::default(); 1];
+        for _ in 0..5 {
+            effect.update(&mut buffer).unwrap();
+        }
+        // The single LED must be set (head is always at position 0 % 1 == 0)
+        assert_ne!(
+            buffer[0],
+            RGB8::new(0, 0, 0),
+            "buffer[0] must be set for a single-LED ring"
+        );
+    }
 }
