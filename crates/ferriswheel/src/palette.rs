@@ -28,9 +28,9 @@ use rgb::RGB8;
 pub struct ColorPalette {
     /// The dominant color.
     pub primary: RGB8,
-    /// The supporting color.
+    /// Reserved for future rendering modes; currently unused.
     pub secondary: RGB8,
-    /// The highlight color.
+    /// Reserved for future rendering modes; currently unused.
     pub accent: RGB8,
 }
 

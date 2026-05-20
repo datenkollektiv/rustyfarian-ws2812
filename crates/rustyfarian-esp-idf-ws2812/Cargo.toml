@@ -11,7 +11,7 @@ keywords = ["ws2812", "neopixel", "esp-idf", "rmt", "led"]
 categories = ["embedded", "hardware-support"]
 
 [build-dependencies]
-embuild = "0.33"
+embuild = "=0.33.1"
 
 [dev-dependencies]
 ferriswheel = { workspace = true }

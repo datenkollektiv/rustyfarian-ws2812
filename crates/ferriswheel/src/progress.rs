@@ -123,15 +123,15 @@ impl ProgressEffect {
 
 impl Effect for ProgressEffect {
     fn update(&mut self, buffer: &mut [RGB8]) -> Result<(), EffectError> {
-        self.update(buffer)
+        ProgressEffect::update(self, buffer)
     }
 
     fn current(&self, buffer: &mut [RGB8]) -> Result<(), EffectError> {
-        self.current(buffer)
+        ProgressEffect::current(self, buffer)
     }
 
     fn reset(&mut self) {
-        self.reset();
+        ProgressEffect::reset(self);
     }
 }
 

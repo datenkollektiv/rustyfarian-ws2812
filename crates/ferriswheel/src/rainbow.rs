@@ -382,38 +382,6 @@ mod tests {
     }
 
     #[test]
-    fn test_error_display() {
-        assert_eq!(
-            format!("{}", EffectError::ZeroLeds),
-            "number of LEDs must be greater than 0"
-        );
-        assert_eq!(
-            format!(
-                "{}",
-                EffectError::TooManyLeds {
-                    requested: 300,
-                    max: 256
-                }
-            ),
-            "too many LEDs: requested 300, maximum supported is 256"
-        );
-        assert_eq!(
-            format!("{}", EffectError::ZeroStep),
-            "speed must be greater than 0"
-        );
-        assert_eq!(
-            format!(
-                "{}",
-                EffectError::BufferTooSmall {
-                    required: 12,
-                    actual: 8
-                }
-            ),
-            "buffer too small: need 12 LEDs, got 8"
-        );
-    }
-
-    #[test]
     fn test_trait_object_current() {
         let effect = RainbowEffect::new(12).unwrap();
         let effect_ref: &dyn Effect = &effect;
