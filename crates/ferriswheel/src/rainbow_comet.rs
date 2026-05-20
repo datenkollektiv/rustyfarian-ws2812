@@ -10,6 +10,7 @@ use crate::effect::{
     EffectError,
 };
 use crate::hsv::hsv_to_rgb;
+use crate::util::clamp_tail_length;
 use rgb::RGB8;
 
 /// A rainbow comet effect with a hue-cycling fading tail.
@@ -129,8 +130,7 @@ impl RainbowCometEffect {
     /// Clamped to `num_leds - 1` so the tail can never wrap around and
     /// overwrite the head LED.
     pub fn with_tail_length(mut self, tail_length: u8) -> Self {
-        let max_tail = self.num_leds.saturating_sub(1).min(u8::MAX as usize) as u8;
-        self.tail_length = tail_length.min(max_tail);
+        self.tail_length = clamp_tail_length(tail_length, self.num_leds);
         self
     }
 

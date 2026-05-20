@@ -5,21 +5,8 @@
 //! gradient (black → dark red → orange → yellow).
 
 use crate::effect::{validate_buffer, validate_num_leds, Effect, EffectError, MAX_LEDS};
+use crate::util::{xorshift32, DEFAULT_SEED};
 use rgb::RGB8;
-
-/// Default PRNG seed — non-zero, matches the convention in `twinkle`.
-const DEFAULT_SEED: u32 = 0x1234_5678;
-
-/// xorshift32 — fast, `no_std`-compatible PRNG with period 2^32 − 1.
-///
-/// State must be non-zero; `debug_assert!` catches misuse in debug builds.
-fn xorshift32(mut x: u32) -> u32 {
-    debug_assert!(x != 0, "xorshift32 state must be non-zero");
-    x ^= x << 13;
-    x ^= x >> 17;
-    x ^= x << 5;
-    x
-}
 
 /// Maps a heat value (0–255) to a fire colour.
 ///

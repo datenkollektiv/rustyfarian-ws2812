@@ -4,7 +4,7 @@
 //! over a full symmetric sine cycle — no flat-bottom plateau.
 
 use crate::effect::{validate_buffer, validate_num_leds, validate_speed, Effect, EffectError};
-use crate::util::{scale_brightness, sine_full};
+use crate::util::{brightness_from_sine, scale_brightness, sine_full};
 use rgb::RGB8;
 
 /// A smooth breathing animation effect.
@@ -119,10 +119,8 @@ impl BreatheEffect {
     }
 
     fn current_brightness(&self) -> u8 {
-        let lo = self.min_brightness.min(self.max_brightness) as u16;
-        let hi = self.min_brightness.max(self.max_brightness) as u16;
-        let sine_val = sine_full(self.phase) as u16;
-        (lo + (sine_val * (hi - lo)) / 255) as u8
+        let sine_val = sine_full(self.phase);
+        brightness_from_sine(sine_val, self.min_brightness, self.max_brightness)
     }
 
     /// Fills the buffer with the current breathe colors without advancing.
