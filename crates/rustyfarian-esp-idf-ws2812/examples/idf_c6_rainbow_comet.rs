@@ -38,7 +38,7 @@
 
 use ferriswheel::RainbowCometEffect;
 use rgb::RGB8;
-use rustyfarian_esp_idf_ws2812::WS2812RMT;
+use rustyfarian_esp_idf_ws2812::Ws2812Rmt;
 use std::thread;
 use std::time::Duration;
 
@@ -48,7 +48,7 @@ fn main() -> anyhow::Result<()> {
     let peripherals = esp_idf_hal::peripherals::Peripherals::take()?;
 
     const NUM_LEDS: usize = 24;
-    let mut ws = WS2812RMT::new(peripherals.pins.gpio18)?;
+    let mut ws = Ws2812Rmt::new(peripherals.pins.gpio18)?;
     let mut effect = RainbowCometEffect::new(NUM_LEDS)
         .unwrap()
         .with_hue(0)
