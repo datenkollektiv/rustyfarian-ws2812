@@ -201,7 +201,11 @@ Documents that should be reviewed for staleness during quarterly cycles:
       family that's available; always include `hal_c6_multitask_async`.
 - [ ] Review `docs/project-lore.md` entries for accuracy; remove resolved items.
 - [ ] Refresh `docs/esp-hal-version-matrix.md` if the stack moved.
-- [ ] Verify `MAX_LEDS = 256` is still valid for supported targets, and confirm the `Effect` trait contract still matches current implementations and examples (method signatures, buffer-size assumptions, and any trait bounds).
+- [ ] Verify LED/effect contract assumptions:
+  - [ ] Confirm `MAX_LEDS = 256` is still valid for all supported targets.
+  - [ ] Confirm `Effect` trait method signatures still match current implementations and examples.
+  - [ ] Confirm buffer-size assumptions remain consistent across trait, implementations, and examples.
+  - [ ] Confirm any `Effect` trait bounds still match current implementations and examples.
 - [ ] Re-evaluate ignored advisories in `deny.toml`.
 
 ## Maintenance Protocol
