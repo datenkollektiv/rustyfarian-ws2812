@@ -457,4 +457,38 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn test_reset_fully_restores_initial_state() {
+        let mut effect = SectionEffect::new(8).unwrap();
+
+        // Capture the initial buffer (no sections: all dark)
+        let mut buf_initial = [RGB8::new(99, 99, 99); 8];
+        effect.current(&mut buf_initial).unwrap();
+
+        // Set a section, render, then reset
+        effect
+            .set_sections(&[(red_palette(), 1), (blue_palette(), 1)])
+            .unwrap();
+        let mut buf_after_set = [RGB8::default(); 8];
+        effect.update(&mut buf_after_set).unwrap();
+
+        // Sanity: the buffer after set_sections should differ from initial
+        assert_ne!(
+            buf_initial, buf_after_set,
+            "buffer after set_sections must differ from initial"
+        );
+
+        // Reset must restore everything
+        effect.reset();
+
+        let mut buf_after_reset = [RGB8::new(99, 99, 99); 8];
+        effect.current(&mut buf_after_reset).unwrap();
+
+        assert_eq!(
+            buf_initial, buf_after_reset,
+            "buffer after reset must exactly match the initial buffer"
+        );
+        assert_eq!(effect.count(), 0, "reset must clear the section count to 0");
+    }
 }

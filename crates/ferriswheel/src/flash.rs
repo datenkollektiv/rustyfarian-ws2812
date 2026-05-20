@@ -263,7 +263,20 @@ mod tests {
 
     #[test]
     fn test_reset_restores_initial_state() {
-        let mut effect = FlashEffect::new(4).unwrap().with_duty(2, 2).unwrap();
+        let mut effect = FlashEffect::new(4)
+            .unwrap()
+            .with_color(RGB8::new(255, 0, 0))
+            .with_duty(2, 2)
+            .unwrap();
+
+        // Capture the buffer from a freshly constructed instance (never updated)
+        let fresh = FlashEffect::new(4)
+            .unwrap()
+            .with_color(RGB8::new(255, 0, 0))
+            .with_duty(2, 2)
+            .unwrap();
+        let mut fresh_buf = [RGB8::default(); 4];
+        fresh.current(&mut fresh_buf).unwrap();
 
         let mut buffer = [RGB8::default(); 4];
 
@@ -274,6 +287,14 @@ mod tests {
 
         effect.reset();
         assert!(effect.is_on(), "reset should return to on phase");
+
+        // After reset, current() must produce the same buffer as a fresh instance
+        let mut after_reset_buf = [RGB8::default(); 4];
+        effect.current(&mut after_reset_buf).unwrap();
+        assert_eq!(
+            after_reset_buf, fresh_buf,
+            "buffer after reset must equal buffer from a freshly constructed instance"
+        );
     }
 
     #[test]

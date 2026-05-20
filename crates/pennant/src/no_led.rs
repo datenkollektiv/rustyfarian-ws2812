@@ -114,4 +114,11 @@ mod tests {
                 .unwrap();
         });
     }
+
+    #[test]
+    fn test_no_led_default() {
+        // Validates that the Default derivation compiles and does not panic.
+        // Mirrors the doc example's construction path.
+        let _ = NoLed::default();
+    }
 }

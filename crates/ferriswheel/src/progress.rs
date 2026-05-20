@@ -412,4 +412,41 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn test_update_is_a_no_op() {
+        let mut effect = ProgressEffect::new(8)
+            .unwrap()
+            .with_fill_color(RGB8::new(0, 255, 0))
+            .with_empty_color(RGB8::new(0, 0, 0));
+
+        effect.set_progress(128);
+
+        let mut buf1 = [RGB8::default(); 8];
+        let mut buf2 = [RGB8::default(); 8];
+
+        // current() captures the rendered state without advancing
+        effect.current(&mut buf1).unwrap();
+        // update() must produce the identical buffer (no state advance)
+        effect.update(&mut buf2).unwrap();
+        assert_eq!(
+            buf1, buf2,
+            "update() must produce the same output as current() for ProgressEffect"
+        );
+
+        // The progress value must be unchanged after calling update()
+        assert_eq!(
+            effect.progress(),
+            128,
+            "update() must not change the progress value"
+        );
+
+        // Calling current() again after update() must still match
+        let mut buf3 = [RGB8::default(); 8];
+        effect.current(&mut buf3).unwrap();
+        assert_eq!(
+            buf2, buf3,
+            "current() after update() must produce the same output"
+        );
+    }
 }
