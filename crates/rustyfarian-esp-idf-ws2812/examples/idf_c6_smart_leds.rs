@@ -6,7 +6,7 @@
 //! ferriswheel (RainbowEffect)
 //!     └─► [RGB8; 12]
 //!         └─► SmartLedsWrite::write()
-//!             └─► WS2812RMT (ESP-IDF RMT peripheral)
+//!             └─► Ws2812Rmt (ESP-IDF RMT peripheral)
 //!                 └─► LEDs
 //! ```
 //!
@@ -60,7 +60,7 @@
 
 use ferriswheel::{Direction, RainbowEffect};
 use rgb::RGB8;
-use rustyfarian_esp_idf_ws2812::WS2812RMT;
+use rustyfarian_esp_idf_ws2812::Ws2812Rmt;
 use smart_leds_trait::SmartLedsWrite;
 use std::thread;
 use std::time::Duration;
@@ -71,7 +71,7 @@ fn main() -> anyhow::Result<()> {
     let peripherals = esp_idf_hal::peripherals::Peripherals::take()?;
 
     const NUM_LEDS: usize = 12;
-    let mut ws = WS2812RMT::new(peripherals.pins.gpio18)?;
+    let mut ws = Ws2812Rmt::new(peripherals.pins.gpio18)?;
     let mut effect = RainbowEffect::new(NUM_LEDS)
         .unwrap()
         .with_speed(2)

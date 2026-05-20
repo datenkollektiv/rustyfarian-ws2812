@@ -9,8 +9,7 @@ resolved upstream, the first crates.io wave (`bunting`, `pennant`,
 target is now verified clean under `esp-hal 1.1.0`.
 The 2026-05-05 vision review confirmed AVR as a first-class supported MCU
 family and ruled in-workspace networking demos (e.g. ESP-NOW) out of scope.
-Near-term priorities are hardening CI (AVR build), fixing a naming inconsistency
-in the ESP-IDF driver, and tightening the `cargo-deny` configuration.
+Near-term priorities are hardening CI (AVR build) and tightening the `cargo-deny` configuration.
 Mid-term priorities are removing the `esp-idf-hal` `send_and_wait` workaround
 when the upstream fix lands, `SmartLedsWriteAsync` for the async driver, and
 scoping `MAX_LEDS` correctly.
@@ -35,7 +34,6 @@ timeline
     title Fuzzy Rustyfarian WS2812 Roadmap
 
     Near term : AVR build in CI
-              : Deprecate WS2812RMT → Ws2812Rmt (ESP-IDF driver)
               : cargo-deny — ban multiple rgb versions
               : Publish HAL driver crates to crates.io (0.6.0 wave)
 
@@ -125,11 +123,9 @@ versions in the dep graph at the time of the change.
 The three HAL driver crates — `rustyfarian-esp-idf-ws2812`, `rustyfarian-esp-hal-ws2812`, and `rustyfarian-avr-ws2812` — remain unpublished.
 
 The Xtensa target (`xtensa-esp32-none-elf`) was confirmed clean 2026-05-20 under `esp-hal 1.1.0` via `just check-hal-xtensa`.
-The one remaining gate before publishing:
+The `WS2812RMT` deprecation gate is cleared: `Ws2812Rmt` is now the primary name, with `WS2812RMT` as a `#[deprecated]` alias.
 
-- **`WS2812RMT` deprecation** (Near term) — the `Ws2812Rmt` rename alias must land in the ESP-IDF crate before `0.6.0` ships so it is the first version external users see.
-
-Once that is done:
+Remaining steps before publishing:
 
 - Bump all three HAL crates to `0.6.0`.
 - Add or verify `[package.metadata.docs.rs]` in each crate's `Cargo.toml`: set `targets` to the appropriate cross-compilation target and `features` to the required chip feature (e.g. `esp32c6`).
@@ -142,24 +138,6 @@ Once that is done:
 - Add docs.rs badges to the README rows for all three crates.
 
 ---
-
-### Deprecate `WS2812RMT` in favour of `Ws2812Rmt` (ESP-IDF driver)
-
-`rustyfarian-esp-idf-ws2812` exports `WS2812RMT` (all-caps acronym style).
-`rustyfarian-esp-hal-ws2812` exports `Ws2812Rmt` (Rust idiomatic UpperCamelCase,
-per RFC 0430).
-Both names appear in the same README, creating a permanent papercut for anyone
-working with both drivers.
-
-Fix: add a `#[deprecated]` type alias in the ESP-IDF crate:
-
-```rust
-#[deprecated(since = "0.6.0", note = "use `Ws2812Rmt` for consistency with the esp-hal driver")]
-pub type WS2812RMT<'a> = Ws2812Rmt<'a>;
-```
-
-Drop the alias in 0.7.0.
-Non-breaking until 0.7.0; update all examples and README references at the same time.
 
 ### Document async support status in README driver table
 

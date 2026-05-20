@@ -10,10 +10,10 @@
 //! # Example
 //!
 //! ```ignore
-//! use rustyfarian_esp_idf_ws2812::WS2812RMT;
+//! use rustyfarian_esp_idf_ws2812::Ws2812Rmt;
 //! use rgb::RGB8;
 //!
-//! let mut led = WS2812RMT::new(peripherals.pins.gpio8)?;
+//! let mut led = Ws2812Rmt::new(peripherals.pins.gpio8)?;
 //!
 //! led.set_pixel(RGB8::new(255, 0, 0))?;
 //!
@@ -53,21 +53,27 @@ use rgb::RGB8;
 /// # Example
 ///
 /// ```ignore
-/// use rustyfarian_esp_idf_ws2812::WS2812RMT;
+/// use rustyfarian_esp_idf_ws2812::Ws2812Rmt;
 /// use rgb::RGB8;
 ///
 /// let peripherals = esp_idf_hal::peripherals::Peripherals::take()?;
-/// let mut led = WS2812RMT::new(peripherals.pins.gpio8)?;
+/// let mut led = Ws2812Rmt::new(peripherals.pins.gpio8)?;
 ///
 /// led.set_pixel(RGB8::new(255, 0, 0))?;
 ///
 /// let colors = [RGB8::new(255, 0, 0), RGB8::new(0, 255, 0), RGB8::new(0, 0, 255)];
 /// led.set_pixels_slice(&colors)?;
 /// ```
-pub struct WS2812RMT<'a> {
+pub struct Ws2812Rmt<'a> {
     tx: TxChannelDriver<'a>,
     encoder_config: BytesEncoderConfig,
 }
+
+#[deprecated(
+    since = "0.6.0",
+    note = "use `Ws2812Rmt` for consistency with the esp-hal driver"
+)]
+pub type WS2812RMT<'a> = Ws2812Rmt<'a>;
 
 /// Transmits bytes using the C-side `BytesEncoder` directly, bypassing
 /// `send_and_wait` which wraps the encoder in a Rust `EncoderWrapper`.
@@ -96,7 +102,7 @@ fn transmit_bytes(
     Ok(())
 }
 
-impl<'d> WS2812RMT<'d> {
+impl<'d> Ws2812Rmt<'d> {
     /// Creates a new WS2812 driver with default channel configuration.
     ///
     /// The default uses one RMT memory block of 48 symbols, which is the block
@@ -115,10 +121,10 @@ impl<'d> WS2812RMT<'d> {
     /// # Example
     ///
     /// ```ignore
-    /// let mut led = WS2812RMT::new(peripherals.pins.gpio8)?;
+    /// let mut led = Ws2812Rmt::new(peripherals.pins.gpio8)?;
     /// ```
     ///
-    /// [`new_with_channel_config`]: WS2812RMT::new_with_channel_config
+    /// [`new_with_channel_config`]: Ws2812Rmt::new_with_channel_config
     pub fn new(led: impl OutputPin + 'd) -> Result<Self> {
         // 48 symbols = one RMT memory block on ESP32-C3/C6 (default 64 would round
         // up to 2 blocks, exhausting all TX channels on chips with only 2).
@@ -160,7 +166,7 @@ impl<'d> WS2812RMT<'d> {
     ///     memory_access: MemoryAccess::Indirect { memory_block_symbols: 64 },
     ///     ..Default::default()
     /// };
-    /// let mut led = WS2812RMT::new_with_channel_config(peripherals.pins.gpio18, channel_config)?;
+    /// let mut led = Ws2812Rmt::new_with_channel_config(peripherals.pins.gpio18, channel_config)?;
     /// ```
     pub fn new_with_channel_config(
         led: impl OutputPin + 'd,
@@ -218,7 +224,7 @@ impl<'d> WS2812RMT<'d> {
 }
 
 #[cfg(feature = "pennant")]
-impl pennant::StatusLed for WS2812RMT<'_> {
+impl pennant::StatusLed for Ws2812Rmt<'_> {
     type Error = anyhow::Error;
 
     fn set_color(&mut self, color: RGB8) -> Result<(), Self::Error> {
@@ -226,7 +232,7 @@ impl pennant::StatusLed for WS2812RMT<'_> {
     }
 }
 
-impl smart_leds_trait::SmartLedsWrite for WS2812RMT<'_> {
+impl smart_leds_trait::SmartLedsWrite for Ws2812Rmt<'_> {
     type Error = anyhow::Error;
     type Color = smart_leds_trait::RGB8;
 

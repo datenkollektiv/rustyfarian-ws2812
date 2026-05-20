@@ -160,12 +160,12 @@ rustyfarian-esp-idf-ws2812 = { git = "https://github.com/datenkollektiv/rustyfar
 ## Example
 
 ```rust
-use rustyfarian_esp_idf_ws2812::WS2812RMT;
+use rustyfarian_esp_idf_ws2812::Ws2812Rmt;
 use pennant::PulseEffect;
 use rgb::RGB8;
 
 // Initialize driver
-let mut driver = WS2812RMT::new(gpio_pin)?;
+let mut driver = Ws2812Rmt::new(gpio_pin)?;
 
 // Set a single pixel
 driver.set_pixel(RGB8::new(255, 0, 0))?;
@@ -185,10 +185,10 @@ For LED rings, use `RainbowEffect` from the `ferriswheel` crate:
 `RainbowEffect::new(num_leds)` accepts `1..=MAX_LEDS` LEDs (currently 256).
 
 ```rust
-use rustyfarian_esp_idf_ws2812::WS2812RMT;
+use rustyfarian_esp_idf_ws2812::Ws2812Rmt;
 use ferriswheel::{RainbowEffect, Direction, RGB8};
 
-let mut driver = WS2812RMT::new(gpio_pin)?;
+let mut driver = Ws2812Rmt::new(gpio_pin)?;
 
 let mut rainbow = RainbowEffect::new(12)?
     .with_speed(2)?
