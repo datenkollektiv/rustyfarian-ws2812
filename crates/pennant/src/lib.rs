@@ -25,7 +25,8 @@
 //!
 //! # PulseEffect
 //!
-//! The [`PulseEffect`] creates smooth pulsing brightness animations.
+//! The [`PulseEffect`] creates smooth pulsing brightness animations on a single LED.
+//! This is a lightweight single-LED brightness helper; for ring animations see `ferriswheel::PulseEffect`.
 
 use rgb::RGB8;
 

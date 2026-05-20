@@ -1,6 +1,6 @@
 //! ESP32-C6 Async Pulse Example (esp-hal + Embassy, bare-metal)
 //!
-//! Runs a [`PulseEffect`] (blue) on a 12-LED WS2812B ring using the async RMT driver
+//! Runs a manual blue brightness ramp on a 12-LED WS2812B ring using the async RMT driver
 //! and the [`AsyncStatusLed`] trait.
 //! The animation loop uses [`embassy_time::Timer`] to yield between frames.
 //!

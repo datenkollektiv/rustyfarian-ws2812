@@ -125,12 +125,11 @@ Features requiring the `unstable` gate in `esp-hal 1.0.0`:
 
 ## Implications for `rustyfarian-esp-hal-ws2812`
 
-The workspace already pins `esp-hal = "1.0.0"` with `features = ["esp32c6", "unstable"]`.
-The current `esp-rtos` dependency is at `0.2.0`, which matches this matrix exactly.
-No version drift exists for the crates currently used.
+The workspace currently pins `esp-hal = "=1.1.0"` with `features = ["esp32c6", "unstable"]`.
+The current `esp-rtos` dependency is at `0.3.0` (released 2026-04-16).
 
 If ESP-NOW or WiFi support were added to this workspace in the future, the compatible
-version would be `esp-radio = "0.17.0"` with `features = ["esp-now", "unstable"]`.
+version would be `esp-radio = "0.18.0"` with `features = ["esp-now", "unstable"]` (released 2026-04-16).
 
 ---
 

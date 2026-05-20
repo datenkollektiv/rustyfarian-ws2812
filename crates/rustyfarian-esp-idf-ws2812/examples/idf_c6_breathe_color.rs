@@ -7,7 +7,7 @@
 //! the breathing phase* — the brightness envelope continues smoothly while
 //! the color shifts gradually around the spectrum.
 //!
-//! ## Comparison with [`idf_c6_rainbow`](idf_c6_rainbow)
+//! ## Comparison with [`idf_c6_effects`](idf_c6_effects)
 //!
 //! [`PulseEffect`] uses a half-wave sine: brightness rises to peak, falls to
 //! zero, and pauses at zero for roughly a quarter of the cycle.

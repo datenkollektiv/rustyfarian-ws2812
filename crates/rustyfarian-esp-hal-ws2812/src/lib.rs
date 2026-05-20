@@ -186,16 +186,12 @@ pub const fn buffer_size(num_leds: usize) -> usize {
 ///
 /// # Error recovery
 ///
-/// Recovery depends on which driver mode is in use:
+/// **Blocking** ([`Ws2812Rmt<'d, Blocking, N>`](Ws2812Rmt)):
+/// - If `Channel::transmit()` fails, the channel is consumed and unrecoverable; the driver must be dropped and re-created.
+/// - If `SingleShotTxTransaction::wait()` fails, the channel is returned; the driver is immediately reusable.
 ///
-/// **Blocking** ([`Ws2812Rmt<'d, Blocking, N>`](Ws2812Rmt)) — when `transmit()` fails, the
-/// underlying `Channel` is consumed by `esp-hal` and cannot be recovered.
-/// All subsequent calls on the same driver instance will return [`Error::Transmit`].
-/// The driver must be dropped and re-created from a fresh channel.
-///
-/// **Async** ([`Ws2812Rmt<'d, Async, N>`](Ws2812Rmt)) — the async `Channel::transmit()` takes
-/// `&mut self` and never consumes the channel, so the driver remains fully usable after a
-/// [`Error::Transmit`] — simply retry or handle the error as appropriate.
+/// **Async** ([`Ws2812Rmt<'d, Async, N>`](Ws2812Rmt)) — `Channel::transmit()` takes `&mut self`
+/// (does not consume the channel), so the driver remains fully usable after [`Error::Transmit`].
 ///
 /// [`Error::BufferTooSmall`] is always recoverable in both modes: the buffer is never written
 /// and no transmission is attempted.
