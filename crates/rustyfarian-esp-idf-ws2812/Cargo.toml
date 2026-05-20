@@ -7,6 +7,8 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "WS2812 (NeoPixel) LED driver using ESP-IDF RMT peripheral"
+readme = "README.md"
+documentation = "https://docs.rs/rustyfarian-esp-idf-ws2812"
 keywords = ["ws2812", "neopixel", "esp-idf", "rmt", "led"]
 categories = ["embedded", "hardware-support"]
 
