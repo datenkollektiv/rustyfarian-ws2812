@@ -70,7 +70,7 @@ Future bumps should land via the maintenance workflow rather than transparent fr
 - [x] Does `esp-bootloader-esp-idf 0.5` still produce an `esp_app_desc_t` accepted by the IDF v5.3.3 bootloader, or does it require a newer IDF? **Accepted in the checked HAL builds.** Keep the existing IDF v5.3.3 bootloader workaround unless a hardware flashing test proves it obsolete.
 - [x] Does `embassy-sync` still resolve to `0.7` under `esp-rtos 0.3`, or does the workspace pin need to move to `0.8`? **Moved to `0.8.0`.** `esp-sync 0.2.1` still pulls older `embassy-sync` versions internally for compatibility shims, but application code resolves through the workspace-pinned `embassy-sync 0.8.0`.
 - [x] Does `esp-println 0.17` change the `jtag-serial` feature behaviour (e.g. ROM-based vs USB-Serial-JTAG peripheral) — relevant for the panicking `println!` handler kept in examples? **No compile-time break found.** Representative C6 async examples with `esp-println` still compile.
-- [ ] Does the upgraded stack compile for the ESP32 / WROOM-32 Xtensa bare-metal examples in this local environment? **Not verified here.** `cargo check --target xtensa-esp32-none-elf` could not run because the Xtensa target/core was not installed locally; this remains a toolchain-gated follow-up.
+- [x] Does the upgraded stack compile for the ESP32 / WROOM-32 Xtensa bare-metal examples in this local environment? **Yes — confirmed 2026-05-20 on `esp` toolchain (Xtensa Rust 1.95.0.0) after `just setup esp`.** The `esp` toolchain has no prebuilt `rust-std` for `xtensa-esp32-none-elf`; the global `[unstable] build-std = ["std", "panic_abort"]` in `.cargo/config.toml` caused Cargo to build `std` from source and fail (bare-metal target has no OS-level allocator). Fix: pass `-Z build-std=core` explicitly in `just check-hal-xtensa` to override the config. Both `cargo +esp check --features esp32,unstable` and `--features esp32,unstable,rt --examples` pass clean.
 
 ## Outcome
 
@@ -92,7 +92,7 @@ Future bumps should land via the maintenance workflow rather than transparent fr
 - `just test` — passed.
 - `just fmt-check` — passed.
 
-Residual risk: the ESP32 / WROOM-32 Xtensa examples still need a local check with the Xtensa bare-metal toolchain installed.
+Residual risk: none. Xtensa confirmed 2026-05-20 — see the closed open question above.
 
 ## State
 

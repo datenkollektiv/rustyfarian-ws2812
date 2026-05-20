@@ -4,7 +4,7 @@
 
 The workspace currently pins `esp-hal 1.1.0` and the coordinated companion crates released
 on 2026-04-16 (with `esp-hal 1.1.0` itself on 2026-04-24).
-Migration was tracked by [`docs/features/esp-hal-stack-upgrade-april-2026-v1.md`](features/esp-hal-stack-upgrade-april-2026-v1.md)
+Migration was tracked by [`docs/features/archive/esp-hal-stack-upgrade-april-2026-v1.md`](features/archive/esp-hal-stack-upgrade-april-2026-v1.md)
 and applied during the 2026-04-29 quarterly maintenance pass.
 
 | Crate                    | Current    | Notes                                                                                                                                  |

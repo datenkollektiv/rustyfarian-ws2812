@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - `rustyfarian-esp-idf-ws2812`: `WS2812RMT::new_with_channel_config(led, TxChannelConfig)` — new constructor for callers who need to override RMT channel parameters (memory block size, DMA mode, etc.) for ESP32 variants beyond C3/C6
+- `rustyfarian-esp-hal-ws2812`: confirmed Xtensa ESP32 / WROOM-32 target (`xtensa-esp32-none-elf`) compiles clean under `esp-hal 1.1.0` with the `esp` toolchain (Xtensa Rust 1.95.0.0); `just check-hal-xtensa` added to the justfile for ongoing CI coverage
 
 ### Changed
 
