@@ -118,9 +118,7 @@ impl SpinnerEffect {
         let head = self.position as usize % n;
 
         // Clear all LEDs
-        for led in buffer.iter_mut().take(n) {
-            *led = RGB8::new(0, 0, 0);
-        }
+        buffer[..n].fill(RGB8::default());
 
         // Head at full brightness
         buffer[head] = self.color;

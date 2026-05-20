@@ -112,9 +112,7 @@ impl ChaseEffect {
         let n = self.num_leds;
 
         // Clear all LEDs
-        for led in buffer.iter_mut().take(n) {
-            *led = RGB8::new(0, 0, 0);
-        }
+        buffer[..n].fill(RGB8::default());
 
         // Fill the segment at the current position (wrapping around)
         for i in 0..self.segment_length as usize {
