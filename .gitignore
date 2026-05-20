@@ -10,5 +10,5 @@ Cargo.lock
 CLAUDE.md
 release/
 review-queue/
-archive/
+/archive/
 audit/

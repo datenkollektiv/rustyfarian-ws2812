@@ -4,8 +4,9 @@
 
 The April 2026 `esp-hal` release wave (`v0.5.0`) is shipped, the AVR bit-bang
 driver is the recommended backend (per ADR 007), the GPIO8 RMT hang is
-resolved upstream, and the first crates.io wave (`bunting`, `pennant`,
-`ferriswheel` @ `0.5.0`) is live.
+resolved upstream, the first crates.io wave (`bunting`, `pennant`,
+`ferriswheel` @ `0.5.0`) is live, and the Xtensa ESP32 / WROOM-32 bare-metal
+target is now verified clean under `esp-hal 1.1.0`.
 The 2026-05-05 vision review confirmed AVR as a first-class supported MCU
 family and ruled in-workspace networking demos (e.g. ESP-NOW) out of scope.
 Near-term priorities are hardening CI (AVR build), fixing a naming inconsistency
@@ -33,8 +34,6 @@ All completed items are documented in the [CHANGELOG](../CHANGELOG.md).
 timeline
     title Fuzzy Rustyfarian WS2812 Roadmap
 
-    Ready     : Confirm esp-hal stack on ESP32 / WROOM-32 Xtensa target (feature-doc)
-
     Near term : AVR build in CI
               : Deprecate WS2812RMT → Ws2812Rmt (ESP-IDF driver)
               : cargo-deny — ban multiple rgb versions
@@ -45,6 +44,7 @@ timeline
               : Scope MAX_LEDS and fix positional effects for strips > 256 LEDs
               : Add grid module to README + scope guard in grid.rs
               : Document async support status in README driver table
+              : Condense justfile to a meaningful number of recipes
 
     Long term : Property tests for pure crates
               : Track rgb 0.9 migration
@@ -124,12 +124,12 @@ versions in the dep graph at the time of the change.
 `bunting`, `pennant`, and `ferriswheel` were published as the first crates.io wave at `0.5.0`.
 The three HAL driver crates — `rustyfarian-esp-idf-ws2812`, `rustyfarian-esp-hal-ws2812`, and `rustyfarian-avr-ws2812` — remain unpublished.
 
-This item depends on two prerequisites already tracked above:
+The Xtensa target (`xtensa-esp32-none-elf`) was confirmed clean 2026-05-20 under `esp-hal 1.1.0` via `just check-hal-xtensa`.
+The one remaining gate before publishing:
 
-1. **Xtensa target confirmation** (Ready band) — `rustyfarian-esp-hal-ws2812` documents three supported targets; the Xtensa path must be verified before the crate docs can make that claim.
-2. **`WS2812RMT` deprecation** (Near term) — the `Ws2812Rmt` rename alias must land in the ESP-IDF crate before `0.6.0` ships so it is the first version external users see.
+- **`WS2812RMT` deprecation** (Near term) — the `Ws2812Rmt` rename alias must land in the ESP-IDF crate before `0.6.0` ships so it is the first version external users see.
 
-Once both are done:
+Once that is done:
 
 - Bump all three HAL crates to `0.6.0`.
 - Add or verify `[package.metadata.docs.rs]` in each crate's `Cargo.toml`: set `targets` to the appropriate cross-compilation target and `features` to the required chip feature (e.g. `esp32c6`).
@@ -172,18 +172,6 @@ by design: ESP-IDF users spawn threads; Embassy is the async runtime for
 bare-metal only (see ADR 008).
 If a future `esp-idf-hal` release adds async RMT (tracked below), this entry
 can be updated.
-
-### Confirm `esp-hal` stack on the ESP32 / WROOM-32 Xtensa target
-
-The April 2026 `esp-hal` upgrade (`v0.5.0`) was verified on the RISC-V targets
-(C3 / C6) but not on the Xtensa target — the local toolchain didn't have the
-Xtensa core installed when the release was cut.
-Run `just check-hal-xtensa` (or the equivalent `cargo check --target xtensa-esp32-none-elf`
-under the `esp` toolchain) to close the open question recorded in
-[`docs/features/esp-hal-stack-upgrade-april-2026-v1.md`](features/esp-hal-stack-upgrade-april-2026-v1.md)
-"Open Questions".
-If breakage surfaces, file follow-up work; if it builds clean, mark the open
-question resolved and archive the feature doc.
 
 ### Remove `send_and_wait` workaround when `esp-idf-hal` fixes `EncoderWrapper`
 

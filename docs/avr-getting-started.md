@@ -18,7 +18,7 @@ For the ecosystem research behind this driver, see [research-avr-ws2812.md](rese
 If you have a 5 V Arduino Nano with a new bootloader, a 12-LED WS2812 ring is wired to D11, and the toolchain installed:
 
 ```sh
-just setup-avr
+just setup avr
 just flash-avr-example
 ```
 
@@ -108,7 +108,7 @@ sudo apt install gcc-avr binutils-avr avr-libc avrdude
 ### Rust AVR nightly
 
 ```sh
-just setup-avr
+just setup avr
 ```
 
 This installs `nightly-2025-04-27` and the `rust-src` component needed for `-Z build-std=core`.
