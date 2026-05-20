@@ -1,7 +1,7 @@
-# Embassy Task Spawning Patterns for esp-hal 1.0.0 + esp-rtos 0.2
+# Embassy Task Spawning Patterns for esp-hal 1.1.0 + esp-rtos 0.3
 
 This document answers five concrete questions about spawning Embassy tasks on ESP32
-with `esp-hal 1.0.0` and `esp-rtos 0.2`.
+with `esp-hal 1.1.0` and `esp-rtos 0.3`.
 All answers are grounded in the actual versions pinned in this workspace's `Cargo.toml`
 and verified against the official docs and release notes.
 
@@ -9,7 +9,7 @@ and verified against the official docs and release notes.
 
 `make_static!` is a macro in the `static_cell` crate (not in `esp-hal` or `esp-rtos`).
 It requires a **nightly** compiler and the `#![feature(type_alias_impl_trait)]` attribute.
-`esp-rtos 0.2` exports no `mk_static` or `make_static` macro of its own —
+`esp-rtos 0.3` exports no `mk_static` or `make_static` macro of its own —
 its public API is: one attribute macro (`#[esp_rtos::main]`), two modules (`embassy`, `semaphore`),
 and two functions (`start`, `start_with_idle_hook`).
 
@@ -99,7 +99,7 @@ async fn led_task(blocking_channel: Channel<'static, Blocking, Tx>) {
 ```
 
 The docs confirm: `into_async()` is an `Rmt`-level conversion, not per-channel.
-There is **no `Channel::into_async()`** in esp-hal 1.0.0.
+There is **no `Channel::into_async()`** in esp-hal 1.1.0.
 The correct approach is `Rmt::into_async()` before calling `configure_tx()`.
 
 ### Concrete complete example
@@ -216,7 +216,7 @@ let effect_id = EFFECT_SIGNAL.wait().await;
 If multiple tasks call `.wait()` concurrently, only one is woken.
 Use `embassy_sync::watch::Watch` if you need all watchers notified.
 
-## GPIO Button Input: Async API in esp-hal 1.0.0
+## GPIO Button Input: Async API in esp-hal 1.1.0
 
 `Input<'d>` carries a `'d` lifetime — it does **not** need to be `'static` in itself.
 However, if it is passed to a spawned `#[embassy_executor::task]`, the task argument must be
@@ -312,8 +312,8 @@ spawner.spawn(led_task(channel)).unwrap();
 
 | Question                           | Answer                                                                                                                   |
 |:-----------------------------------|:-------------------------------------------------------------------------------------------------------------------------|
-| `make_static!` in esp-hal 1.0.0?   | No — lives in `static_cell` crate (nightly) or define `mk_static!` locally (stable)                                      |
-| `make_static!` in esp-rtos 0.2?    | No — `esp-rtos` exports no such macro                                                                                    |
+| `make_static!` in esp-hal 1.1.0?   | No — lives in `static_cell` crate (nightly) or define `mk_static!` locally (stable)                                      |
+| `make_static!` in esp-rtos 0.3?    | No — `esp-rtos` exports no such macro                                                                                    |
 | Needed for single-core Embassy?    | Usually **no** — `esp_hal::init()` returns `'static` peripherals; `Channel<'static, ...>` satisfies task bounds directly |
 | Pass RMT channel to task           | Create `Channel<'static, Async, Tx>` in `main` via `Rmt::into_async()`, then spawn                                       |
 | `Channel::into_async()`?           | **Does not exist** — `into_async()` is on `Rmt`, not `Channel`                                                           |
@@ -339,16 +339,16 @@ directly `'static` from `esp_hal::init()` or are valid `static` globals by const
 
 ---
 
-*Research date: 2026-03-27*
+*Research date: 2026-03-27. Updated 2026-05-20: esp-rtos 0.2 → 0.3, esp-hal 1.0.0 → 1.1.0.*
 
 Sources:
 - [esp-hal 1.0.0 release announcement — Espressif Developer Portal](https://developer.espressif.com/blog/2025/10/esp-hal-1/)
 - [esp-hal 1.0.0 beta announcement — Espressif Developer Portal](https://developer.espressif.com/blog/2025/02/rust-esp-hal-beta/)
 - [esp-rs/esp-hal Releases — GitHub](https://github.com/esp-rs/esp-hal/releases)
-- [esp_hal::rmt::Channel — docs.espressif.com](https://docs.espressif.com/projects/rust/esp-hal/1.0.0/esp32c6/esp_hal/rmt/struct.Channel.html)
-- [esp_hal::rmt::Rmt — docs.espressif.com](https://docs.espressif.com/projects/rust/esp-hal/1.0.0/esp32c6/esp_hal/rmt/struct.Rmt.html)
-- [esp_hal::gpio::Input — docs.espressif.com](https://docs.espressif.com/projects/rust/esp-hal/1.0.0-rc.1/esp32/esp_hal/gpio/struct.Input.html)
-- [esp_rtos — docs.espressif.com](https://docs.espressif.com/projects/rust/esp-rtos/0.2.0/esp32c6/esp_rtos/index.html)
+- [esp_hal::rmt::Channel — docs.espressif.com](https://docs.espressif.com/projects/rust/esp-hal/1.1.0/esp32c6/esp_hal/rmt/struct.Channel.html)
+- [esp_hal::rmt::Rmt — docs.espressif.com](https://docs.espressif.com/projects/rust/esp-hal/1.1.0/esp32c6/esp_hal/rmt/struct.Rmt.html)
+- [esp_hal::gpio::Input — docs.espressif.com](https://docs.espressif.com/projects/rust/esp-hal/1.1.0/esp32c6/esp_hal/gpio/struct.Input.html)
+- [esp_rtos — docs.espressif.com](https://docs.espressif.com/projects/rust/esp-rtos/0.3.0/esp32c6/esp_rtos/index.html)
 - [static_cell::make_static! — docs.rs](https://docs.rs/static_cell/latest/static_cell/macro.make_static.html)
 - [static_cell 1.1.0 source — docs.rs](https://docs.rs/crate/static_cell/1.1.0/source/src/lib.rs)
 - [embassy_sync — docs.embassy.dev](https://docs.embassy.dev/embassy-sync)

@@ -77,8 +77,8 @@ Fix: switch the static to `CriticalSectionRawMutex`. For non-static, executor-lo
 A binary built for the wrong MCU (wrong `memory.ld`) places the app descriptor at a misaligned flash offset; `--ignore-app-descriptor` does not suppress that error.
 The real fix is to use the correct target and MCU — the flag is not a substitute for correct build configuration.
 
-**`espflash 4.3.0` bundles an ESP-IDF v5.5.1 bootloader, which breaks IDF and esp-hal binaries built against v5.3.3 (64 KB vs 32 KB MMU pages).**
-IDF symptom: `Segment 0 load address …, doesn't match data …` (page-offset mismatch). HAL symptom: `Failed to fetch app description header!` (v5.5.1 is stricter about `esp_app_desc_t` placement). Both stem from the wrong bootloader being flashed.
+**`espflash 4.3.0` bundles an ESP-IDF `release/v5.5` branch bootloader, which breaks IDF and esp-hal binaries built against v5.3.3 (64 KB vs 32 KB MMU pages).**
+IDF symptom: `Segment 0 load address …, doesn't match data …` (page-offset mismatch). HAL symptom: `Failed to fetch app description header!` (IDF `release/v5.5` branch is stricter about `esp_app_desc_t` placement). Both stem from the wrong bootloader being flashed.
 Fix: pass `--bootloader target/<idf-triple>/debug/build/esp-idf-sys-<hash>/out/build/bootloader/bootloader.bin` (v5.3.3 — works for both binary types). The `run-example` justfile recipe handles it; `ensure-bootloader` builds the IDF cache on demand. Re-verify when upgrading either espflash or ESP-IDF.
 
 **Any edit to `Cargo.toml` (e.g. adding a new `[[example]]` entry) can cause Cargo to assign a new hash to the `esp-idf-sys` build directory, leaving two bootloader artifacts that the flash script refuses to resolve silently.**

@@ -24,8 +24,7 @@ use core::arch::asm;
 /// Run `f` with global interrupts disabled, then restore the previous interrupt-enable state.
 ///
 /// Implemented via raw `cli` + `SREG`-save/restore so this crate does not depend on
-/// `avr-device` (which transitively pulls in the deprecated `bare-metal` crate,
-/// [RUSTSEC-2026-0110](https://rustsec.org/advisories/RUSTSEC-2026-0110)).
+/// `avr-device` (which transitively pulls in the deprecated `bare-metal` crate).
 ///
 /// `SREG` (Status Register) lives at I/O address `0x3F`. Bit 7 is the global
 /// interrupt-enable flag. Reading it before `cli` and writing it back after the
