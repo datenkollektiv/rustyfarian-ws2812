@@ -6,7 +6,7 @@
 //! around the ring without bouncing.
 
 use crate::effect::{validate_buffer, validate_num_leds, validate_speed, Effect, EffectError};
-use crate::util::{draw_scanner_head, scanner_bounce};
+use crate::util::{clamp_tail_length, draw_scanner_head, scanner_bounce};
 use rgb::RGB8;
 
 /// A Cylon / bouncing scanner effect.
@@ -104,8 +104,7 @@ impl CylonEffect {
     ///
     /// Clamped to `num_leds − 1` so the tail can never overlap the head.
     pub fn with_tail_length(mut self, tail_length: u8) -> Self {
-        let max_tail = self.num_leds.saturating_sub(1).min(u8::MAX as usize) as u8;
-        self.tail_length = tail_length.min(max_tail);
+        self.tail_length = clamp_tail_length(tail_length, self.num_leds);
         self
     }
 

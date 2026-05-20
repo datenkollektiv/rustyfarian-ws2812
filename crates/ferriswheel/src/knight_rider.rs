@@ -5,7 +5,7 @@
 //! [`CylonEffect`](crate::CylonEffect).
 
 use crate::effect::{validate_buffer, validate_num_leds, validate_speed, Effect, EffectError};
-use crate::util::{draw_scanner_head, scanner_bounce};
+use crate::util::{clamp_tail_length, draw_scanner_head, scanner_bounce};
 use rgb::RGB8;
 
 /// A Knight Rider / dual-headed scanner effect.
@@ -118,8 +118,7 @@ impl KnightRiderEffect {
     ///
     /// Clamped to `num_leds − 1` so a tail can never overlap its own head.
     pub fn with_tail_length(mut self, tail_length: u8) -> Self {
-        let max_tail = self.num_leds.saturating_sub(1).min(u8::MAX as usize) as u8;
-        self.tail_length = tail_length.min(max_tail);
+        self.tail_length = clamp_tail_length(tail_length, self.num_leds);
         self
     }
 
@@ -190,20 +189,14 @@ impl KnightRiderEffect {
     /// Advances both heads by `speed` steps, bouncing each independently.
     fn advance(&mut self) {
         let (new_pos, new_fwd) =
-            Self::advance_head(self.pos_a, self.forward_a, self.speed, self.num_leds);
+            scanner_bounce(self.pos_a, self.forward_a, self.speed, self.num_leds);
         self.pos_a = new_pos;
         self.forward_a = new_fwd;
 
         let (new_pos, new_fwd) =
-            Self::advance_head(self.pos_b, self.forward_b, self.speed, self.num_leds);
+            scanner_bounce(self.pos_b, self.forward_b, self.speed, self.num_leds);
         self.pos_b = new_pos;
         self.forward_b = new_fwd;
-    }
-
-    /// Reflects a single head position off both ends using the same reflection
-    /// arithmetic as [`CylonEffect`](crate::CylonEffect).
-    fn advance_head(position: u8, forward: bool, speed: u8, num_leds: usize) -> (u8, bool) {
-        scanner_bounce(position, forward, speed, num_leds)
     }
 }
 

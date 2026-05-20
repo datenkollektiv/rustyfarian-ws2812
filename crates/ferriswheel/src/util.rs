@@ -117,6 +117,50 @@ pub fn fill_solid(buffer: &mut [RGB8], color: RGB8) {
     }
 }
 
+/// Clamps a requested tail length so it cannot reach or exceed `num_leds`.
+///
+/// The maximum valid tail is `num_leds - 1`; requesting more than that would let
+/// the tail overwrite the head LED.  `num_leds.saturating_sub(1)` is used so
+/// that `num_leds = 0` returns 0 rather than wrapping.
+pub(crate) fn clamp_tail_length(tail: u8, num_leds: usize) -> u8 {
+    tail.min(num_leds.saturating_sub(1).min(u8::MAX as usize) as u8)
+}
+
+/// Scales a pre-computed sine value into the `[min_brightness, max_brightness]` range.
+///
+/// Used by brightness-oscillating effects (e.g. [`PulseEffect`], [`BreatheEffect`]) to
+/// convert a raw sine-table output into a final brightness value.  The caller is
+/// responsible for obtaining `sine_val` from the appropriate table function
+/// ([`sine_wave`] or [`sine_full`]).
+///
+/// If `min_brightness > max_brightness` the two are swapped automatically, so the
+/// result is always well-defined.
+///
+/// [`PulseEffect`]: crate::PulseEffect
+/// [`BreatheEffect`]: crate::BreatheEffect
+pub(crate) fn brightness_from_sine(sine_val: u8, min_brightness: u8, max_brightness: u8) -> u8 {
+    let lo = min_brightness.min(max_brightness) as u16;
+    let hi = min_brightness.max(max_brightness) as u16;
+    (lo + (sine_val as u16 * (hi - lo)) / 255) as u8
+}
+
+/// Default PRNG seed shared by effects that embed an xorshift32 generator.
+///
+/// The value is non-zero (required by xorshift32) and was chosen to produce
+/// a pleasant default sparkle / flame pattern on first use.
+pub(crate) const DEFAULT_SEED: u32 = 0x1234_5678;
+
+/// xorshift32 — a fast, `no_std`-compatible PRNG with period 2^32 − 1.
+///
+/// State must be non-zero; a `debug_assert!` catches misuse in debug builds.
+pub(crate) fn xorshift32(mut x: u32) -> u32 {
+    debug_assert!(x != 0, "xorshift32 state must be non-zero");
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    x
+}
+
 /// Advances a scanner head one step using reflection arithmetic.
 ///
 /// Returns the new `(position, forward)` pair. Large `speed` values are
@@ -446,5 +490,71 @@ mod tests {
         assert_eq!(buffer[1], scale_brightness(white, 128));
         assert_eq!(buffer[0], scale_brightness(white, 64));
         assert_eq!(buffer[3], RGB8::default());
+    }
+
+    #[test]
+    fn test_clamp_tail_length_clamps_to_num_leds_minus_one() {
+        assert_eq!(clamp_tail_length(255, 4), 3);
+        assert_eq!(clamp_tail_length(10, 5), 4);
+    }
+
+    #[test]
+    fn test_clamp_tail_length_zero_leds() {
+        assert_eq!(clamp_tail_length(0, 0), 0);
+        assert_eq!(clamp_tail_length(5, 0), 0);
+    }
+
+    #[test]
+    fn test_clamp_tail_length_within_range_unchanged() {
+        assert_eq!(clamp_tail_length(2, 10), 2);
+        assert_eq!(clamp_tail_length(0, 5), 0);
+    }
+
+    #[test]
+    fn test_brightness_from_sine_endpoints() {
+        assert_eq!(brightness_from_sine(0, 10, 200), 10);
+        assert_eq!(brightness_from_sine(255, 10, 200), 200);
+    }
+
+    #[test]
+    fn test_brightness_from_sine_full_range() {
+        assert_eq!(brightness_from_sine(0, 0, 255), 0);
+        assert_eq!(brightness_from_sine(255, 0, 255), 255);
+        assert_eq!(brightness_from_sine(128, 0, 255), 128);
+    }
+
+    #[test]
+    fn test_brightness_from_sine_inverted_range() {
+        // Inverted min/max should produce the same result as the canonical order.
+        assert_eq!(
+            brightness_from_sine(0, 200, 10),
+            brightness_from_sine(0, 10, 200)
+        );
+        assert_eq!(
+            brightness_from_sine(255, 200, 10),
+            brightness_from_sine(255, 10, 200)
+        );
+    }
+
+    #[test]
+    fn test_xorshift32_is_deterministic() {
+        assert_eq!(xorshift32(DEFAULT_SEED), xorshift32(DEFAULT_SEED));
+    }
+
+    #[test]
+    fn test_xorshift32_produces_nonzero() {
+        let mut state = DEFAULT_SEED;
+        for _ in 0..100 {
+            state = xorshift32(state);
+            assert_ne!(state, 0);
+        }
+    }
+
+    #[test]
+    fn test_xorshift32_advances_state() {
+        let a = xorshift32(DEFAULT_SEED);
+        let b = xorshift32(a);
+        assert_ne!(a, b);
+        assert_ne!(a, DEFAULT_SEED);
     }
 }
