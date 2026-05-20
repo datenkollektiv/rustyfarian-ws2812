@@ -7,6 +7,8 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "WS2812 (NeoPixel) LED driver using esp-hal RMT peripheral (bare-metal, no_std)"
+readme = "README.md"
+documentation = "https://docs.rs/rustyfarian-esp-hal-ws2812"
 keywords = ["ws2812", "neopixel", "esp-hal", "rmt", "led"]
 categories = ["embedded", "hardware-support", "no-std"]
 
