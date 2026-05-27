@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 # run-example.sh — build and flash a driver example
-# Usage: scripts/run-example.sh <crate_alias> <example>
+# Usage: scripts/run-example.sh <crate_alias> <example> [hal_dir [idf_dir]]
 #   crate_alias: hal-ws2812 | idf-ws2812
 #   example:     {driver}_{chip}_{name}  e.g. hal_c6_rainbow, idf_c3_rainbow
 #
@@ -20,6 +20,8 @@ fi
 
 crate_alias="$1"
 example="$2"
+hal_dir="${3:-target/hal}"
+idf_dir="${4:-target/idf}"
 
 prefix=$(printf '%s' "$example" | cut -d_ -f1)
 chip=$(printf '%s' "$example" | cut -d_ -f2)
@@ -65,7 +67,7 @@ case "$prefix" in
             *_async)    hal_features="${hal_features},async" ;;
         esac
         printf 'Building %s for %s...\n' "$example" "$hal_target"
-        "$SCRIPT_DIR/ensure-bootloader.sh" "$chip"
+        "$SCRIPT_DIR/ensure-bootloader.sh" "$chip" "$hal_dir" "$idf_dir"
         if [ "$chip" = "esp32" ]; then
             # Xtensa requires +esp toolchain and xtensa-esp-elf GCC.
             # shellcheck source=./xtensa-toolchain.sh
@@ -73,6 +75,7 @@ case "$prefix" in
             setup_xtensa_toolchain
             cargo +esp build --release -Zbuild-std=core \
                 --target "$hal_target" \
+                --target-dir "$hal_dir" \
                 --no-default-features \
                 --features "$hal_features" \
                 --example "$example" \
@@ -80,18 +83,19 @@ case "$prefix" in
         else
             cargo build --release \
                 --target "$hal_target" \
+                --target-dir "$hal_dir" \
                 --no-default-features \
                 --features "$hal_features" \
                 --example "$example" \
                 -p "$pkg"
         fi
-        bl=$(find_idf_bootloader "$idf_target")
+        bl=$(find_idf_bootloader "$idf_target" "$idf_dir")
         if [ -z "$bl" ]; then
             printf 'Error: HAL examples require the IDF-built v5.3.3 bootloader; rebuild an IDF example to populate it: just build-example idf-ws2812 idf_%s_rainbow\n' "$chip" >&2
             exit 1
         fi
         printf 'Flashing %s with bootloader %s...\n' "$example" "$bl"
-        espflash flash --bootloader "$bl" --ignore-app-descriptor "target/$hal_target/release/examples/$example"
+        espflash flash --bootloader "$bl" --ignore-app-descriptor "$hal_dir/$hal_target/release/examples/$example"
         ;;
     idf)
         case "$chip" in
@@ -111,23 +115,25 @@ case "$prefix" in
         if [ -n "$idf_features" ]; then
             MCU="$mcu" cargo +esp build \
                 --target "$idf_target" \
+                --target-dir "$idf_dir" \
                 --features "$idf_features" \
                 --example "$example" \
                 -p "$pkg"
         else
             MCU="$mcu" cargo +esp build \
                 --target "$idf_target" \
+                --target-dir "$idf_dir" \
                 --example "$example" \
                 -p "$pkg"
         fi
-        bl=$(find_idf_bootloader "$idf_target")
+        bl=$(find_idf_bootloader "$idf_target" "$idf_dir")
         if [ -z "$bl" ]; then
             printf 'Warning: built bootloader not found, using espflash default (may fail on page-size mismatch)\n' >&2
             printf 'Flashing %s...\n' "$example"
-            espflash flash --ignore-app-descriptor "target/$idf_target/debug/examples/$example"
+            espflash flash --ignore-app-descriptor "$idf_dir/$idf_target/debug/examples/$example"
         else
             printf 'Flashing %s with bootloader %s...\n' "$example" "$bl"
-            espflash flash --bootloader "$bl" --ignore-app-descriptor "target/$idf_target/debug/examples/$example"
+            espflash flash --bootloader "$bl" --ignore-app-descriptor "$idf_dir/$idf_target/debug/examples/$example"
         fi
         ;;
 esac

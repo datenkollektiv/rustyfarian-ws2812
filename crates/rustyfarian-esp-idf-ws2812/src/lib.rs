@@ -28,6 +28,13 @@
 //! - ESP32-C3-DevKitC-02: GPIO8
 //! - ESP32-C6-DevKitC-1: GPIO8
 
+// This crate is only meaningful on ESP-IDF targets.  Gating the entire library
+// body here means that for bare-metal targets (riscv32imac-unknown-none-elf
+// etc.) the crate compiles as an empty library, so IDE tooling that uses the
+// bare-metal workspace default can analyze the rest of the workspace cleanly.
+// Use `just check-idf` / `just build-all` for IDF-target verification.
+#![cfg(target_os = "espidf")]
+
 // Requires esp-idf-hal 0.46+ for TxChannelDriver and BytesEncoder.
 // Uses a workaround for send_and_wait bug present in 0.46.2
 // (see transmit_bytes and ROADMAP.md).

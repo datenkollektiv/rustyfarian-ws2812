@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 # build-example.sh — build a driver example for a given chip
-# Usage: scripts/build-example.sh <crate_alias> <example>
+# Usage: scripts/build-example.sh <crate_alias> <example> [hal_dir [idf_dir]]
 #   crate_alias: hal-ws2812 | idf-ws2812
 #   example:     {driver}_{chip}_{name}  e.g. hal_c6_rainbow, idf_c3_rainbow
 
@@ -14,6 +14,8 @@ fi
 
 crate_alias="$1"
 example="$2"
+hal_dir="${3:-target/hal}"
+idf_dir="${4:-target/idf}"
 
 prefix=$(printf '%s' "$example" | cut -d_ -f1)
 chip=$(printf '%s' "$example" | cut -d_ -f2)
@@ -67,6 +69,7 @@ case "$prefix" in
             setup_xtensa_toolchain
             cargo +esp build --release -Zbuild-std=core \
                 --target "$target" \
+                --target-dir "$hal_dir" \
                 --no-default-features \
                 --features "$hal_features" \
                 --example "$example" \
@@ -74,6 +77,7 @@ case "$prefix" in
         else
             cargo build --release \
                 --target "$target" \
+                --target-dir "$hal_dir" \
                 --no-default-features \
                 --features "$hal_features" \
                 --example "$example" \
@@ -98,12 +102,14 @@ case "$prefix" in
         if [ -n "$idf_features" ]; then
             MCU="$mcu" cargo +esp build \
                 --target "$idf_target" \
+                --target-dir "$idf_dir" \
                 --features "$idf_features" \
                 --example "$example" \
                 -p "$pkg"
         else
             MCU="$mcu" cargo +esp build \
                 --target "$idf_target" \
+                --target-dir "$idf_dir" \
                 --example "$example" \
                 -p "$pkg"
         fi

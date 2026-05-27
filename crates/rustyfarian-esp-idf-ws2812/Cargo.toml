@@ -22,13 +22,21 @@ embuild = "=0.33.1"
 ferriswheel = { workspace = true }
 
 [dependencies]
-anyhow.workspace = true
-esp-idf-hal.workspace = true
+# Pure no_std crates — compile for any target.
 pennant = { workspace = true, optional = true }
 rgb.workspace = true
 smart-leds-trait = { workspace = true, default-features = false }
 smart-leds = { workspace = true, optional = true }
 bunting.workspace = true
+
+# ESP-IDF-specific dependencies.  Only compiled when target_os = "espidf"
+# (i.e. the riscv32imac-esp-espidf / riscv32imc-esp-espidf target triples).
+# Keeping them out of the bare-metal dep graph prevents esp-idf-sys's build
+# script from running — and hard-failing — when IDE tooling uses the default
+# riscv32imac-unknown-none-elf target.
+[target.'cfg(target_os = "espidf")'.dependencies]
+anyhow.workspace = true
+esp-idf-hal.workspace = true
 
 [features]
 default = ["pennant"]
