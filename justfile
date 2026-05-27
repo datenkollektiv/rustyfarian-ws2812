@@ -1,18 +1,35 @@
 # Rustyfarian WS2812 — development tasks
 #
-# The workspace defaults to the ESP32 target (riscv32imac-esp-espidf) via
-# .cargo/config.toml, so every recipe that touches platform-independent crates
-# explicitly passes --target to override it.
+# The workspace defaults to the bare-metal ESP target (riscv32imac-unknown-none-elf)
+# via .cargo/config.toml. IDF recipes explicitly pass --target {{ idf_target }}.
+# Pure-crate recipes explicitly pass --target {{ host_target }}.
 
 host_target := `scripts/host-target.sh`
 pure_crates := "-p bunting -p ferriswheel -p pennant -p rustyfarian-avr-ws2812"
 hal_target := "riscv32imac-unknown-none-elf"
+idf_target := "riscv32imac-esp-espidf"
 hal_crate := "-p rustyfarian-esp-hal-ws2812"
 avr_nightly := "nightly-2025-04-27"
+
+ramdisk := "/Volumes/RustBuilds"
+hal_dir  := if path_exists(ramdisk + "/targets/hal") == "true" { ramdisk + "/targets/hal/" + file_name(justfile_directory()) } else { "target/hal" }
+idf_dir  := if path_exists(ramdisk + "/targets/idf") == "true" { ramdisk + "/targets/idf/" + file_name(justfile_directory()) } else { "target/idf" }
 
 # list available recipes (default)
 _default:
     @just --list
+
+# --- Build Environment ----------------------------------------------------
+
+# show RAM disk status, resolved target dirs, and sccache
+[group('Build Environment')]
+doctor:
+    @scripts/doctor.sh "{{ramdisk}}" "{{hal_dir}}" "{{idf_dir}}"
+
+# manage the RAM disk: just ramdisk attach | detach
+[group('Build Environment')]
+ramdisk action:
+    @scripts/ramdisk.sh "{{action}}"
 
 # --- Build & Check --------------------------------------------------------
 
@@ -24,7 +41,7 @@ build:
 # build all crates including ESP-IDF (requires espup; does NOT cover rustyfarian-esp-hal-ws2812 or rustyfarian-avr-ws2812 — use check-hal / check-avr)
 [group('Build & Check')]
 build-all:
-    cargo +esp build --workspace --exclude rustyfarian-esp-hal-ws2812 --exclude rustyfarian-avr-ws2812
+    cargo +esp build --workspace --exclude rustyfarian-esp-hal-ws2812 --exclude rustyfarian-avr-ws2812 --target {{ idf_target }} --target-dir {{ idf_dir }}
 
 # check platform-independent crates (no ESP toolchain required)
 [group('Build & Check')]
@@ -34,23 +51,23 @@ check:
 # check all crates including ESP-IDF (requires espup; does NOT cover rustyfarian-esp-hal-ws2812 or rustyfarian-avr-ws2812 — use check-hal / check-avr)
 [group('Build & Check')]
 check-all:
-    cargo +esp check --workspace --exclude rustyfarian-esp-hal-ws2812 --exclude rustyfarian-avr-ws2812
+    cargo +esp check --workspace --exclude rustyfarian-esp-hal-ws2812 --exclude rustyfarian-avr-ws2812 --target {{ idf_target }} --target-dir {{ idf_dir }}
 
 # check only the ESP-IDF driver crate (requires espup)
 [group('Build & Check')]
 check-idf:
-    cargo +esp check -p rustyfarian-esp-idf-ws2812
+    cargo +esp check -p rustyfarian-esp-idf-ws2812 --target {{ idf_target }} --target-dir {{ idf_dir }}
 
 # check the esp-hal bare-metal driver (requires: rustup target add riscv32imac-unknown-none-elf)
 [group('Build & Check')]
 check-hal:
-    cargo check {{ hal_crate }} --target {{ hal_target }}
+    cargo check {{ hal_crate }} --target {{ hal_target }} --target-dir {{ hal_dir }}
 
 # check the esp-hal bare-metal driver on the Xtensa ESP32 target (requires: just setup esp)
 [group('Build & Check')]
 check-hal-xtensa:
-    cargo +esp check {{ hal_crate }} --target xtensa-esp32-none-elf --no-default-features --features esp32,unstable -Z build-std=core
-    cargo +esp check {{ hal_crate }} --target xtensa-esp32-none-elf --no-default-features --features esp32,unstable,rt --examples -Z build-std=core
+    cargo +esp check {{ hal_crate }} --target xtensa-esp32-none-elf --target-dir {{ hal_dir }} --no-default-features --features esp32,unstable -Z build-std=core
+    cargo +esp check {{ hal_crate }} --target xtensa-esp32-none-elf --target-dir {{ hal_dir }} --no-default-features --features esp32,unstable,rt --examples -Z build-std=core
 
 # check the AVR SPI driver on the host target (no AVR toolchain required)
 [group('Build & Check')]
@@ -122,17 +139,17 @@ clippy:
 # run clippy on all crates including ESP-IDF (requires espup; does NOT cover rustyfarian-esp-hal-ws2812 — use clippy-hal)
 [group('Test & Lint')]
 clippy-all:
-    cargo +esp clippy --workspace --exclude rustyfarian-esp-hal-ws2812 -- -D warnings
+    cargo +esp clippy --workspace --exclude rustyfarian-esp-hal-ws2812 --target {{ idf_target }} --target-dir {{ idf_dir }} -- -D warnings
 
 # run clippy on only the ESP-IDF driver crate (requires espup)
 [group('Test & Lint')]
 clippy-idf:
-    cargo +esp clippy -p rustyfarian-esp-idf-ws2812 -- -D warnings
+    cargo +esp clippy -p rustyfarian-esp-idf-ws2812 --target {{ idf_target }} --target-dir {{ idf_dir }} -- -D warnings
 
 # run clippy on the esp-hal bare-metal driver (requires: rustup target add riscv32imac-unknown-none-elf)
 [group('Test & Lint')]
 clippy-hal:
-    cargo clippy {{ hal_crate }} --target {{ hal_target }} -- -D warnings
+    cargo clippy {{ hal_crate }} --target {{ hal_target }} --target-dir {{ hal_dir }} -- -D warnings
 
 # check dependency licenses, advisories, and bans
 [group('Test & Lint')]
@@ -181,7 +198,7 @@ flash-avr-bitbang-spike:
 # build a driver example; driver and chip inferred from {driver}_{chip}_{name} prefix
 [group('ESP Examples')]
 build-example crate_alias example:
-    scripts/build-example.sh "{{ crate_alias }}" "{{ example }}"
+    scripts/build-example.sh "{{ crate_alias }}" "{{ example }}" "{{ hal_dir }}" "{{ idf_dir }}"
 
 # build the ESP32-C3 pulse example (alias for: just build-example hal-ws2812 hal_c3_pulse)
 [group('ESP Examples')]
@@ -202,19 +219,19 @@ build-example-esp32-hal: (build-example "hal-ws2812" "hal_esp32_pulse")
 # ensure the IDF-built v5.3.3 bootloader is in the build cache for the given chip (c3 or c6)
 [group('ESP Examples')]
 ensure-bootloader chip:
-    scripts/ensure-bootloader.sh "{{ chip }}"
+    scripts/ensure-bootloader.sh "{{ chip }}" "{{ hal_dir }}" "{{ idf_dir }}"
 
 # build and flash a driver example; driver and chip inferred from {driver}_{chip}_{name} prefix
 [group('ESP Examples')]
 run-example crate_alias example:
-    scripts/run-example.sh "{{ crate_alias }}" "{{ example }}"
+    scripts/run-example.sh "{{ crate_alias }}" "{{ example }}" "{{ hal_dir }}" "{{ idf_dir }}"
 
 # --- Flash & Monitor ------------------------------------------------------
 
 # build and flash any example; crate auto-detected from name prefix (hal_* or idf_*)
 [group('Flash & Monitor')]
 flash example:
-    scripts/flash.sh "{{ example }}"
+    scripts/flash.sh "{{ example }}" "{{ hal_dir }}" "{{ idf_dir }}"
 
 # build, flash, and open serial monitor — the human workflow
 [group('Flash & Monitor')]
@@ -336,18 +353,20 @@ setup component="all":
 update:
     cargo update
 
-# clean build artifacts
+# clean build artifacts (target/ide, hal and idf target dirs)
 [group('Maintenance')]
 clean:
-    cargo clean
+    cargo clean --target-dir target/ide
+    cargo clean --target-dir {{ hal_dir }}
+    cargo clean --target-dir {{ idf_dir }}
 
 # clean ESP-IDF crate artifacts and esp-idf-sys hash dirs (needed after sdkconfig.defaults changes or Cargo.toml edits)
 [group('Maintenance')]
 clean-idf:
-    cargo clean -p rustyfarian-esp-idf-ws2812
-    rm -rf target/riscv32imac-esp-espidf/debug/build/esp-idf-sys-*/
-    rm -rf target/riscv32imc-esp-espidf/debug/build/esp-idf-sys-*/
-    rm -rf target/xtensa-esp32-espidf/debug/build/esp-idf-sys-*/
+    cargo clean -p rustyfarian-esp-idf-ws2812 --target-dir {{ idf_dir }}
+    rm -rf {{ idf_dir }}/riscv32imac-esp-espidf/debug/build/esp-idf-sys-*/
+    rm -rf {{ idf_dir }}/riscv32imc-esp-espidf/debug/build/esp-idf-sys-*/
+    rm -rf {{ idf_dir }}/xtensa-esp32-espidf/debug/build/esp-idf-sys-*/
 
 # watch and re-run tests on file changes (requires cargo-watch)
 [group('Maintenance')]
@@ -376,7 +395,7 @@ release-dry-run-hal:
 # verify esp-idf driver packages cleanly against IDF target (no upload; requires espup)
 [group('Release')]
 release-dry-run-idf:
-    cargo +esp publish --dry-run -p rustyfarian-esp-idf-ws2812 --target riscv32imac-esp-espidf
+    cargo +esp publish --dry-run -p rustyfarian-esp-idf-ws2812 --target riscv32imac-esp-espidf --target-dir {{ idf_dir }}
 
 # publish one pure/AVR crate to crates.io. Use: just release-publish bunting
 [group('Release')]
@@ -394,4 +413,4 @@ release-publish-hal:
 [group('Release')]
 [confirm]
 release-publish-idf:
-    cargo +esp publish -p rustyfarian-esp-idf-ws2812 --target riscv32imac-esp-espidf
+    cargo +esp publish -p rustyfarian-esp-idf-ws2812 --target riscv32imac-esp-espidf --target-dir {{ idf_dir }}

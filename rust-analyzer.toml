@@ -1,0 +1,14 @@
+# rust-analyzer project-level configuration.
+# Picked up by editors that use the standalone rust-analyzer LSP binary
+# (VS Code, Neovim, Helix, etc.).
+#
+# Mirrors the workspace default target set in .cargo/config.toml so that
+# esp-hal's build script succeeds and HAL + pure no_std crates get correct
+# IDE diagnostics.
+#
+# rustyfarian-esp-idf-ws2812 compiles as an empty library for this target
+# (its esp-idf-hal dep and entire lib body are cfg-gated on target_os =
+# "espidf").  Use `just check-idf` / `just build-all` to verify that crate.
+
+[cargo]
+target = "riscv32imac-unknown-none-elf"
