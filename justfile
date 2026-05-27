@@ -353,12 +353,13 @@ setup component="all":
 update:
     cargo update
 
-# clean build artifacts (target/ide, hal and idf target dirs)
+# clean build artifacts (target/ide, hal, idf, and avr example target dirs)
 [group('Maintenance')]
 clean:
     cargo clean --target-dir target/ide
     cargo clean --target-dir {{ hal_dir }}
     cargo clean --target-dir {{ idf_dir }}
+    rm -rf examples/avr-nano-rainbow/target
 
 # clean ESP-IDF crate artifacts and esp-idf-sys hash dirs (needed after sdkconfig.defaults changes or Cargo.toml edits)
 [group('Maintenance')]

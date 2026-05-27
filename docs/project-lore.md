@@ -81,6 +81,16 @@ The real fix is to use the correct target and MCU — the flag is not a substitu
 IDF symptom: `Segment 0 load address …, doesn't match data …` (page-offset mismatch). HAL symptom: `Failed to fetch app description header!` (IDF `release/v5.5` branch is stricter about `esp_app_desc_t` placement). Both stem from the wrong bootloader being flashed.
 Fix: pass `--bootloader target/<idf-triple>/debug/build/esp-idf-sys-<hash>/out/build/bootloader/bootloader.bin` (v5.3.3 — works for both binary types). The `run-example` justfile recipe handles it; `ensure-bootloader` builds the IDF cache on demand. Re-verify when upgrading either espflash or ESP-IDF.
 
+**`esp-idf-sys`'s build script hard-exits with "Unsupported target 'riscv32imac-unknown-none-elf'" even when that target is only the workspace IDE/analysis default and the IDF crate is never explicitly requested.**
+`esp-idf-sys` is an unconditional transitive dependency of `rustyfarian-esp-idf-ws2812`; Cargo always pulls it into the dep graph and runs its build script for every target, including the bare-metal default.
+Fix requires three coordinated changes: (1) move `esp-idf-hal` (and `anyhow`, which requires `std`) to `[target.'cfg(target_os = "espidf")'.dependencies]` in `Cargo.toml` — this removes `esp-idf-sys` from the bare-metal dep graph entirely; (2) add `#![cfg(target_os = "espidf")]` to `src/lib.rs` so the crate compiles as an empty library on non-IDF targets; (3) guard `embuild::espidf::sysenv::output()` in `build.rs` with `if CARGO_CFG_TARGET_OS == "espidf"` — the build script still runs (build scripts always do) but exits early.
+
+**`cargo clean --manifest-path <pkg>/Cargo.toml` silently reports "Removed 0 files" when the package was built with a pinned nightly toolchain and the command is invoked from a workspace root that uses stable.**
+rustup resolves the toolchain from the *calling* directory, not from the manifest path.
+Running from the workspace root (no `rust-toolchain.toml`) picks stable; stable cargo does not recognise artefacts built by a nightly toolchain and skips them.
+Affected: `examples/avr-nano-rainbow/` (pins `nightly-2025-04-27` in its own `rust-toolchain.toml`).
+Fix: `rm -rf examples/avr-nano-rainbow/target` — toolchain-independent, always clears the directory.
+
 **Any edit to `Cargo.toml` (e.g. adding a new `[[example]]` entry) can cause Cargo to assign a new hash to the `esp-idf-sys` build directory, leaving two bootloader artifacts that the flash script refuses to resolve silently.**
 `ensure-bootloader.sh` intentionally errors with `multiple IDF-built bootloaders found` rather than picking one arbitrarily, because choosing the wrong bootloader produces a silent boot-loop.
 Fix: `cargo clean -p esp-idf-sys`, then re-run the flash command — the correct bootloader is rebuilt from scratch.
@@ -152,6 +162,12 @@ Fix: omit `-s GITHUB_TOKEN=…` entirely when the workflow doesn't need it. If a
 **`.claude/hooks/just-enforcer.sh` blocks Bash commands whose first word matches a binary wrapped by any `justfile` recipe but allows tools no recipe wraps (e.g. `sed`, `perl`, `find`, `git`).**
 Batch text edits via `sed -i ''` and `perl -i -0pe` therefore remain available even though direct `cargo` is funnelled through `just`.
 Side effect during settings cleanup: any `Bash(cargo *)` permission entries are functionally **dead** while the enforcer is active — they look granted but the hook intercepts before the permission resolver runs.
+
+**RustRover does not use rust-analyzer as its backend and silently ignores `rust-analyzer.toml`.**
+RustRover ships its own proprietary Kotlin-based analysis engine; the `[cargo] target` key in `rust-analyzer.toml` has no effect.
+RustRover also has open bugs (RUST-12562, RUST-17656) where it fails to read the default target from `.cargo/config.toml` automatically.
+Fix: set the target triple manually via the resolve-context switcher in the status bar (bottom-right); source `~/export-esp.sh` before launching RustRover so `LIBCLANG_PATH` is available at IDE startup.
+The committed `rust-analyzer.toml` is still correct — it benefits all rust-analyzer-backed editors (VS Code, Neovim, Helix, Zed) and is harmless to RustRover.
 
 **Claude Code Stop hooks only support `type: "command"`; `type: "prompt"` is not a valid hook type and produces "Stop hook error: JSON validation failed".**
 There is no built-in AI-evaluation hook type; the schema rejects unrecognised `type` values immediately.
