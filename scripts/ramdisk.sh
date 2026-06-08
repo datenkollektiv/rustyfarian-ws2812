@@ -8,12 +8,17 @@ if [ "$(uname)" != "Darwin" ]; then
     exit 1
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=./lib.sh
+. "$SCRIPT_DIR/lib.sh"
+
 RAMDISK_NAME="RustBuilds"
 RAMDISK_SIZE_GB="${RAMDISK_SIZE_GB:-6}"
+RAMDISK_PATH="/Volumes/$RAMDISK_NAME"
 
 case "${1:-}" in
     attach)
-        if [ -d "/Volumes/$RAMDISK_NAME" ]; then
+        if is_ramdisk_mounted "$RAMDISK_PATH"; then
             echo "RAM disk already attached at /Volumes/$RAMDISK_NAME"
         else
             SECTORS=$(( RAMDISK_SIZE_GB * 1024 * 1024 * 1024 / 512 ))
@@ -30,7 +35,7 @@ case "${1:-}" in
         mkdir -p "/Volumes/$RAMDISK_NAME/targets/hal"
         ;;
     detach)
-        if [ -d "/Volumes/$RAMDISK_NAME" ]; then
+        if is_ramdisk_mounted "$RAMDISK_PATH"; then
             hdiutil detach "/Volumes/$RAMDISK_NAME"
             echo "RAM disk detached."
         else

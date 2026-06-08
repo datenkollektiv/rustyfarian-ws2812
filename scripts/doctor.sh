@@ -3,6 +3,11 @@ set -euo pipefail
 # doctor.sh — check development prerequisites (RAM disk, sccache)
 # Usage: scripts/doctor.sh <ramdisk> <hal_dir> <idf_dir>
 
+if [ $# -lt 3 ]; then
+    printf 'Usage: %s <ramdisk> <hal_dir> <idf_dir>\n' "$0" >&2
+    exit 2
+fi
+
 ramdisk="$1"
 hal_dir="$2"
 idf_dir="$3"
