@@ -12,8 +12,13 @@ hal_crate := "-p rustyfarian-esp-hal-ws2812"
 avr_nightly := "nightly-2025-04-27"
 
 ramdisk := "/Volumes/RustBuilds"
-hal_dir  := if path_exists(ramdisk + "/targets/hal") == "true" { ramdisk + "/targets/hal/" + file_name(justfile_directory()) } else { "target/hal" }
-idf_dir  := if path_exists(ramdisk + "/targets/idf") == "true" { ramdisk + "/targets/idf/" + file_name(justfile_directory()) } else { "target/idf" }
+# Detect a real mounted volume; `path_exists` would be fooled by a stale /Volumes/<name>
+# directory that was never `hdiutil attach`-ed (or wasn't cleaned up after detach).
+# The wrapper delegates to `is_ramdisk_mounted` in scripts/lib.sh so the check lives in
+# one place and stays consistent with scripts/ramdisk.sh.
+ramdisk_mounted := shell(justfile_directory() + '/scripts/ramdisk-mounted.sh "' + ramdisk + '"')
+hal_dir  := if ramdisk_mounted == "true" { ramdisk + "/targets/hal/" + file_name(justfile_directory()) } else { "target/hal" }
+idf_dir  := if ramdisk_mounted == "true" { ramdisk + "/targets/idf/" + file_name(justfile_directory()) } else { "target/idf" }
 
 # list available recipes (default)
 _default:
@@ -357,17 +362,17 @@ update:
 [group('Maintenance')]
 clean:
     cargo clean --target-dir target/ide
-    cargo clean --target-dir {{ hal_dir }}
-    cargo clean --target-dir {{ idf_dir }}
+    cargo clean --target-dir "{{ hal_dir }}"
+    cargo clean --target-dir "{{ idf_dir }}"
     rm -rf examples/avr-nano-rainbow/target
 
 # clean ESP-IDF crate artifacts and esp-idf-sys hash dirs (needed after sdkconfig.defaults changes or Cargo.toml edits)
 [group('Maintenance')]
 clean-idf:
-    cargo clean -p rustyfarian-esp-idf-ws2812 --target-dir {{ idf_dir }}
-    rm -rf {{ idf_dir }}/riscv32imac-esp-espidf/debug/build/esp-idf-sys-*/
-    rm -rf {{ idf_dir }}/riscv32imc-esp-espidf/debug/build/esp-idf-sys-*/
-    rm -rf {{ idf_dir }}/xtensa-esp32-espidf/debug/build/esp-idf-sys-*/
+    cargo clean -p rustyfarian-esp-idf-ws2812 --target-dir "{{ idf_dir }}"
+    rm -rf "{{ idf_dir }}"/riscv32imac-esp-espidf/debug/build/esp-idf-sys-*/
+    rm -rf "{{ idf_dir }}"/riscv32imc-esp-espidf/debug/build/esp-idf-sys-*/
+    rm -rf "{{ idf_dir }}"/xtensa-esp32-espidf/debug/build/esp-idf-sys-*/
 
 # watch and re-run tests on file changes (requires cargo-watch)
 [group('Maintenance')]
