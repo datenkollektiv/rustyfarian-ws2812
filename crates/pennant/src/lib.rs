@@ -173,6 +173,10 @@ impl PulseEffect {
     /// Creates a new pulse effect with default parameters.
     ///
     /// Default range: 2-30 brightness, step size: 2
+    ///
+    /// The pulse starts at brightness `0` — below `min_brightness` — so the
+    /// LED fades in from dark over the first few `update` calls before
+    /// oscillating within the configured range.
     pub fn new() -> Self {
         Self {
             brightness: 0,

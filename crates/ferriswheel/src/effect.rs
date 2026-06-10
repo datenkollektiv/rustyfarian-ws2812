@@ -115,6 +115,9 @@ pub trait Effect {
     fn current(&self, buffer: &mut [RGB8]) -> Result<(), EffectError>;
 
     /// Resets the animation to its initial state.
+    ///
+    /// After `reset()`, the effect must produce the same output sequence as a
+    /// freshly constructed instance with the same configuration.
     fn reset(&mut self);
 }
 
@@ -157,6 +160,9 @@ pub(crate) fn validate_buffer(buffer: &[RGB8], num_leds: usize) -> Result<(), Ef
 ///
 /// Returns the new position after moving `speed` steps in the given `direction`,
 /// wrapping around the ring using modular arithmetic.
+///
+/// Speeds of `num_leds` or more are well-defined: the position simply wraps
+/// around the ring as many times as needed.
 pub(crate) fn advance_position(
     position: u8,
     speed: u8,

@@ -93,7 +93,9 @@ reflect the actual semantics, not the intent.
 - `embassy-time`, `embassy-executor`, `embassy-sync` — workspace constraints must
   match what `esp-rtos` pulls transitively. Update them as part of any `esp-rtos`
   bump, not independently.
-- `esp-sync` (an Espressif-internal monorepo crate) deliberately depends on
+- `esp-sync` (published from Espressif's `esp-hal` monorepo, but consumed as
+  internal plumbing by the upstream crates rather than directly by this
+  workspace) deliberately depends on
   multiple `embassy-sync` versions for backwards-compat shims. `Cargo.lock`
   resolving multiple `embassy-sync` versions is **expected** and not a defect;
   application code resolves to the single workspace-pinned version.

@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- `just clippy-all` now excludes `rustyfarian-avr-ws2812` from the ESP-IDF-target lint run, consistent with `build-all` and `check-all`; the AVR crate is still linted on the host target via `just clippy`
+
 ## [0.6.0] - 2026-05-20
 
 ### Added

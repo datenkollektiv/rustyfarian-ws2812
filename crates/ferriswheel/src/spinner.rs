@@ -31,6 +31,10 @@ use rgb::RGB8;
 pub struct SpinnerEffect {
     num_leds: usize,
     color: RGB8,
+    /// Current head position (index into the LED strip).
+    ///
+    /// Stored as `u8` because `MAX_LEDS` is 256, so valid indices (0–255)
+    /// always fit without overflow. `validate_num_leds` enforces this cap.
     position: u8,
     speed: u8,
     tail_length: u8,
