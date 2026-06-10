@@ -141,10 +141,10 @@ fmt-check:
 clippy:
     cargo clippy {{ pure_crates }} --target {{ host_target }} -- -D warnings
 
-# run clippy on all crates including ESP-IDF (requires espup; does NOT cover rustyfarian-esp-hal-ws2812 — use clippy-hal)
+# run clippy on all crates applicable to the ESP-IDF-target lint pass (requires espup); not literally every workspace crate — excludes rustyfarian-esp-hal-ws2812 (use clippy-hal) and rustyfarian-avr-ws2812 (linted on the host target via clippy)
 [group('Test & Lint')]
 clippy-all:
-    cargo +esp clippy --workspace --exclude rustyfarian-esp-hal-ws2812 --target {{ idf_target }} --target-dir {{ idf_dir }} -- -D warnings
+    cargo +esp clippy --workspace --exclude rustyfarian-esp-hal-ws2812 --exclude rustyfarian-avr-ws2812 --target {{ idf_target }} --target-dir {{ idf_dir }} -- -D warnings
 
 # run clippy on only the ESP-IDF driver crate (requires espup)
 [group('Test & Lint')]

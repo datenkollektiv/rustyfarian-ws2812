@@ -31,6 +31,10 @@ use rgb::RGB8;
 pub struct ChaseEffect {
     num_leds: usize,
     color: RGB8,
+    /// Current head position (index into the LED strip).
+    ///
+    /// Stored as `u8` because `MAX_LEDS` is 256, so valid indices (0–255)
+    /// always fit without overflow. `validate_num_leds` enforces this cap.
     position: u8,
     speed: u8,
     segment_length: u8,
@@ -82,6 +86,9 @@ impl ChaseEffect {
     }
 
     /// Sets the number of LEDs in the moving segment.
+    ///
+    /// Segments longer than the ring are allowed: rendering wraps around the
+    /// ring, so any value of `num_leds` or above lights the entire ring.
     pub fn with_segment_length(mut self, segment_length: u8) -> Self {
         self.segment_length = segment_length;
         self

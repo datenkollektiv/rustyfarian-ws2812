@@ -4,10 +4,8 @@ Authoritative reference for the exact SPI bit encoding used by `ws2812-spi` v0.5
 confirming all parameters needed to implement a compatible `prerender_spi` function in `bunting`.
 
 > **Note on `docs/research-avr-ws2812.md`**:
-> That document contains one inaccuracy in its buffer-sizing explanation.
-> It states "20 trailing zero bytes for the reset pulse", but the actual constant is 140 bytes.
-> The formula `12 * num_leds + 20` in that doc appears to be a misread of an older version or an approximation.
-> The correct default baseline is `12 * num_leds` (no reset bytes appended by default) — see Q3 below.
+> An earlier revision of that document stated an incorrect buffer-sizing formula (`12 * num_leds + 20`).
+> It has since been corrected to the baseline `12 * num_leds` with 140 bytes added per reset-related feature flag — consistent with Q3 below.
 
 ---
 
@@ -126,11 +124,12 @@ The 140-byte calculation is documented in `lib.rs` as:
 = 12 bytes per LED
 ```
 
-### Correction to `docs/research-avr-ws2812.md`
+### Historical correction to `docs/research-avr-ws2812.md`
 
-The formula `12 * num_leds + 20` stated there is wrong in two ways:
+An earlier revision of that document stated `12 * num_leds + 20`, which was wrong in two ways:
 the trailing constant is 0 (baseline), 140, or 280 — never 20.
 The 20-byte figure does not appear anywhere in the `ws2812-spi` v0.5.1 source.
+The research document has since been corrected and now matches the values here.
 
 ---
 

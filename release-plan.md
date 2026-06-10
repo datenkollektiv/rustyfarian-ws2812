@@ -2,6 +2,9 @@
 
 Release process for the `rustyfarian-ws2812` workspace.
 
+> **Status:** Active process — last exercised for `v0.6.0` (published to crates.io 2026-05-20, all six crates).
+> The staged publication flow below is proven; update this note after each release.
+
 ## Versioning
 
 - **Scheme:** SemVer (0.x.y — pre-stable)
@@ -22,12 +25,14 @@ Before any release:
 - [ ] Build passes: `just check`
 - [ ] Tests pass: `just test`
 - [ ] `cargo deny` clean: `just deny`
-- [ ] Pure-crate dry-run clean: `just release-dry-run` (runs `verify` plus `cargo publish --dry-run` for `bunting`, `pennant`, `ferriswheel`; driver crates cannot dry-run until the pure 0.X crates are live on crates.io — see Publish Order below)
+- [ ] Pure-crate dry-run clean: `just release-dry-run` (runs `verify` plus `cargo publish --dry-run` for `bunting`, `pennant`, `ferriswheel`)
 - [ ] Changelog has an `[Unreleased]` section with content for this release
 - [ ] Version consistent across all crates: `crates/*/Cargo.toml`
 - [ ] No uncommitted changes: `git status --short` is empty
 - [ ] Working tree is on `main`
 - [ ] Authenticated with crates.io (see Authentication below) — only for crates.io publishes
+
+Note: driver crates cannot dry-run publish until the pure crates of the same version are live on crates.io — see Publish Order below.
 
 ## Version Bump
 
@@ -131,6 +136,7 @@ docs.rs will build `rustyfarian-esp-hal-ws2812` using the `[package.metadata.doc
 
 1. Replace `## [Unreleased]` with `## [X.Y.Z] - YYYY-MM-DD`
 2. Add a fresh `## [Unreleased]` section above it (empty, for the next cycle)
+3. Update the **Status** note at the top of this file (`last exercised for vX.Y.Z`, publish date, crate count) so the freshness marker doesn't drift
 
 ## Tagging
 
@@ -165,7 +171,7 @@ Yanking is reversible:
 cargo yank --version X.Y.Z --undo bunting
 ```
 
-For pre-publish mistakes caught before any consumer locked on the version, yank the bad version, bump (`X.Y.Z+1`) everywhere, and re-run `just release-dry-run` followed by `just release-publish`.
+For pre-publish mistakes caught before any consumer locked on the version, yank the bad version, bump the patch version everywhere (for example `0.6.0` → `0.6.1`), and re-run `just release-dry-run` followed by `just release-publish`.
 
 ### Driver crates (crates.io — from 0.6.0 onwards)
 

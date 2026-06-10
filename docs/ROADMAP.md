@@ -211,6 +211,35 @@ Not blocking, but tracked here to avoid being lost.
   the semantics of `decay=0` (near-zero, not instant black), requiring test updates.
   Revisit only if a performance need or a `with_decay_pct(f32)` builder is added.
 
+- **`pennant::PulseEffect::update` takes `(u8, u8, u8)` instead of `RGB8`** — inconsistent with
+  the rest of the workspace, which standardises on `rgb::RGB8` (ADR 001).
+  Breaking change; align the signature in the next minor bump (0.7.0 candidate).
+  At the same time, decide whether `new()` starting at `brightness: 0` (below `min_brightness: 2`)
+  is intended fade-in behaviour or should start at `min_brightness` — now documented as fade-in.
+
+- **`#[must_use]` audit for builder and getter methods in the pure crates** — `with_*` builders
+  and `Result`-returning constructors silently discard work if the return value is dropped.
+  Sweep `bunting`, `pennant`, and `ferriswheel` and add `#[must_use]` where it guards a real mistake.
+
+- **Fixed `[u8; MAX_LEDS]` state arrays in `TwinkleEffect` and `FireEffect`** — a 12-LED ring
+  still carries 256-byte heat/brightness arrays (~340-byte structs).
+  Acceptable trade-off today; revisit with const-generic sizing if RAM pressure appears on AVR.
+
+- **`impl Effect` delegation boilerplate repeated across all 14 effects** — each effect hand-writes
+  the same three-method trait impl delegating to inherent methods (the documented recursion-avoidance
+  pattern).
+  A small macro could remove ~150 lines; weigh against the readability cost of macro indirection.
+
+- **Tail-length clamping is inconsistent across effects** — `SpinnerEffect::with_tail_length` clamps
+  via `min(num_leds)`, `MeteorEffect::new` clamps inline with `6.min(num_leds - 1)`, and a
+  `clamp_tail_length` util exists in `util.rs`.
+  Consolidate on the util function; behaviour-preserving refactor.
+
+- **Buffer-validation order differs between effects' `update` paths** — most validate via the
+  leading `current()` call, `FlashEffect` mutates state after that call.
+  All paths are currently correct (validation happens first either way); unify the pattern so the
+  invariant is structural rather than incidental.
+
 ### FireEffect follow-up
 
 - **Gradient parameterisation** — `with_gradient(&'static [GradientStop])` for users who want a custom palette (e.g. blue ice, purple plasma). Requires a `GradientStop` type and piecewise-linear interpolation in `fire_color`. `no_std`-safe with a fixed-size slice; `Vec` is off the table.

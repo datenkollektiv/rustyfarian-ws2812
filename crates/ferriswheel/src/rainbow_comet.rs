@@ -63,6 +63,9 @@ pub struct RainbowCometEffect {
     /// `0` = instant black (only the head is lit). Default is `192` (~75%).
     decay: u8,
     /// Current head position (0..`num_leds - 1`).
+    ///
+    /// Stored as `u8` because `MAX_LEDS` is 256, so valid indices (0–255)
+    /// always fit without overflow. `validate_num_leds` enforces this cap.
     position: u8,
 }
 
