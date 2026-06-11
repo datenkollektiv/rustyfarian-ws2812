@@ -171,7 +171,13 @@ Yanking is reversible:
 cargo yank --version X.Y.Z --undo bunting
 ```
 
-For pre-publish mistakes caught before any consumer locked on the version, yank the bad version, bump the patch version everywhere (for example `0.6.0` → `0.6.1`), and re-run `just release-dry-run` followed by `just release-publish`.
+For pre-publish mistakes caught before any consumer locked on the version, yank the bad version and bump the patch version (for example `0.6.0` → `0.6.1`).
+By [project convention](#version-bump), all workspace crates ship in lockstep — bump every crate's `version` in `Cargo.toml`, even ones that do not transitively depend on the yanked crate, to avoid version skew across the workspace.
+
+Then repeat the relevant stages from [Publish Order](#publish-order):
+
+- If a **pure-logic crate** (`bunting`, `pennant`, `ferriswheel`) was yanked, re-run Stages 1–3 in full — driver crates depend on the pure trio and need to be republished against the new dependency version.
+- If only a **driver crate** (`rustyfarian-avr-ws2812`, `rustyfarian-esp-idf-ws2812`, `rustyfarian-esp-hal-ws2812`) was yanked, Stage 1 must still be repeated (lockstep version bump) but is otherwise a no-op for consumers; re-run Stage 2 (`just release-dry-run-crate` / `just release-dry-run-hal` / `just release-dry-run-idf` for the affected driver) and Stage 3 (`just release-publish` / `release-publish-hal` / `release-publish-idf` for the affected driver).
 
 ### Driver crates (crates.io — from 0.6.0 onwards)
 

@@ -174,9 +174,12 @@ impl PulseEffect {
     ///
     /// Default range: 2-30 brightness, step size: 2
     ///
-    /// The pulse starts at brightness `0` — below `min_brightness` — so the
-    /// LED fades in from dark over the first few `update` calls before
-    /// oscillating within the configured range.
+    /// On first construction, the pulse starts at brightness `0` (below
+    /// `min_brightness`) so the LED fades in from dark over the first few
+    /// `update` calls before oscillating within the configured range.
+    ///
+    /// Note: this startup fade-in is specific to `new()`. A later `reset()`
+    /// restores brightness to `min_brightness`, not `0`.
     pub fn new() -> Self {
         Self {
             brightness: 0,
@@ -434,6 +437,16 @@ mod tests {
 
         let err = PulseEffectError::ZeroStep;
         assert_eq!(format!("{}", err), "step must be greater than 0");
+    }
+
+    #[test]
+    fn test_pulse_new_starts_at_zero_brightness() {
+        let pulse = PulseEffect::new();
+        assert_eq!(
+            pulse.brightness(),
+            0,
+            "new() must start at brightness 0 so the LED fades in from dark"
+        );
     }
 
     #[test]
