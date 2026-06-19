@@ -35,8 +35,8 @@ jobs:
       - name: Cache cargo artifacts
         uses: Swatinem/rust-cache@v2
 
+      - name: Setup just
+        uses: extractions/setup-just@v2
+
       - name: Run clippy (pure crates)
-        shell: bash
-        run: |
-          host_target="$(rustc -vV | awk '/^host:/ {print $2}')"
-          cargo clippy -p bunting -p ferriswheel -p pennant --target "${host_target}" -- -D warnings
+        run: just clippy
