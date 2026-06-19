@@ -134,7 +134,7 @@ fmt:
 # check formatting without modifying files
 [group('Test & Lint')]
 fmt-check:
-    cargo fmt -- --check
+    cargo fmt --all -- --check
 
 # run clippy on platform-independent crates
 [group('Test & Lint')]
@@ -271,7 +271,7 @@ doc-open:
 # verify code quality without modifying files; suggests 'just pre-commit' on formatting issues
 [group('CI')]
 verify:
-    @cargo fmt -- --check || (printf '\nFormatting issues found — run `just pre-commit` to auto-fix.\n' >&2 && exit 1)
+    @cargo fmt --all -- --check || (printf '\nFormatting issues found — run `just pre-commit` to auto-fix.\n' >&2 && exit 1)
     cargo check {{ pure_crates }} --target {{ host_target }}
     cargo clippy {{ pure_crates }} --target {{ host_target }} -- -D warnings
     cargo test {{ pure_crates }} --target {{ host_target }}

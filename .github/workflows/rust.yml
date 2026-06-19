@@ -34,29 +34,25 @@ jobs:
       - name: Cache cargo artifacts
         uses: Swatinem/rust-cache@v2
 
+      - name: Setup just
+        uses: extractions/setup-just@v2
+
+      - name: Install cargo-deny
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny
+
       - name: Deny (licenses, advisories, bans)
-        uses: EmbarkStudios/cargo-deny-action@v2
+        run: just deny
 
       - name: Check pure crates
-        shell: bash
-        run: |
-          host_target="$(rustc -vV | awk '/^host:/ {print $2}')"
-          cargo check -p bunting -p ferriswheel -p pennant --target "${host_target}"
+        run: just check
 
       - name: Test pure crates
-        shell: bash
-        run: |
-          host_target="$(rustc -vV | awk '/^host:/ {print $2}')"
-          cargo test -p bunting -p ferriswheel -p pennant --target "${host_target}"
+        run: just test
 
       - name: Check ferriswheel smart-leds-compat (rgb version divergence guard)
-        shell: bash
-        run: |
-          host_target="$(rustc -vV | awk '/^host:/ {print $2}')"
-          cargo check -p ferriswheel --features smart-leds-compat --target "${host_target}"
+        run: just check-ferriswheel-smart-leds-compat
 
       - name: Test pennant hal feature (SimpleLed adapter — off by default)
-        shell: bash
-        run: |
-          host_target="$(rustc -vV | awk '/^host:/ {print $2}')"
-          cargo test -p pennant --features hal --target "${host_target}"
+        run: just test-pennant-hal
