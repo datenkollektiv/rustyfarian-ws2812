@@ -17,7 +17,11 @@ The `hal` feature unlocks GPIO adapters built on
   switching each channel on/off with a `Polarity` flag for common-anode
   (active-low) wiring — e.g. the Cheap Yellow Display's onboard RGB LED.
   Each channel is on/off only, so it renders **eight colours** (on/off per
-  channel), not analog colour mixing — for smooth colours you need a PWM adapter.
+  channel), not analog colour mixing — for smooth colours use `RgbPwmLed`.
+- `RgbPwmLed` drives a discrete RGB LED over three `embedded-hal` `SetDutyCycle`
+  PWM channels, mapping each colour component onto a duty cycle for **smooth
+  analog colour mixing** and true brightness control. Shares the same `Polarity`
+  flag as `RgbGpioLed` for common-anode / common-cathode wiring.
 
 ```toml
 pennant = { version = "0.6", features = ["hal"] }

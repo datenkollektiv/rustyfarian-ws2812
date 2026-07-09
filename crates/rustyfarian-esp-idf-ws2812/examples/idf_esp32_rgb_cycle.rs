@@ -1,9 +1,9 @@
 //! ESP32 (WROOM) Discrete RGB LED Example (ESP-IDF)
 //!
-//! Cycles a plain **common-anode RGB LED** through its eight on/off colours
-//! using the [`RgbGpioLed`](pennant::RgbGpioLed) adapter from `pennant`, driving
-//! three ordinary GPIOs — this is **not** a WS2812/addressable LED and does not
-//! use the RMT peripheral.
+//! Cycles a plain **discrete RGB LED** through its eight on/off colours using the
+//! [`RgbGpioLed`](pennant::RgbGpioLed) adapter from `pennant`, driving three
+//! ordinary GPIOs — this is **not** a WS2812/addressable LED and does not use the
+//! RMT peripheral.
 //!
 //! Use it to verify the `RgbGpioLed` per-channel and polarity logic on real
 //! hardware: each named colour should light the matching channels. If red and
@@ -12,20 +12,22 @@
 //!
 //! ## Board / wiring
 //!
-//! Defaults to the **Cheap Yellow Display** (ESP32-2432S028R) onboard RGB LED,
-//! which needs no external parts:
+//! Uses the **Cheap Yellow Display** (ESP32-2432S028R) RGB *GPIO numbers*, but the
+//! default `POLARITY` is [`Polarity::ActiveHigh`] — it expects an **external
+//! common-cathode** LED wired to those pins (common leg to GND), as verified on
+//! hardware. It does **not** drive the CYD's common-anode onboard LED by default:
 //!
 //! ```text
-//! ESP32-2432S028R      onboard RGB LED (common-anode, active-low)
-//! ───────────────      ────────────────────────────────────────
-//! GPIO4  ───────────►  R   (LOW = lit)
-//! GPIO16 ───────────►  G   (LOW = lit)
-//! GPIO17 ───────────►  B   (LOW = lit)
+//! ESP32                discrete RGB LED (common-cathode, active-high)
+//! ─────                ────────────────────────────────────────────
+//! GPIO4  ───────────►  R   (HIGH = lit)
+//! GPIO16 ───────────►  G   (HIGH = lit)
+//! GPIO17 ───────────►  B   (HIGH = lit)
 //! ```
 //!
-//! For a different board, change the `gpioN` fields where the three
-//! [`PinDriver`]s are created, and set `POLARITY` to
-//! [`Polarity::ActiveHigh`] for a common-cathode LED.
+//! For the CYD's *onboard* RGB LED (common-anode), set `POLARITY` to
+//! [`Polarity::ActiveLow`]. For different pins, change the `gpioN` fields where
+//! the three [`PinDriver`]s are created.
 //!
 //! ## Build
 //!
@@ -46,10 +48,11 @@ use rgb::RGB8;
 use std::thread;
 use std::time::Duration;
 
-/// Wiring polarity. The Cheap Yellow Display's onboard RGB LED is common-anode
-/// (active-low): a channel lights when its pin is driven LOW. Use
-/// [`Polarity::ActiveHigh`] for a common-cathode LED.
-const POLARITY: Polarity = Polarity::ActiveLow;
+/// Wiring polarity. The default [`Polarity::ActiveHigh`] matches a common-cathode
+/// LED (common leg to GND), lit when its pin is driven HIGH — verified on hardware.
+/// Use [`Polarity::ActiveLow`] for a common-anode LED such as the Cheap Yellow
+/// Display's onboard LED.
+const POLARITY: Polarity = Polarity::ActiveHigh;
 
 /// How long each colour is shown.
 const STEP: Duration = Duration::from_millis(800);
@@ -59,7 +62,9 @@ fn main() -> anyhow::Result<()> {
 
     let peripherals = Peripherals::take()?;
 
-    // Pin selection — Cheap Yellow Display (ESP32-2432S028R) onboard RGB LED.
+    // Cheap Yellow Display (ESP32-2432S028R) RGB GPIO numbers. With the default
+    // ActiveHigh polarity these drive an external common-cathode LED; for the CYD's
+    // common-anode onboard LED, set POLARITY = ActiveLow above.
     // Swap the `gpioN` fields here to match a different board's wiring.
     let r = PinDriver::output(peripherals.pins.gpio4)?;
     let g = PinDriver::output(peripherals.pins.gpio16)?;

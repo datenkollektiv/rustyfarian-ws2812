@@ -121,6 +121,11 @@ test-crate crate:
 test-pennant-hal:
     cargo test -p pennant --features hal --target {{ host_target }}
 
+# run clippy on pennant's hal feature — covers the SimpleLed / RgbGpioLed / RgbPwmLed adapters (off by default)
+[group('Test & Lint')]
+clippy-pennant-hal:
+    cargo clippy -p pennant --features hal --target {{ host_target }} -- -D warnings
+
 # test the AVR driver on the host with all features
 [group('Test & Lint')]
 test-avr-all-features:
@@ -225,6 +230,10 @@ build-example-esp32-hal: (build-example "hal-ws2812" "hal_esp32_pulse")
 [group('ESP Examples')]
 build-example-esp32-rgb: (build-example "idf-ws2812" "idf_esp32_rgb_cycle")
 
+# build the ESP32-WROOM discrete RGB LED smooth PWM pulse (pennant RgbPwmLed) example (alias for: just build-example idf-ws2812 idf_esp32_rgb_pulse)
+[group('ESP Examples')]
+build-example-esp32-rgb-pulse: (build-example "idf-ws2812" "idf_esp32_rgb_pulse")
+
 # ensure the IDF-built v5.3.3 bootloader is in the build cache for the given chip (c3 or c6)
 [group('ESP Examples')]
 ensure-bootloader chip:
@@ -280,6 +289,7 @@ verify:
     cargo clippy {{ pure_crates }} --target {{ host_target }} -- -D warnings
     cargo test {{ pure_crates }} --target {{ host_target }}
     cargo test -p pennant --features hal --target {{ host_target }}
+    cargo clippy -p pennant --features hal --target {{ host_target }} -- -D warnings
 
 # full pre-commit verification: format, check, lint, test (modifies files — local use only)
 [group('CI')]
