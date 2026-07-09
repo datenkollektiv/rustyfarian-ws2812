@@ -6,6 +6,8 @@ set -euo pipefail
 #   example:     {driver}_{chip}_{name}  e.g. hal_c6_rainbow, idf_c3_rainbow
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=./lib.sh
+. "$SCRIPT_DIR/lib.sh"
 
 if [ $# -lt 2 ]; then
     printf 'Usage: %s <crate_alias> <example>\n  crate_alias: hal-ws2812 | idf-ws2812\n  example:     {driver}_{chip}_{name}  e.g. hal_c6_pulse, idf_c3_rainbow\n' "$0" >&2
@@ -91,13 +93,10 @@ case "$prefix" in
             esp32) idf_target="xtensa-esp32-espidf"    ; mcu="esp32"    ;;
             *) printf 'Unknown chip "%s" in IDF example "%s". Supported: c3, c6, esp32\n' "$chip" "$example" >&2; exit 1 ;;
         esac
-        # Base features required by all IDF examples.
-        idf_features=""
-        # Append optional features required by specific examples.
-        name=$(printf '%s' "$example" | cut -d_ -f3-)
-        case "$name" in
-            smart_leds) idf_features="${idf_features:+${idf_features},}smart-leds" ;;
-        esac
+        # Optional cargo features this IDF example needs, keyed off its name.
+        # The mapping lives in idf_example_features() (lib.sh) and must stay
+        # aligned with the crate's Cargo.toml `[[example]]` required-features.
+        idf_features=$(idf_example_features "$example")
         printf 'Building %s for %s...\n' "$example" "$idf_target"
         if [ -n "$idf_features" ]; then
             MCU="$mcu" cargo +esp build \
