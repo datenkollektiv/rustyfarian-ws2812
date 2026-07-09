@@ -98,10 +98,12 @@ case "$prefix" in
         # aligned with the crate's Cargo.toml `[[example]]` required-features.
         idf_features=$(idf_example_features "$example")
         printf 'Building %s for %s...\n' "$example" "$idf_target"
+        # $(idf_build_config_flag) is intentionally UNQUOTED — see lib.sh.
         if [ -n "$idf_features" ]; then
             MCU="$mcu" cargo +esp build \
                 --target "$idf_target" \
                 --target-dir "$idf_dir" \
+                $(idf_build_config_flag) \
                 --features "$idf_features" \
                 --example "$example" \
                 -p "$pkg"
@@ -109,6 +111,7 @@ case "$prefix" in
             MCU="$mcu" cargo +esp build \
                 --target "$idf_target" \
                 --target-dir "$idf_dir" \
+                $(idf_build_config_flag) \
                 --example "$example" \
                 -p "$pkg"
         fi

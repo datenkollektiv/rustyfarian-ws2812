@@ -29,7 +29,7 @@ _default:
 # show RAM disk status, resolved target dirs, and sccache
 [group('Build Environment')]
 doctor:
-    @scripts/doctor.sh "{{ramdisk}}" "{{hal_dir}}" "{{idf_dir}}"
+    @scripts/doctor.sh "{{ramdisk}}" "{{hal_dir}}" "{{idf_dir}}" "$(scripts/idf-build-dir.sh)" "$(scripts/idf-build-dir.sh --glob)"
 
 # manage the RAM disk: just ramdisk attach | detach
 [group('Build Environment')]
@@ -46,7 +46,7 @@ build:
 # build all crates including ESP-IDF (requires espup; does NOT cover rustyfarian-esp-hal-ws2812 or rustyfarian-avr-ws2812 — use check-hal / check-avr)
 [group('Build & Check')]
 build-all:
-    cargo +esp build --workspace --exclude rustyfarian-esp-hal-ws2812 --exclude rustyfarian-avr-ws2812 --target {{ idf_target }} --target-dir {{ idf_dir }}
+    cargo +esp build --workspace --exclude rustyfarian-esp-hal-ws2812 --exclude rustyfarian-avr-ws2812 --target {{ idf_target }} --target-dir {{ idf_dir }} $(scripts/idf-build-dir.sh --config)
 
 # check platform-independent crates (no ESP toolchain required)
 [group('Build & Check')]
@@ -56,12 +56,12 @@ check:
 # check all crates including ESP-IDF (requires espup; does NOT cover rustyfarian-esp-hal-ws2812 or rustyfarian-avr-ws2812 — use check-hal / check-avr)
 [group('Build & Check')]
 check-all:
-    cargo +esp check --workspace --exclude rustyfarian-esp-hal-ws2812 --exclude rustyfarian-avr-ws2812 --target {{ idf_target }} --target-dir {{ idf_dir }}
+    cargo +esp check --workspace --exclude rustyfarian-esp-hal-ws2812 --exclude rustyfarian-avr-ws2812 --target {{ idf_target }} --target-dir {{ idf_dir }} $(scripts/idf-build-dir.sh --config)
 
 # check only the ESP-IDF driver crate (requires espup)
 [group('Build & Check')]
 check-idf:
-    cargo +esp check -p rustyfarian-esp-idf-ws2812 --target {{ idf_target }} --target-dir {{ idf_dir }}
+    cargo +esp check -p rustyfarian-esp-idf-ws2812 --target {{ idf_target }} --target-dir {{ idf_dir }} $(scripts/idf-build-dir.sh --config)
 
 # check the esp-hal bare-metal driver (requires: rustup target add riscv32imac-unknown-none-elf)
 [group('Build & Check')]
@@ -144,12 +144,12 @@ clippy:
 # run clippy on all crates applicable to the ESP-IDF-target lint pass (requires espup); not literally every workspace crate — excludes rustyfarian-esp-hal-ws2812 (use clippy-hal) and rustyfarian-avr-ws2812 (linted on the host target via clippy)
 [group('Test & Lint')]
 clippy-all:
-    cargo +esp clippy --workspace --exclude rustyfarian-esp-hal-ws2812 --exclude rustyfarian-avr-ws2812 --target {{ idf_target }} --target-dir {{ idf_dir }} -- -D warnings
+    cargo +esp clippy --workspace --exclude rustyfarian-esp-hal-ws2812 --exclude rustyfarian-avr-ws2812 --target {{ idf_target }} --target-dir {{ idf_dir }} $(scripts/idf-build-dir.sh --config) -- -D warnings
 
 # run clippy on only the ESP-IDF driver crate (requires espup)
 [group('Test & Lint')]
 clippy-idf:
-    cargo +esp clippy -p rustyfarian-esp-idf-ws2812 --target {{ idf_target }} --target-dir {{ idf_dir }} -- -D warnings
+    cargo +esp clippy -p rustyfarian-esp-idf-ws2812 --target {{ idf_target }} --target-dir {{ idf_dir }} $(scripts/idf-build-dir.sh --config) -- -D warnings
 
 # run clippy on the esp-hal bare-metal driver (requires: rustup target add riscv32imac-unknown-none-elf)
 [group('Test & Lint')]
@@ -373,10 +373,74 @@ clean:
 # clean ESP-IDF crate artifacts and esp-idf-sys hash dirs (needed after sdkconfig.defaults changes or Cargo.toml edits)
 [group('Maintenance')]
 clean-idf:
+    #!/usr/bin/env bash
+    set -euo pipefail
     cargo clean -p rustyfarian-esp-idf-ws2812 --target-dir "{{ idf_dir }}"
-    rm -rf "{{ idf_dir }}"/riscv32imac-esp-espidf/debug/build/esp-idf-sys-*/
-    rm -rf "{{ idf_dir }}"/riscv32imc-esp-espidf/debug/build/esp-idf-sys-*/
-    rm -rf "{{ idf_dir }}"/xtensa-esp32-espidf/debug/build/esp-idf-sys-*/
+    # The esp-idf-sys build tree is relocated to the persistent build-dir (v1.1 split),
+    # so remove it there; also sweep the legacy in-target-dir location for pre-split builds.
+    # $glob_base / $idf_dir stay UNQUOTED so the {workspace-path-hash}->* and esp-idf-sys-* globs expand.
+    glob_base="$(scripts/idf-build-dir.sh --glob)"
+    idf_dir="{{ idf_dir }}"
+    for t in riscv32imac-esp-espidf riscv32imc-esp-espidf xtensa-esp32-espidf; do
+        rm -rf $glob_base/$t/debug/build/esp-idf-sys-*/
+        rm -rf $idf_dir/$t/debug/build/esp-idf-sys-*/
+    done
+
+# remove the persistent IDF build-dir cache entirely (the relocated esp-idf-sys CMake trees)
+[group('Maintenance')]
+clean-idf-cache:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    glob_base="$(scripts/idf-build-dir.sh --glob)"
+    # Glob only when the pattern has the {workspace-path-hash}->*/* wildcard; a concrete
+    # RUSTYFARIAN_IDF_BUILD_DIR override is a literal path nullglob can't validate, so probe it directly.
+    case "$glob_base" in
+        *'*'*)
+            shopt -s nullglob
+            matches=( $glob_base )
+            shopt -u nullglob
+            ;;
+        *)
+            matches=()
+            [ -d "$glob_base" ] && matches=( "$glob_base" )
+            ;;
+    esac
+    if [ ${#matches[@]} -eq 0 ]; then
+        echo "No IDF build cache to remove ($glob_base)"
+    else
+        rm -rf "${matches[@]}"
+        echo "Removed IDF build cache: ${matches[*]}"
+    fi
+
+# print the resolved IDF build-dir plumbing (debug the v1.1 build-dir split)
+[group('Maintenance')]
+idf-build-dir-info:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    printf 'resolved : %s\n' "$(scripts/idf-build-dir.sh)"
+    printf 'config   : %s\n' "$(scripts/idf-build-dir.sh --config)"
+    printf 'glob     : %s\n' "$(scripts/idf-build-dir.sh --glob)"
+    glob="$(scripts/idf-build-dir.sh --glob)"
+    # Glob only when the pattern carries the {workspace-path-hash}->*/* wildcard (default cache).
+    # A concrete RUSTYFARIAN_IDF_BUILD_DIR override is a literal path; nullglob can't tell it apart
+    # from a real match, so test it directly instead.
+    case "$glob" in
+        *'*'*)
+            shopt -s nullglob
+            matches=( $glob )
+            shopt -u nullglob
+            ;;
+        *)
+            matches=()
+            [ -d "$glob" ] && matches=( "$glob" )
+            ;;
+    esac
+    if [ ${#matches[@]} -eq 0 ]; then
+        printf 'state    : not yet materialized (created on first IDF build)\n'
+    else
+        printf 'state    : materialized\n'
+        for m in "${matches[@]}"; do printf '           %s\n' "$m"; done
+    fi
 
 # watch and re-run tests on file changes (requires cargo-watch)
 [group('Maintenance')]
@@ -405,7 +469,7 @@ release-dry-run-hal:
 # verify esp-idf driver packages cleanly against IDF target (no upload; requires espup)
 [group('Release')]
 release-dry-run-idf:
-    cargo +esp publish --dry-run -p rustyfarian-esp-idf-ws2812 --target riscv32imac-esp-espidf --target-dir {{ idf_dir }}
+    cargo +esp publish --dry-run -p rustyfarian-esp-idf-ws2812 --target riscv32imac-esp-espidf --target-dir {{ idf_dir }} $(scripts/idf-build-dir.sh --config)
 
 # publish one pure/AVR crate to crates.io. Use: just release-publish bunting
 [group('Release')]
@@ -423,4 +487,4 @@ release-publish-hal:
 [group('Release')]
 [confirm]
 release-publish-idf:
-    cargo +esp publish -p rustyfarian-esp-idf-ws2812 --target riscv32imac-esp-espidf --target-dir {{ idf_dir }}
+    cargo +esp publish -p rustyfarian-esp-idf-ws2812 --target riscv32imac-esp-espidf --target-dir {{ idf_dir }} $(scripts/idf-build-dir.sh --config)
