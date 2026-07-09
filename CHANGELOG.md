@@ -11,10 +11,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `pennant`: `RgbGpioLed` adapter (behind the `hal` feature) that drives a discrete, non-WS2812 RGB LED over three separate `embedded-hal` 1.0 `OutputPin`s, switching each channel on/off from an `RGB8` colour via a per-channel brightness threshold (eight on/off colours, not analog colour mixing); a new `Polarity` enum selects common-anode (`ActiveLow`) or common-cathode (`ActiveHigh`, default) wiring, covering boards like the Cheap Yellow Display (ESP32-2432S028R) whose onboard RGB LED is active-low on GPIO 4/16/17
 - `pennant`: `channel_on(value, threshold)` — pure per-channel threshold helper (strict greater-than) alongside the existing `exceeds_threshold`
 - `rustyfarian-esp-idf-ws2812`: `idf_esp32_rgb_cycle` example — drives a discrete common-anode RGB LED via `pennant`'s `RgbGpioLed`, cycling the eight on/off colours for on-hardware verification (defaults to the Cheap Yellow Display's onboard LED on GPIO 4/16/17, active-low); build with `just build-example-esp32-rgb`, flash with `just run idf_esp32_rgb_cycle`. Gated behind the new example-only `rgb-gpio` feature (`pennant/hal`)
+- Build tooling: persistent Cargo `build.build-dir` split for IDF builds (adopted; see [`docs/features/separate-build-environments-v1.1.md`](docs/features/separate-build-environments-v1.1.md)) — the bulky `esp-idf-sys` CMake tree relocates to `~/Library/Caches/rustyfarian-cargo-build/<workspace-hash>` while IDF final artifacts stay on the RAM disk. Resolved by `scripts/idf-build-dir.sh` and threaded through every IDF recipe. Override the cache location with `RUSTYFARIAN_IDF_BUILD_DIR`. Hardware-flash confirmation is still outstanding
+- Build tooling: `just clean-idf-cache` removes the relocated persistent IDF build cache, and `just idf-build-dir-info` prints the resolved build-dir / `--config` flag / glob and whether the cache is materialised
 
 ### Changed
 
 - `just clippy-all` now excludes `rustyfarian-avr-ws2812` from the ESP-IDF-target lint run, consistent with `build-all` and `check-all`; the AVR crate is still linted on the host target via `just clippy`
+- Build tooling: `just clean-idf` now also sweeps the relocated `esp-idf-sys` tree in the persistent build cache (keeping the legacy in-target-dir sweep for pre-split builds); `just doctor` reports the IDF build-dir and whether this workspace's sharded cache has been materialised
 
 ## [0.6.0] - 2026-05-20
 

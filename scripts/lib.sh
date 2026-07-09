@@ -36,10 +36,73 @@ idf_example_features() {
     esac
 }
 
+# resolve_idf_build_dir
+# Prints the persistent Cargo build-dir used to relocate IDF build intermediates
+# (esp-idf-sys OUT_DIR / CMake tree) off the RAM disk.
+# Honours RUSTYFARIAN_IDF_BUILD_DIR; otherwise defaults under ~/Library/Caches using
+# Cargo's {workspace-path-hash} template so each project gets an isolated subdir.
+# See docs/features/separate-build-environments-v1.1.md.
+resolve_idf_build_dir() {
+    local dir
+    # NB: do NOT fold this into "${VAR:-.../{workspace-path-hash}}" — the literal braces
+    # in the default word confuse bash's ${:-} brace matching and leak a trailing '}'
+    # into the path when the override IS set. Keep the if/else explicit.
+    if [ -n "${RUSTYFARIAN_IDF_BUILD_DIR:-}" ]; then
+        dir="$RUSTYFARIAN_IDF_BUILD_DIR"
+    else
+        dir="$HOME/Library/Caches/rustyfarian-cargo-build/{workspace-path-hash}"
+    fi
+    # The flag/glob are consumed UNQUOTED (to keep the TOML quotes / expand the shard
+    # wildcard), so a path with whitespace would word-split into broken argv/globs.
+    # Fail fast with a clear message instead of corrupting a cargo/find/rm invocation.
+    case "$dir" in
+        *[[:space:]]*)
+            printf 'error: IDF build-dir must not contain whitespace: %s\n' "$dir" >&2
+            printf '       set RUSTYFARIAN_IDF_BUILD_DIR to a space-free path.\n' >&2
+            return 1
+            ;;
+    esac
+    printf '%s' "$dir"
+}
+
+# idf_build_config_flag
+# Prints the `--config` argument that moves Cargo's build-dir for IDF builds.
+# IMPORTANT: consume this UNQUOTED via $(...). The literal double quotes must reach
+# Cargo so it parses the value as a TOML string; wrapping the whole thing in shell
+# quotes would strip them and Cargo would reject the bare path as invalid TOML.
+idf_build_config_flag() {
+    local dir
+    dir="$(resolve_idf_build_dir)" || return 1
+    printf -- '--config=build.build-dir="%s"' "$dir"
+}
+
+# idf_build_dir_glob
+# Prints the build-dir with Cargo's {workspace-path-hash} template replaced by a shell
+# glob. Cargo expands the template itself, so the shell cannot know the concrete subdir;
+# globbing across hash dirs is how discovery/clean locate the relocated tree.
+#
+# NOTE: Cargo expands {workspace-path-hash} to a *sharded two-level* path
+# (e.g. "10/fa8c3bedaaa338"), so the wildcard is "*/*", not a single "*".
+# Verified empirically on cargo 1.95.0-nightly (2026-03). If a concrete
+# RUSTYFARIAN_IDF_BUILD_DIR override is used, no template is present and the path is
+# returned unchanged.
+idf_build_dir_glob() {
+    local raw
+    raw="$(resolve_idf_build_dir)" || return 1
+    printf '%s' "${raw//\{workspace-path-hash\}/*/*}"
+}
+
 # find_idf_bootloader <idf_target> [idf_dir]
 # Prints the path of the single IDF-built bootloader to stdout.
 # Prints nothing if no bootloader is found.
 # Exits with an error if multiple candidates are found (ambiguous — build dirs must be cleaned first).
+# Multi-match grows more likely over time in a shared persistent cache (stale esp-idf-sys-<hash>
+# dirs from old manifests/sdkconfig accumulate); the error tells the operator to run
+# `just clean-idf` (or `just clean-idf-cache`) rather than have discovery silently guess.
+#
+# The bootloader lives inside esp-idf-sys's OUT_DIR. With build.build-dir set (the v1.1
+# split), OUT_DIR is relocated to the persistent build-dir, so that location is searched
+# first; the legacy in-target-dir location is kept as a fallback for pre-split builds.
 find_idf_bootloader() {
     local idf_target="$1"
     local idf_dir="${2:-target/idf}"
@@ -49,10 +112,16 @@ find_idf_bootloader() {
         /*) base_dir="$idf_dir" ;;
         *)  base_dir="$PWD/$idf_dir" ;;
     esac
-    # nullglob makes the array empty (not a literal pattern string) when nothing matches,
+    local build_glob
+    build_glob="$(idf_build_dir_glob)"
+    # nullglob makes each pattern vanish (not stay a literal string) when nothing matches,
     # so the zero/one/many logic below is reliable without an additional -e check.
+    # $build_glob is left UNQUOTED so its {workspace-path-hash}->* wildcard expands.
     shopt -s nullglob
-    local bl_candidates=( "$base_dir/$idf_target/debug/build"/esp-idf-sys-*/out/build/bootloader/bootloader.bin )
+    local bl_candidates=(
+        ${build_glob}/${idf_target}/debug/build/esp-idf-sys-*/out/build/bootloader/bootloader.bin
+        "$base_dir/$idf_target/debug/build"/esp-idf-sys-*/out/build/bootloader/bootloader.bin
+    )
     shopt -u nullglob
     if [ ${#bl_candidates[@]} -gt 0 ]; then
         if [ ${#bl_candidates[@]} -gt 1 ]; then

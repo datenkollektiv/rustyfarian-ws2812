@@ -6,8 +6,8 @@ store for faster ephemeral builds.
 The justfile auto-detects whether the RAM disk is attached and routes each recipe
 to the correct target dir — no `.envrc` or `direnv` required.
 
-> **Status:** this document describes the **current adopted design**.
-> An evaluated but **not-yet-adopted** alternative — moving the bulky IDF build intermediates off the RAM disk via Cargo's `build.build-dir` — is recorded in [`separate-build-environments-v1.1.md`](separate-build-environments-v1.1.md).
+> **Status:** this document describes the **base adopted design** (target-dir isolation + optional RAM disk).
+> A follow-on refinement — moving the bulky IDF build intermediates off the RAM disk via Cargo's `build.build-dir` — has since been **adopted and enabled by default**, recorded in [`separate-build-environments-v1.1.md`](separate-build-environments-v1.1.md) (hardware-flash confirmation still pending).
 
 ## Decisions
 
@@ -122,7 +122,7 @@ repo** (`rustyfarian-ws2812`, `rustyfarian-network`, `rustyfarian-rgb-clock`,
 `rustyfarian-peripherals`, …). Sizing is therefore a **global** decision, not
 per-repo: one exported env var governs the disk that all repos mount.
 
-Routing the heavy IDF build intermediates onto persistent disk instead of growing the RAM disk was evaluated and deferred — see [`separate-build-environments-v1.1.md`](separate-build-environments-v1.1.md).
+Routing the heavy IDF build intermediates onto persistent disk (via Cargo's `build.build-dir`) instead of growing the RAM disk was evaluated, then adopted as a warm-cache optimisation on top of the 12 GB resize — see [`separate-build-environments-v1.1.md`](separate-build-environments-v1.1.md).
 
 - Set it once in your shell profile — every repo's `scripts/ramdisk.sh` honours it:
   ```sh
