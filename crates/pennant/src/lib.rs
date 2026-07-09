@@ -23,6 +23,13 @@
 //! It is generic over [`embedded_hal::digital::OutputPin`], so it works with
 //! any HAL or test mock.
 //!
+//! # RgbGpioLed (opt-in via `hal` feature)
+//!
+//! For a discrete (non-WS2812) RGB LED wired to three separate GPIOs, the
+//! [`RgbGpioLed`] adapter maps an `RGB8` colour onto per-channel on/off pins,
+//! with a [`Polarity`] flag for common-anode (active-low) wiring such as the
+//! Cheap Yellow Display's onboard LED.
+//!
 //! # PulseEffect
 //!
 //! The [`PulseEffect`] creates smooth pulsing brightness animations on a single LED.
@@ -41,6 +48,12 @@ mod simple_led;
 
 #[cfg(feature = "hal")]
 pub use simple_led::SimpleLed;
+
+#[cfg(feature = "hal")]
+mod rgb_gpio_led;
+
+#[cfg(feature = "hal")]
+pub use rgb_gpio_led::{Polarity, RgbGpioLed};
 
 /// Error type for PulseEffect configuration.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -139,6 +152,30 @@ pub fn max_channel_brightness(color: RGB8) -> u8 {
 #[inline]
 pub fn exceeds_threshold(color: RGB8, threshold: u8) -> bool {
     max_channel_brightness(color) > threshold
+}
+
+/// Determines whether a single colour channel exceeds a brightness threshold.
+///
+/// Returns `true` if the channel value is strictly greater than the threshold.
+/// A value exactly equal to the threshold is considered "off", matching
+/// [`exceeds_threshold`]'s convention.
+///
+/// Unlike [`exceeds_threshold`], which compares the brightest channel of a whole
+/// colour, this evaluates one channel in isolation — used by the `RgbGpioLed`
+/// adapter (`hal` feature) to switch its red, green, and blue pins independently.
+///
+/// # Example
+///
+/// ```
+/// use pennant::channel_on;
+///
+/// assert!(channel_on(15, 10));   // 15 > 10
+/// assert!(!channel_on(10, 10));  // equal is off
+/// assert!(!channel_on(5, 10));   // 5 <= 10
+/// ```
+#[inline]
+pub fn channel_on(value: u8, threshold: u8) -> bool {
+    value > threshold
 }
 
 /// A pulsing brightness effect that smoothly oscillates between dim and bright.
@@ -388,6 +425,26 @@ mod tests {
     fn test_exceeds_threshold_below() {
         assert!(!exceeds_threshold(RGB8::new(5, 5, 5), 10));
         assert!(!exceeds_threshold(RGB8::new(0, 0, 0), 10));
+    }
+
+    #[test]
+    fn test_channel_on_above_threshold() {
+        assert!(channel_on(11, 10));
+        assert!(channel_on(255, 0));
+    }
+
+    #[test]
+    fn test_channel_on_at_boundary_is_off() {
+        // Equal to the threshold is off (strict greater-than), matching `exceeds_threshold`.
+        assert!(!channel_on(10, 10));
+        assert!(!channel_on(0, 0));
+        assert!(!channel_on(255, 255));
+    }
+
+    #[test]
+    fn test_channel_on_below_threshold() {
+        assert!(!channel_on(5, 10));
+        assert!(!channel_on(0, 255));
     }
 
     #[test]

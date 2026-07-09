@@ -221,6 +221,10 @@ build-example-esp32: (build-example "idf-ws2812" "idf_esp32_rainbow")
 [group('ESP Examples')]
 build-example-esp32-hal: (build-example "hal-ws2812" "hal_esp32_pulse")
 
+# build the ESP32-WROOM discrete RGB LED (pennant RgbGpioLed) example (alias for: just build-example idf-ws2812 idf_esp32_rgb_cycle)
+[group('ESP Examples')]
+build-example-esp32-rgb: (build-example "idf-ws2812" "idf_esp32_rgb_cycle")
+
 # ensure the IDF-built v5.3.3 bootloader is in the build cache for the given chip (c3 or c6)
 [group('ESP Examples')]
 ensure-bootloader chip:

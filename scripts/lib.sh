@@ -18,6 +18,24 @@ is_ramdisk_mounted() {
     diskutil info "$path" >/dev/null 2>&1
 }
 
+# idf_example_features <example>
+# Prints the comma-separated extra cargo features an IDF example needs (or nothing).
+# The feature is selected from the example's {name} part ({driver}_{chip}_{name}).
+#
+# IMPORTANT: this mapping MUST stay aligned with the `[[example]]`
+# `required-features` declared in crates/rustyfarian-esp-idf-ws2812/Cargo.toml.
+# When you add or rename an IDF example that needs a non-default feature, update
+# both places together — otherwise the build silently drops the feature.
+idf_example_features() {
+    local example="$1"
+    local name
+    name=$(printf '%s' "$example" | cut -d_ -f3-)
+    case "$name" in
+        smart_leds) printf 'smart-leds' ;;
+        rgb_cycle)  printf 'rgb-gpio' ;;
+    esac
+}
+
 # find_idf_bootloader <idf_target> [idf_dir]
 # Prints the path of the single IDF-built bootloader to stdout.
 # Prints nothing if no bootloader is found.

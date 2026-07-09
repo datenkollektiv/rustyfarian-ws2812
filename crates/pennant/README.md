@@ -9,9 +9,15 @@ Provides `StatusLed` and `AsyncStatusLed` traits that decouple application
 code from concrete LED drivers, plus a `PulseEffect` for smooth pulsing
 brightness animations and a `NoLed` zero-size stub.
 
-The `hal` feature unlocks an additional `SimpleLed` adapter that maps RGB
-colours onto plain on/off GPIO pins via
+The `hal` feature unlocks GPIO adapters built on
 [`embedded-hal`](https://crates.io/crates/embedded-hal) 1.0:
+
+- `SimpleLed` maps RGB colours onto a single plain on/off GPIO pin.
+- `RgbGpioLed` drives a discrete (non-WS2812) RGB LED over three separate GPIOs,
+  switching each channel on/off with a `Polarity` flag for common-anode
+  (active-low) wiring — e.g. the Cheap Yellow Display's onboard RGB LED.
+  Each channel is on/off only, so it renders **eight colours** (on/off per
+  channel), not analog colour mixing — for smooth colours you need a PWM adapter.
 
 ```toml
 pennant = { version = "0.6", features = ["hal"] }
