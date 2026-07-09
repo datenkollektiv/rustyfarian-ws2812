@@ -13,12 +13,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/lib.sh"
 
 RAMDISK_NAME="RustBuilds"
-# Interpreted as GiB (1024^3 bytes). The env var keeps the legacy `_GB` name
-# for backwards compatibility — do not rename without coordinating with
-# existing developer setups.
-RAMDISK_SIZE_GB="${RAMDISK_SIZE_GB:-6}"
+# Interpreted as GiB (1024^3 bytes). Set RUSTBUILDS_RAMDISK_SIZE_GB to share one
+# size across all rustyfarian repos that use /Volumes/RustBuilds; the legacy
+# RAMDISK_SIZE_GB is still honoured as a fallback.
+RAMDISK_SIZE_GB="${RUSTBUILDS_RAMDISK_SIZE_GB:-${RAMDISK_SIZE_GB:-6}}"
 if ! [[ "$RAMDISK_SIZE_GB" =~ ^[1-9][0-9]*$ ]]; then
-    printf 'error: RAMDISK_SIZE_GB must be a positive integer (got: "%s")\n' "$RAMDISK_SIZE_GB" >&2
+    printf 'error: RAM disk size must be a positive integer — set RUSTBUILDS_RAMDISK_SIZE_GB (or legacy RAMDISK_SIZE_GB) (got: "%s")\n' "$RAMDISK_SIZE_GB" >&2
     exit 1
 fi
 RAMDISK_PATH="/Volumes/$RAMDISK_NAME"

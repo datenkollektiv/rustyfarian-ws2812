@@ -1,7 +1,7 @@
 # Rustyfarian WS2812 Related Crates
 
 [![CI](https://github.com/datenkollektiv/rustyfarian-ws2812/actions/workflows/rust.yml/badge.svg)](https://github.com/datenkollektiv/rustyfarian-ws2812/actions/workflows/rust.yml)
-[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](#license)
 [![Rust](https://img.shields.io/badge/rust-1.88%2B-orange.svg)](https://www.rust-lang.org)
 [![cargo fmt](https://github.com/datenkollektiv/rustyfarian-ws2812/actions/workflows/fmt.yml/badge.svg)](https://github.com/datenkollektiv/rustyfarian-ws2812/actions/workflows/fmt.yml)
 [![cargo clippy](https://github.com/datenkollektiv/rustyfarian-ws2812/actions/workflows/clippy.yml/badge.svg)](https://github.com/datenkollektiv/rustyfarian-ws2812/actions/workflows/clippy.yml)
