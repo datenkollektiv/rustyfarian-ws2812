@@ -47,13 +47,17 @@ use rgb::RGB8;
 
 /// Wiring polarity of a discrete LED channel.
 ///
-/// Determines whether a channel is lit by driving its pin high or low.
+/// Selects which pin level corresponds to the **lit / maximum-brightness** state.
+/// Shared by [`RgbGpioLed`] (on/off) and [`RgbPwmLed`](crate::RgbPwmLed) (PWM); for
+/// the PWM adapter, [`ActiveLow`](Polarity::ActiveLow) means the channel is
+/// brightest at minimum duty (the pin spends the least time high), so the duty is
+/// the inverse of brightness.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Polarity {
-    /// The channel lights when the pin is driven **high** (common-cathode).
+    /// The channel is brightest when the pin is driven **high** (common-cathode).
     #[default]
     ActiveHigh,
-    /// The channel lights when the pin is driven **low** (common-anode).
+    /// The channel is brightest when the pin is driven **low** (common-anode).
     ActiveLow,
 }
 

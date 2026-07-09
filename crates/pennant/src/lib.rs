@@ -30,6 +30,14 @@
 //! with a [`Polarity`] flag for common-anode (active-low) wiring such as the
 //! Cheap Yellow Display's onboard LED.
 //!
+//! # RgbPwmLed (opt-in via `hal` feature)
+//!
+//! For the same discrete RGB LED wired to three PWM channels instead of plain
+//! GPIOs, the [`RgbPwmLed`] adapter maps each `RGB8` component onto a duty cycle,
+//! giving smooth colour mixing and true brightness — so a brightness effect such
+//! as [`PulseEffect`] renders as an actual fade rather than an on/off blink. It
+//! shares the [`Polarity`] flag with [`RgbGpioLed`].
+//!
 //! # PulseEffect
 //!
 //! The [`PulseEffect`] creates smooth pulsing brightness animations on a single LED.
@@ -54,6 +62,12 @@ mod rgb_gpio_led;
 
 #[cfg(feature = "hal")]
 pub use rgb_gpio_led::{Polarity, RgbGpioLed};
+
+#[cfg(feature = "hal")]
+mod rgb_pwm_led;
+
+#[cfg(feature = "hal")]
+pub use rgb_pwm_led::RgbPwmLed;
 
 /// Error type for PulseEffect configuration.
 #[derive(Debug, Clone, PartialEq, Eq)]

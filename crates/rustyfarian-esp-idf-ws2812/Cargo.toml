@@ -41,9 +41,13 @@ esp-idf-hal.workspace = true
 [features]
 default = ["pennant"]
 pennant = ["dep:pennant"]
-# Enables pennant's `hal` feature so examples can use the GPIO LED adapters
-# (e.g. `RgbGpioLed`). Example-only; not part of the default driver surface.
+# Enables pennant's `hal` feature so examples can use the discrete RGB LED
+# adapters. Example-only; not part of the default driver surface. `rgb-gpio`
+# (on/off `RgbGpioLed`) and `rgb-pwm` (`RgbPwmLed`, smooth fade) both gate the
+# same `pennant/hal` surface; kept distinct so each example's required-features
+# reads for its adapter.
 rgb-gpio = ["pennant", "pennant/hal"]
+rgb-pwm = ["pennant", "pennant/hal"]
 smart-leds = ["dep:smart-leds"]
 
 [[example]]
@@ -58,6 +62,10 @@ name = "idf_esp32_rainbow"
 [[example]]
 name = "idf_esp32_rgb_cycle"
 required-features = ["rgb-gpio"]
+
+[[example]]
+name = "idf_esp32_rgb_pulse"
+required-features = ["rgb-pwm"]
 
 [[example]]
 name = "idf_c6_breathe_color"

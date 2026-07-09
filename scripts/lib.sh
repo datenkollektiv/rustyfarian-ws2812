@@ -33,6 +33,7 @@ idf_example_features() {
     case "$name" in
         smart_leds) printf 'smart-leds' ;;
         rgb_cycle)  printf 'rgb-gpio' ;;
+        rgb_pulse)  printf 'rgb-pwm' ;;
     esac
 }
 
