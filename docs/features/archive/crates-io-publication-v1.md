@@ -39,22 +39,27 @@ the crates through the standard index.
 - [x] Verify `ferriswheel`, `pennant`, and `bunting` availability on crates.io before first publish. **Confirmed 2026-05-06** — `pennant` (HTTP 200 → free), `bunting` (free), `ferriswheel` (free). Replaces the earlier `lantern` claim, which was based on a `cargo search latern` typo and turned out to be wrong (`lantern` is taken).
 - [x] Do `bunting`, `pennant`, and `ferriswheel` each have their own per-crate `README.md` for the docs.rs landing page?
       **Confirmed 2026-05-05** — all three crates have a `README.md` (title, one-liner, workspace-context paragraph, minimal example, docs.rs link, license, pointer to the workspace CHANGELOG) and the `readme = "README.md"` field is set in each `Cargo.toml`.
-- [x] **`blinksy` evaluation** — resolved 2026-05-05 via `research-analyst` pass; full analysis in [`docs/blinksy-ecosystem-evaluation.md`](../blinksy-ecosystem-evaluation.md).
+- [x] **`blinksy` evaluation** — resolved 2026-05-05 via `research-analyst` pass; full analysis in [`docs/blinksy-ecosystem-evaluation.md`](../../blinksy-ecosystem-evaluation.md).
       Outcome: `blinksy` is complementary, not competing — different niche (spatial installations vs embedded rings), different abstraction model (stateless coordinate-driven vs stateful effect loop), and EUPL-1.2 licensing makes it un-adoptable as a Cargo dependency in any case.
       No name collisions in the `blinksy` namespace.
       Does not affect v1 publish scope, crate names, or upstream-contribution strategy (the long-term roadmap target remains `smart-leds-rs`).
       Positioning paragraphs added to `README.md` and `docs/why-yet-another-ws2812-crate.md`.
 - [x] CHANGELOG cutover style — keep workspace-level `CHANGELOG.md` as the single source of truth for all published crates and link to it from each crate's `repository` URL, or move to per-crate changelogs?
-      **Decided 2026-05-05: workspace-level for v1.** Each per-crate `README.md` ends with a "See workspace CHANGELOG" pointer to the canonical [`CHANGELOG.md`](../../CHANGELOG.md). Revisit if downstream users complain about coarse-grained release notes.
-- [ ] Future ownership migration trigger — when do we transition from sole owner (`fwaibel@datenkollektiv.de`) to a GitHub team owner (e.g. `github:datenkollektiv:wheel`)?
-      Candidate triggers: first external contributor's PR merged, or at the `v1.0.0` cut.
+      **Decided 2026-05-05: workspace-level for v1.** Each per-crate `README.md` ends with a "See workspace CHANGELOG" pointer to the canonical [`CHANGELOG.md`](../../../CHANGELOG.md). Revisit if downstream users complain about coarse-grained release notes.
+- [x] Future ownership migration trigger — when do we transition from sole owner (`fwaibel@datenkollektiv.de`) to a GitHub team owner (e.g. `github:datenkollektiv:wheel`)?
+      **Resolved 2026-08-12: external adoption is the trigger to revisit.**
+      The risk sole ownership carries is *publish continuity* — if the sole owner is unreachable, nobody can ship a fix — and that only becomes someone else's problem once someone else depends on the crates.
+      Observable signal: a reverse dependency appearing on crates.io, or an issue filed by a non-maintainer. Download counts are too noisy to act on.
+      The transition itself is gated on a **second person existing**: a team whose only member is the maintainer is ceremony, not bus-factor relief. So adoption triggers the review; the grant follows once there is a second trusted maintainer to put in the team.
+      Explicitly *not* a trigger: a merged external PR. Review capacity and publish rights are separate concerns — contributions can be merged without granting crates.io ownership.
+      The `v1.0.0` cut remains a backstop checkpoint if neither signal has fired by then.
 
 ## State
 
 - [x] Design approved
 - [x] Core implementation (renames: `led-effects` → `pennant` (via `lantern` as a typo-driven intermediate) and `ws2812-pure` → `bunting`; add per-crate metadata; add `just release` recipe; per-crate READMEs)
 - [x] Tests passing (`cargo publish --dry-run` clean for each of the three crates; full test suite green on host target)
-- [ ] Documentation updated — README install snippets switched to versioned crates.io deps; CHANGELOG entries under `## [Unreleased]` for both renames recorded; **remaining**: cut `## [Unreleased]` to a versioned release section as part of the publish step
+- [x] Documentation updated — README install snippets switched to versioned crates.io deps; CHANGELOG entries for both renames recorded and cut to the versioned `## [0.5.0] - 2026-05-06` section at publish time
 
 ## Session Log
 
@@ -91,3 +96,13 @@ the crates through the standard index.
   default to versioned crates.io deps (with a "track main" git snippet kept
   for contributors), feature-doc state checkboxes ticked where work is done,
   the CHANGELOG-cutover open question resolved (workspace-level for v1).
+- 2026-08-12 — Closed the last open question during a roadmap-hygiene pass:
+  the ownership-migration trigger is **external adoption** (reverse dependency
+  on crates.io, or an issue from a non-maintainer), with the actual grant gated
+  on a second trusted maintainer existing — a single-member team is ceremony,
+  not bus-factor relief. A merged external PR was explicitly ruled out as a
+  trigger: review capacity and publish rights are separate concerns.
+  Ticked the final State box after verifying both halves: the README install
+  snippets carry versioned crates.io deps, and the two rename entries were cut
+  from `## [Unreleased]` to `## [0.5.0] - 2026-05-06` at publish time.
+  All three v1 crates are live on crates.io. Doc archived.
