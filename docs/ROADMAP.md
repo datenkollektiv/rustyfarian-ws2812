@@ -12,7 +12,8 @@ All six crates are on crates.io: the pure-logic trio (`bunting`, `pennant`,
 `rustyfarian-esp-hal-ws2812`) since the `0.6.0` wave.
 The 2026-05-05 vision review confirmed AVR as a first-class supported MCU
 family and ruled in-workspace networking demos (e.g. ESP-NOW) out of scope.
-Near-term priorities are hardening CI (AVR build) and tightening the `cargo-deny` configuration.
+Near-term priorities are getting the embedded targets under CI at all — no cross-compilation
+is gated today — and tightening the `cargo-deny` configuration.
 Mid-term priorities are removing the `esp-idf-hal` `send_and_wait` workaround
 when the upstream fix lands, `SmartLedsWriteAsync` for the async driver, and
 scoping `MAX_LEDS` correctly.
