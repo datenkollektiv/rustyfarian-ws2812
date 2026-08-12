@@ -86,7 +86,7 @@ reflect the actual semantics, not the intent.
 - Each coordinated upgrade should produce its own feature doc under
   `docs/features/esp-hal-stack-upgrade-<period>-v1.md` documenting the
   decisions, constraints, migration steps, and verification outcomes.
-  See [`docs/features/esp-hal-stack-upgrade-april-2026-v1.md`](docs/features/esp-hal-stack-upgrade-april-2026-v1.md)
+  See [`docs/features/archive/esp-hal-stack-upgrade-april-2026-v1.md`](docs/features/archive/esp-hal-stack-upgrade-april-2026-v1.md)
   as a worked example.
 
 ### Embassy crates
