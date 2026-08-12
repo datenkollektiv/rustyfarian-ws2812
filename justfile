@@ -17,8 +17,8 @@ ramdisk := "/Volumes/RustBuilds"
 # The wrapper delegates to `is_ramdisk_mounted` in scripts/lib.sh so the check lives in
 # one place and stays consistent with scripts/ramdisk.sh.
 ramdisk_mounted := shell(justfile_directory() + '/scripts/ramdisk-mounted.sh "' + ramdisk + '"')
-hal_dir  := if ramdisk_mounted == "true" { ramdisk + "/targets/hal/" + file_name(justfile_directory()) } else { "target/hal" }
-idf_dir  := if ramdisk_mounted == "true" { ramdisk + "/targets/idf/" + file_name(justfile_directory()) } else { "target/idf" }
+hal_dir := if ramdisk_mounted == "true" { ramdisk + "/targets/hal/" + file_name(justfile_directory()) } else { "target/hal" }
+idf_dir := if ramdisk_mounted == "true" { ramdisk + "/targets/idf/" + file_name(justfile_directory()) } else { "target/idf" }
 
 # list available recipes (default)
 _default:
@@ -29,12 +29,12 @@ _default:
 # show RAM disk status, resolved target dirs, and sccache
 [group('Build Environment')]
 doctor:
-    @scripts/doctor.sh "{{ramdisk}}" "{{hal_dir}}" "{{idf_dir}}" "$(scripts/idf-build-dir.sh)" "$(scripts/idf-build-dir.sh --glob)"
+    @scripts/doctor.sh "{{ ramdisk }}" "{{ hal_dir }}" "{{ idf_dir }}" "$(scripts/idf-build-dir.sh)" "$(scripts/idf-build-dir.sh --glob)"
 
 # manage the RAM disk: just ramdisk attach | detach
 [group('Build Environment')]
 ramdisk action:
-    @scripts/ramdisk.sh "{{action}}"
+    @scripts/ramdisk.sh "{{ action }}"
 
 # --- Build & Check --------------------------------------------------------
 
@@ -262,8 +262,8 @@ monitor:
     espflash monitor
 
 # erase the connected ESP device's flash completely (use before reflashing on boot failures)
-[group('Flash & Monitor')]
 [confirm]
+[group('Flash & Monitor')]
 erase-flash:
     espflash erase-flash
 
@@ -383,107 +383,23 @@ clean:
 # clean ESP-IDF crate artifacts and esp-idf-sys hash dirs (needed after sdkconfig.defaults changes or Cargo.toml edits)
 [group('Maintenance')]
 clean-idf:
-    #!/usr/bin/env bash
-    set -euo pipefail
     cargo clean -p rustyfarian-esp-idf-ws2812 --target-dir "{{ idf_dir }}"
-    # The esp-idf-sys build tree is relocated to the persistent build-dir (v1.1 split),
-    # so remove it there; also sweep the legacy in-target-dir location for pre-split builds.
-    # $glob_base / $idf_dir stay UNQUOTED so the {workspace-path-hash}->* and esp-idf-sys-* globs expand.
-    glob_base="$(scripts/idf-build-dir.sh --glob)"
-    idf_dir="{{ idf_dir }}"
-    for t in riscv32imac-esp-espidf riscv32imc-esp-espidf xtensa-esp32-espidf; do
-        rm -rf $glob_base/$t/debug/build/esp-idf-sys-*/
-        rm -rf $idf_dir/$t/debug/build/esp-idf-sys-*/
-    done
+    @scripts/idf-cache.sh clean "{{ idf_dir }}"
 
 # drop superseded esp-idf-sys build dirs, keeping the newest per target (fixes "multiple IDF-built bootloaders")
 [group('Maintenance')]
 clean-idf-stale:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    # A dependency bump rehashes esp-idf-sys for EVERY IDF target, but each target only
-    # grows its second directory the next time it is built — so the "multiple IDF-built
-    # bootloaders" error surfaces one architecture at a time. This sweeps them all at once,
-    # keeping the newest dir per target so the current build is preserved.
-    glob_base="$(scripts/idf-build-dir.sh --glob)"
-    shopt -s nullglob
-    removed=0
-    for build_dir in $glob_base/*/debug/build; do
-        dirs=( "$build_dir"/esp-idf-sys-*/ )
-        [ ${#dirs[@]} -le 1 ] && continue
-        target="$(basename "$(dirname "$(dirname "$build_dir")")")"
-        # Newest first, so everything after index 0 is superseded.
-        newest="$(ls -dt "${dirs[@]}" | head -1)"
-        for d in "${dirs[@]}"; do
-            [ "${d%/}" = "${newest%/}" ] && continue
-            printf 'removing %-7s %s (%s)\n' "$(du -sh "$d" | cut -f1)" "$(basename "${d%/}")" "$target"
-            rm -rf "$d"
-            removed=$((removed + 1))
-        done
-        printf 'kept              %s (%s)\n' "$(basename "${newest%/}")" "$target"
-    done
-    shopt -u nullglob
-    if [ "$removed" -eq 0 ]; then
-        echo "No superseded esp-idf-sys build dirs found — nothing to do."
-    else
-        echo "Removed $removed superseded esp-idf-sys build dir(s)."
-    fi
+    @scripts/idf-cache.sh clean-stale
 
 # remove the persistent IDF build-dir cache entirely (the relocated esp-idf-sys CMake trees)
 [group('Maintenance')]
 clean-idf-cache:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    glob_base="$(scripts/idf-build-dir.sh --glob)"
-    # Glob only when the pattern has the {workspace-path-hash}->*/* wildcard; a concrete
-    # RUSTYFARIAN_IDF_BUILD_DIR override is a literal path nullglob can't validate, so probe it directly.
-    case "$glob_base" in
-        *'*'*)
-            shopt -s nullglob
-            matches=( $glob_base )
-            shopt -u nullglob
-            ;;
-        *)
-            matches=()
-            [ -d "$glob_base" ] && matches=( "$glob_base" )
-            ;;
-    esac
-    if [ ${#matches[@]} -eq 0 ]; then
-        echo "No IDF build cache to remove ($glob_base)"
-    else
-        rm -rf "${matches[@]}"
-        echo "Removed IDF build cache: ${matches[*]}"
-    fi
+    @scripts/idf-cache.sh clean-all
 
 # print the resolved IDF build-dir plumbing (debug the v1.1 build-dir split)
 [group('Maintenance')]
 idf-build-dir-info:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    printf 'resolved : %s\n' "$(scripts/idf-build-dir.sh)"
-    printf 'config   : %s\n' "$(scripts/idf-build-dir.sh --config)"
-    printf 'glob     : %s\n' "$(scripts/idf-build-dir.sh --glob)"
-    glob="$(scripts/idf-build-dir.sh --glob)"
-    # Glob only when the pattern carries the {workspace-path-hash}->*/* wildcard (default cache).
-    # A concrete RUSTYFARIAN_IDF_BUILD_DIR override is a literal path; nullglob can't tell it apart
-    # from a real match, so test it directly instead.
-    case "$glob" in
-        *'*'*)
-            shopt -s nullglob
-            matches=( $glob )
-            shopt -u nullglob
-            ;;
-        *)
-            matches=()
-            [ -d "$glob" ] && matches=( "$glob" )
-            ;;
-    esac
-    if [ ${#matches[@]} -eq 0 ]; then
-        printf 'state    : not yet materialized (created on first IDF build)\n'
-    else
-        printf 'state    : materialized\n'
-        for m in "${matches[@]}"; do printf '           %s\n' "$m"; done
-    fi
+    @scripts/idf-cache.sh info
 
 # watch and re-run tests on file changes (requires cargo-watch)
 [group('Maintenance')]
@@ -515,19 +431,19 @@ release-dry-run-idf:
     cargo +esp publish --dry-run -p rustyfarian-esp-idf-ws2812 --target riscv32imac-esp-espidf --target-dir {{ idf_dir }} $(scripts/idf-build-dir.sh --config)
 
 # publish one pure/AVR crate to crates.io. Use: just release-publish bunting
-[group('Release')]
 [confirm]
+[group('Release')]
 release-publish crate:
     cargo publish -p {{ crate }} --target {{ host_target }}
 
 # publish esp-hal driver to crates.io (requires riscv32imac-unknown-none-elf target installed)
-[group('Release')]
 [confirm]
+[group('Release')]
 release-publish-hal:
     cargo publish -p rustyfarian-esp-hal-ws2812 --target {{ hal_target }}
 
 # publish esp-idf driver to crates.io (requires espup)
-[group('Release')]
 [confirm]
+[group('Release')]
 release-publish-idf:
     cargo +esp publish -p rustyfarian-esp-idf-ws2812 --target riscv32imac-esp-espidf --target-dir {{ idf_dir }} $(scripts/idf-build-dir.sh --config)
