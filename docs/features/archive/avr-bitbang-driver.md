@@ -13,13 +13,13 @@ Symptoms:
 - Stable white-ish output regardless of intended color, no flicker, brightness scaling proportional.
 - With `NUM_LEDS = 1` (data for one LED only), LEDs 2 and 3 in the chain still flicker faintly — proof that LED 1 is not reliably consuming exactly 24 bits and partial data is leaking through the chain.
 
-Root cause analysis (recorded in [`docs/project-lore.md`](../project-lore.md) under "AVR WS2812 Driver: SPI Prerendered Encoding Limitation"):
+Root cause analysis (recorded in [`docs/project-lore.md`](../../project-lore.md) under "AVR WS2812 Driver: SPI Prerendered Encoding Limitation"):
 
 - The 2 MHz / 4-bit encoding emits `T0H = 500 ns` (right at the WS2812B "0/1" decision threshold) and `T1H = 1500 ns` (well above the 0.85 µs nominal max). Both rely on chip tolerance that varies between strip variants.
 - The `ws2812-spi` README documents this exact symptom: *"Is everything white? This may stem from an SPI peripheral that's too slow or one that takes too much time in-between bytes."*
 - The `arduino-hal` `SpiBus::write` polling loop introduces inter-byte gaps that consume a meaningful fraction of bit time at 2 MHz.
 
-External research (saved to [`docs/research-avr-ws2812-driver-options.md`](../research-avr-ws2812-driver-options.md)) found:
+External research (saved to [`docs/research-avr-ws2812-driver-options.md`](../../research-avr-ws2812-driver-options.md)) found:
 
 - No public Rust WS2812 driver for AVR has hardware-verified working examples.
 - `Adafruit_NeoPixel` and `FastLED` (in C) achieve reliability on the same hardware via cycle-counted inline assembly with global interrupts disabled — proven on millions of Arduino projects.
@@ -143,7 +143,7 @@ The published asm there is BSD-licensed and serves as a reference; we will write
 
 | Alternative                                                | Why not (now)                                                                                                                                |
 |:-----------------------------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------|
-| Track A: increase SPI prescaler to 4 MHz (one-line change) | Worth trying as a 5-minute experiment; if it works on this strip, defer Track B. Documented as Step 1 in the [roadmap entry](../ROADMAP.md). |
+| Track A: increase SPI prescaler to 4 MHz (one-line change) | Worth trying as a 5-minute experiment; if it works on this strip, defer Track B. Documented as Step 1 in the [roadmap entry](../../ROADMAP.md). |
 | Custom 3-bits-per-WS2812-bit SPI encoding at 2.4 MHz       | ATmega328P SPI prescaler doesn't produce 2.4 MHz cleanly; encoding doesn't align to byte boundaries.                                         |
 | Custom 8-bits-per-WS2812-bit at 8 MHz SPI                  | At 8 MHz SPI the inter-byte gap consumes ~50% of bit time on AVR; even worse than current.                                                   |
 | Move to a different chip family (e.g. RP2040)              | Out of scope — the project already targets AVR explicitly.                                                                                   |
@@ -186,7 +186,7 @@ All planned steps complete:
 2. ✅ **Hardware-validated the production driver path** with `examples/avr-nano-rainbow/src/bin/bitbang_demo.rs` driving `ferriswheel::PulseEffect` — identical visible behaviour to the spike.
 3. ✅ **`SmartLedsWrite` impl for both backends** (feature `smart-leds-trait`) for sister-driver parity.
 4. ✅ **ADR 007 updated** with the implementation note recording the final shape.
-5. ✅ **Lore entry resolved** in [`docs/project-lore.md`](../project-lore.md).
+5. ✅ **Lore entry resolved** in [`docs/project-lore.md`](../../project-lore.md).
 
 Out of scope (deferred follow-ups, not blocking this feature):
 

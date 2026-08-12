@@ -28,7 +28,7 @@ ADRs in `docs/adr/` document the load-bearing decisions; `docs/project-lore.md` 
 
 ## Development Workflow
 
-The `justfile` is the canonical interface — it handles target overrides, since `.cargo/config.toml` defaults the workspace to `riscv32imac-esp-espidf`.
+The `justfile` is the canonical interface — it handles target overrides, since `.cargo/config.toml` defaults the workspace to the bare-metal `riscv32imac-unknown-none-elf`.
 
 | Command | Purpose |
 |:--------|:--------|
@@ -41,7 +41,7 @@ The `justfile` is the canonical interface — it handles target overrides, since
 | `just run <example>` | Flash an example to a connected ESP32 board |
 | `just build-example <crate> <name>` | Build an example without flashing |
 
-For ad-hoc cargo invocations on platform-independent crates, always pass `--target` (e.g. `--target aarch64-apple-darwin`) — the workspace default points at ESP-IDF.
+For ad-hoc cargo invocations on platform-independent crates, always pass `--target` (e.g. `--target aarch64-apple-darwin`) — the workspace default points at an embedded RISC-V target.
 
 ## Key Conventions
 
@@ -65,4 +65,4 @@ For ad-hoc cargo invocations on platform-independent crates, always pass `--targ
 - `crates/ferriswheel/src/effect.rs` — `Effect` trait, `EffectError`, `MAX_LEDS`
 - `docs/project-lore.md` — debugging gotchas not derivable from the source
 - `docs/ROADMAP.md` and `docs/adr/` — what's planned and why decisions look the way they do
-- `CHANGELOG.md` — release history; latest is `[0.5.0] 2026-05-05`
+- `CHANGELOG.md` — release history; latest is `[0.6.0] 2026-05-20`
