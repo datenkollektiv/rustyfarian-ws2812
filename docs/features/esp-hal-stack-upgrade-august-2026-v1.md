@@ -98,8 +98,8 @@ Wiring: WS2812B ring, **12 LEDs**, data on **GPIO18**, 300–500 Ω series resis
 
 ### Required if boards are available
 
-- [~] **5. `just run hal_c3_pulse`** — ESP32-C3, data on **GPIO4**, 12 LEDs.
-      Deferred since 2026-04-29 for want of a board; this bump is a good moment to close it.
+- [x] **5. `just run hal_c3_pulse`** — ESP32-C3, data on **GPIO4**, 12 LEDs.
+      Deferred since 2026-04-29 for want of a board; **closed during this cycle** when a C3 became available.
 - [~] **6. `just run hal_esp32_pulse`** — ESP32-WROOM-32 (Xtensa), data on **GPIO4**, 12 LEDs.
       The only runtime exercise of the Xtensa target; compile-only coverage otherwise.
 
