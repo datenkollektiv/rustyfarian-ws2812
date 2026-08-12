@@ -1,5 +1,7 @@
 # Feature: crates.io Publication v1
 
+*Status: Completed and archived (2026-08-12) — all three v1 crates live on crates.io since `0.5.0`.*
+
 First-wave publication of the three pure-logic library crates to crates.io.
 The maintainer's downstream projects will switch from git dependencies to
 versioned dependencies, and the broader Rust ecosystem will be able to discover

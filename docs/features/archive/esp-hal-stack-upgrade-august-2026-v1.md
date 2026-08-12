@@ -1,6 +1,6 @@
 # esp-hal patch bump — August 2026 (v1)
 
-**Status:** **Validated** (2026-08-12) — compile-verified and hardware-validated on ESP32-C6
+**Status:** **Validated** (2026-08-12) — compile-verified and hardware-validated on ESP32-C6; **completed and archived 2026-08-12**
 **Branch:** `august-2026-release-wave`
 **Cycle reference:** `audit/2026-08-12-monthly-audit.md`
 
