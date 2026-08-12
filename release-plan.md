@@ -130,7 +130,7 @@ docs.rs will build `rustyfarian-esp-hal-ws2812` using the `[package.metadata.doc
 
 ## Changelog
 
-**Location:** `CHANGELOG.md` (workspace-level — single source of truth for all crates, per the v1 decision in [`docs/features/crates-io-publication-v1.md`](docs/features/crates-io-publication-v1.md))
+**Location:** `CHANGELOG.md` (workspace-level — single source of truth for all crates, per the v1 decision in [`docs/features/archive/crates-io-publication-v1.md`](docs/features/archive/crates-io-publication-v1.md))
 **Format:** [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 **Process:**
 

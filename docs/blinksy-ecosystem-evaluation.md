@@ -297,7 +297,7 @@ No change to `ROADMAP.md` is needed — the existing wording is correct.
 *Action:* None required.
 
 **5. Mark the `blinksy` open question in the crates.io publication feature doc as resolved.**
-The feature doc (`docs/features/crates-io-publication-v1.md`) listed the `blinksy` evaluation as a queued follow-up.
+The feature doc (`docs/features/archive/crates-io-publication-v1.md`) listed the `blinksy` evaluation as a queued follow-up.
 This document closes that question.
 The conclusion is: `blinksy` does not change the publish scope, the crate names, or the positioning in any way that blocks v1 publication.
 *Action:* In the feature doc, check the open question item and add a note pointing to this document.

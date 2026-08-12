@@ -1,12 +1,15 @@
 # Roadmap
 
-*Last updated: May 2026*
+*Last updated: August 2026*
 
 The April 2026 `esp-hal` release wave (`v0.5.0`) is shipped, the AVR bit-bang
 driver is the recommended backend (per ADR 007), the GPIO8 RMT hang is
-resolved upstream, the first crates.io wave (`bunting`, `pennant`,
-`ferriswheel` @ `0.5.0`) is live, and the Xtensa ESP32 / WROOM-32 bare-metal
-target is now verified clean under `esp-hal 1.1.0`.
+resolved upstream, and the Xtensa ESP32 / WROOM-32 bare-metal target is
+verified clean under `esp-hal 1.1.0`.
+All six crates are on crates.io: the pure-logic trio (`bunting`, `pennant`,
+`ferriswheel`) since `0.5.0`, and all three driver crates
+(`rustyfarian-avr-ws2812`, `rustyfarian-esp-idf-ws2812`,
+`rustyfarian-esp-hal-ws2812`) since the `0.6.0` wave.
 The 2026-05-05 vision review confirmed AVR as a first-class supported MCU
 family and ruled in-workspace networking demos (e.g. ESP-NOW) out of scope.
 Near-term priorities are hardening CI (AVR build) and tightening the `cargo-deny` configuration.
@@ -41,7 +44,7 @@ timeline
               : Scope MAX_LEDS and fix positional effects for strips > 256 LEDs
               : Add grid module to README + scope guard in grid.rs
               : Document async support status in README driver table
-              : Trim just --list to one scannable line per recipe
+              : Decide build-example-* convenience-alias coverage policy
 
     Long term : Property tests for pure crates
               : Track rgb 0.9 migration
@@ -72,47 +75,23 @@ Add a GitHub Actions job that:
 
 ## Developer Tooling
 
-### ✅ Trim `just --list` to one scannable line per recipe — done 2026-08-12
+### Decide `build-example-*` convenience-alias coverage policy
 
-*Renamed from "Condense justfile to a meaningful number of recipes".* The original framing
-blamed recipe **count**; measurement showed the problem was description **length**, and
-cutting recipes would not have fixed it — `clippy-all`, the worst offender at 286 columns,
-is not an alias.
+Alias coverage is arbitrary rather than wrong: 6 `build-example-*` aliases exist for
+31 examples, while `just build-example <crate> <name>` and `just flash <name>`
+(which infers the crate from the name prefix) already cover all of them.
+Decide whether aliases are curated shortcuts for a few common cases — and if so, which —
+or should cover every example.
 
-| Widest `just --list` row | Rows > 120 cols  | Rows > 100 cols  |
-|:-------------------------|:-----------------|:-----------------|
-| 286 → **99**             | 40 (48%) → **0** | 53 (63%) → **0** |
+Surfaced as a follow-up while trimming `just --list` to one line per recipe (August 2026);
+deliberately left out of that change, which touched descriptions only.
 
-72 recipes, all still documented, none renamed or removed. Grouping had already fixed the
-*structure*; this fixed the wrapping that was destroying the column alignment.
-
-**The mechanism, worth remembering:** `just` renders the **last** comment line above a
-recipe, skipping any attributes between. So detail stays in the file for whoever edits the
-recipe while `--list` shows a short label — no information is lost.
-
-```just
-# build all crates including ESP-IDF (requires espup; does NOT cover the esp-hal or AVR
-# crates — use check-hal / check-avr)
-# build every crate the ESP-IDF toolchain compiles
-[group('Build & Check')]
-build-all:
-```
-
-Budget is ~59 characters: the name column is padded to 40, so 59 keeps a row under 100.
-Regression check:
+Guard the trimmed output against regression when adding recipes — the name column is padded
+to 40, so a description budget of ~59 characters keeps a row under 100:
 
 ```sh
 just --list | awk '{ print length }' | sort -rn | head -1   # expect <= 100
 ```
-
-**Out of scope, deliberately:** reducing recipe count. 72 across 11 groups is navigable
-once rows stop wrapping.
-
-**Follow-up, not part of this item** — convenience-alias coverage is arbitrary rather than
-wrong: 6 `build-example-*` aliases exist for 31 examples, while `just build-example <crate>
-<name>` and `just flash <name>` (which infers the crate from the name prefix) already cover
-all of them. Decide whether aliases are curated shortcuts for common cases or should cover
-every example.
 
 ---
 
@@ -162,18 +141,6 @@ versions in the dep graph at the time of the change.
 ---
 
 ## Hardware Driver Improvements
-
-### Publish HAL driver crates to crates.io (0.6.0 wave)
-
-All six workspace crates bumped to `0.6.0`.
-`rustyfarian-avr-ws2812`, `rustyfarian-esp-idf-ws2812`, and `rustyfarian-esp-hal-ws2812`
-are ready to publish: per-crate READMEs written, `readme`/`documentation`/`[package.metadata.docs.rs]`
-metadata added, `CHANGELOG.md` cut to `## [0.6.0] - 2026-05-20`, docs.rs badges added to the
-workspace README.
-Publish order: `just release-publish rustyfarian-avr-ws2812` → `just release-publish-idf` → `just release-publish-hal`
-(see `release-plan.md` for the full staged flow).
-
----
 
 ### Document async support status in README driver table
 
