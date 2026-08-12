@@ -53,6 +53,12 @@ required-features = ["esp32c3", "rt"]
 name = "hal_c6_pulse"
 required-features = ["esp32c6", "rt"]
 
+# Regression guard for the historic GPIO8 transmit hang — see the example's
+# module docs and docs/project-lore.md. Drives the onboard LED, no wiring needed.
+[[example]]
+name = "hal_c6_onboard_pulse"
+required-features = ["esp32c6", "rt"]
+
 [[example]]
 name = "hal_esp32_pulse"
 required-features = ["esp32", "rt"]

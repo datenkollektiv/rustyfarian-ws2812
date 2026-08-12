@@ -127,9 +127,22 @@ find_idf_bootloader() {
     if [ ${#bl_candidates[@]} -gt 0 ]; then
         if [ ${#bl_candidates[@]} -gt 1 ]; then
             printf 'Error: multiple IDF-built bootloaders found for target "%s".\n' "$idf_target" >&2
-            printf 'Run: cargo clean -p esp-idf-sys, or remove unused esp-idf-sys-* build directories.\nCandidates:\n' >&2
+            printf 'A Cargo.toml change (new dependency version or [[example]]) gives esp-idf-sys a\n' >&2
+            printf 'fresh build hash, leaving the previous esp-idf-sys-* directory behind.\n\n' >&2
+            printf 'Note: `cargo clean -p esp-idf-sys` does NOT help while the build-dir split is\n' >&2
+            printf 'active — the artifacts live in the relocated cache below, not under target/.\n\n' >&2
+            printf 'Fix: just clean-idf-stale    (drops superseded dirs, keeps the newest per target)\n' >&2
+            printf 'Fix (reset all): just clean-idf-cache    (full rebuild, incl. other architectures)\n\n' >&2
+            printf 'Note: a dependency bump rehashes esp-idf-sys for EVERY IDF target, but each one\n' >&2
+            printf 'only grows a second directory when next built — so this recurs per architecture.\n' >&2
+            printf '`just clean-idf-stale` sweeps them all at once.\n\n' >&2
+            printf 'Candidates (listed in glob order; compare the timestamps):\n' >&2
             for cand in "${bl_candidates[@]}"; do
-                printf '  %s\n' "$cand" >&2
+                # Display mtime so the stale directory is obvious; BSD stat first, GNU as fallback.
+                cand_mtime="$(stat -f '%Sm' -t '%Y-%m-%d %H:%M' "$cand" 2>/dev/null \
+                    || stat -c '%y' "$cand" 2>/dev/null | cut -c1-16 \
+                    || echo 'unknown')"
+                printf '  [%s]  %s\n' "$cand_mtime" "$cand" >&2
             done
             exit 1
         fi

@@ -1,21 +1,25 @@
 # esp-hal Companion Crate Version Matrix
 
-## Current State — `esp-hal 1.1.0` (April 2026 release wave)
+## Current State — `esp-hal 1.1.2` (April 2026 release wave + August patch)
 
-The workspace currently pins `esp-hal 1.1.0` and the coordinated companion crates released
-on 2026-04-16 (with `esp-hal 1.1.0` itself on 2026-04-24).
-Migration was tracked by [`docs/features/archive/esp-hal-stack-upgrade-april-2026-v1.md`](features/archive/esp-hal-stack-upgrade-april-2026-v1.md)
+The workspace pins the coordinated companion crates from the wave released on 2026-04-16
+(with `esp-hal 1.1.0` itself on 2026-04-24), tracked by
+[`docs/features/archive/esp-hal-stack-upgrade-april-2026-v1.md`](features/archive/esp-hal-stack-upgrade-april-2026-v1.md)
 and applied during the 2026-04-29 quarterly maintenance pass.
 
-| Crate                    | Current    | Notes                                                                                                                                  |
-|:-------------------------|:-----------|:---------------------------------------------------------------------------------------------------------------------------------------|
-| `esp-hal`                | **1.1.0**  | `configure_tx` signature change: takes `&TxChannelConfig`, pin attaches via `.with_pin(...)` chain                                     |
-| `esp-rtos`               | **0.3.0**  | Still bundles Embassy time driver; pulls `embassy-sync 0.8`, `embassy-executor 0.10` transitively                                      |
-| `esp-bootloader-esp-idf` | **0.5.0**  | Still produces an `esp_app_desc_t` accepted by IDF v5.3.3 bootloader                                                                   |
-| `esp-println`            | **0.17.0** |                                                                                                                                        |
-| `embassy-executor`       | **0.10.0** | `Spawner::spawn` now returns `()`; task functions return `Result<SpawnToken, SpawnError>` — pattern: `spawner.spawn(task().unwrap());` |
-| `embassy-sync`           | **0.8.0**  | Direct workspace dep aligned with `esp-rtos 0.3` transitive resolution                                                                 |
-| `embassy-time`           | **0.5.1**  | Patch-level update                                                                                                                     |
+`esp-hal` was subsequently bumped **1.1.0 → 1.1.2** on 2026-08-12 (patch-only; every companion
+crate unchanged, so this was an isolated bump rather than a new wave). See
+[`docs/features/esp-hal-stack-upgrade-august-2026-v1.md`](features/esp-hal-stack-upgrade-august-2026-v1.md).
+
+| Crate                    | Current    | Notes                                                                                                                                                                                     |
+|:-------------------------|:-----------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `esp-hal`                | **1.1.2**  | `configure_tx` signature change (from 1.1.0): takes `&TxChannelConfig`, pin attaches via `.with_pin(...)` chain. 1.1.1 added an RMT max-pulse-length fix; 1.1.2 is SHA/RSA/SPI/Timer only |
+| `esp-rtos`               | **0.3.0**  | Still bundles Embassy time driver; pulls `embassy-sync 0.8`, `embassy-executor 0.10` transitively                                                                                         |
+| `esp-bootloader-esp-idf` | **0.5.0**  | Still produces an `esp_app_desc_t` accepted by IDF v5.3.3 bootloader                                                                                                                      |
+| `esp-println`            | **0.17.0** |                                                                                                                                                                                           |
+| `embassy-executor`       | **0.10.0** | `Spawner::spawn` now returns `()`; task functions return `Result<SpawnToken, SpawnError>` — pattern: `spawner.spawn(task().unwrap());`                                                    |
+| `embassy-sync`           | **0.8.0**  | Direct workspace dep aligned with `esp-rtos 0.3` transitive resolution                                                                                                                    |
+| `embassy-time`           | **0.5.1**  | Patch-level update                                                                                                                                                                        |
 
 `esp-sync 0.2.1` (an internal monorepo crate) deliberately depends on three `embassy-sync` versions
 (0.6.2 + 0.7.2 + 0.8.0) for backwards compatibility — this is intentional upstream and explains
@@ -125,7 +129,7 @@ Features requiring the `unstable` gate in `esp-hal 1.0.0`:
 
 ## Implications for `rustyfarian-esp-hal-ws2812`
 
-The workspace currently pins `esp-hal = "=1.1.0"` with `features = ["esp32c6", "unstable"]`.
+The workspace currently pins `esp-hal = "=1.1.2"` with `features = ["esp32c6", "unstable"]`.
 The current `esp-rtos` dependency is at `0.3.0` (released 2026-04-16).
 
 If ESP-NOW or WiFi support were added to this workspace in the future, the compatible

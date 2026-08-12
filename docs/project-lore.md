@@ -91,9 +91,16 @@ Running from the workspace root (no `rust-toolchain.toml`) picks stable; stable 
 Affected: `examples/avr-nano-rainbow/` (pins `nightly-2025-04-27` in its own `rust-toolchain.toml`).
 Fix: `rm -rf examples/avr-nano-rainbow/target` — toolchain-independent, always clears the directory.
 
-**Any edit to `Cargo.toml` (e.g. adding a new `[[example]]` entry) can cause Cargo to assign a new hash to the `esp-idf-sys` build directory, leaving two bootloader artifacts that the flash script refuses to resolve silently.**
+**Any edit to `Cargo.toml` (a new `[[example]]` entry, or a dependency version bump) can cause Cargo to assign a new hash to the `esp-idf-sys` build directory, leaving two bootloader artifacts that the flash script refuses to resolve silently.**
 `ensure-bootloader.sh` intentionally errors with `multiple IDF-built bootloaders found` rather than picking one arbitrarily, because choosing the wrong bootloader produces a silent boot-loop.
-Fix: `cargo clean -p esp-idf-sys`, then re-run the flash command — the correct bootloader is rebuilt from scratch.
+
+**`cargo clean -p esp-idf-sys` no longer fixes this** — it reports "Removed 0 files". Since the `build.build-dir` split, the artefacts live under `~/Library/Caches/rustyfarian-cargo-build/<workspace-hash>/`, not under `target/`, and a bare `cargo clean -p` only searches the default target-dir. The old advice predates the split and is a dead end that looks like a no-op success.
+
+Fix: `just clean-idf-stale` — drops superseded dirs and keeps the newest per target. `just clean-idf-cache` resets everything instead, at the cost of a full IDF rebuild across all architectures.
+
+**It recurs once per architecture, which reads like "multiple ESP32 targets stopped working".** A dependency bump rehashes `esp-idf-sys` for *every* IDF target at once, but each target only grows its second directory the next time it is built. Cleaning the target you happen to be testing therefore leaves the others armed: on 2026-08-12 the `embuild 0.33.1 → 0.33.3` bump broke `riscv32imac` (C6) immediately, then `riscv32imc` (C3) hours later on first C3 flash, with `xtensa-esp32` still pending. The targets do not conflict with each other — the bootloader glob is scoped per `$idf_target`; it is one cause surfacing lazily.
+
+Diagnostic signal: two `esp-idf-sys-<hash>` directories under the *same* target, similar size (~150–185 MB each), mtimes straddling the `Cargo.toml` edit that caused the rehash.
 
 ---
 

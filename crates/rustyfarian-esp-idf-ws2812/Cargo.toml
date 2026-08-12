@@ -16,7 +16,7 @@ categories = ["embedded", "hardware-support"]
 targets = ["riscv32imac-esp-espidf"]
 
 [build-dependencies]
-embuild = "=0.33.1"
+embuild = "=0.33.3"
 
 [dev-dependencies]
 ferriswheel = { workspace = true }

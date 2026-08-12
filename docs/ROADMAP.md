@@ -81,9 +81,10 @@ removed and the dep graph cleans up.
 
 Current entries (as of 2026-05):
 
-- `RUSTSEC-2024-0436` — `paste` unmaintained; transitive through `esp-hal 1.1.0` /
-  `riscv 0.15.0`. Re-check when those crates bump or when a successor proc-macro
-  ships in the smart-leds / esp-rs ecosystem.
+- `RUSTSEC-2024-0436` — `paste` unmaintained; a **direct** dependency of `esp-hal 1.1.2`
+  as well as transitive through `riscv 0.15.0`. Bumping `riscv` alone therefore cannot
+  clear it — `esp-hal` must drop `paste` first. Re-checked 2026-08-12 against 1.1.2
+  (still present); re-run `cargo tree -i paste` after each `esp-hal` bump.
 
 (The `bare-metal` / `atdf2svd` exceptions previously needed for `rustyfarian-avr-ws2812`
 were eliminated in `v0.5.0` by switching the bit-bang backend to raw `cli` + `SREG`
