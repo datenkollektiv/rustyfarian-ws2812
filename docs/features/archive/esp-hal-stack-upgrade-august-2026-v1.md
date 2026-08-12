@@ -142,4 +142,18 @@ Check 5 is the notable one: the bare-metal `esp-hal` path on C3 had been deferre
 ## Open questions
 
 1. ~~**Should a GPIO8 example be added permanently?**~~ **Resolved 2026-08-12** — `hal_c6_onboard_pulse` added. The onboard-LED path now has standing regression coverage and check 7 is a single command rather than a hand-edited pin.
-2. **Should `check-hal-xtensa` join the routine gate?** `hal_esp32_pulse` compiles, but the Xtensa target is only exercised on demand.
+2. ~~**Should `check-hal-xtensa` join the routine gate?**~~ **Resolved 2026-08-12 — yes, but as a path-filtered CI job, not the local gate.**
+
+   Deciding this surfaced the real gap: **the routine gate contains no cross-compilation at all.** `verify`, `pre-commit`, `ci` and all four GitHub workflows run `ubuntu-latest` + stable toolchain over the host-target pure crates only. Even `check-hal` — plain RISC-V, one `rustup target add` away, and the *primary* target of this crate — is in no gate. Adding the expensive Xtensa check while the cheap RISC-V one stays ungated would be out of order.
+
+   **Not the local gate.** `check-hal-xtensa` needs `cargo +esp`, so putting it in `verify` or `pre-commit` would hard-fail for any contributor who has not run `just setup esp` — converting the fast stable-Rust-only gate into an ESP-toolchain-required one.
+
+   **CI, bundled with its two siblings.** The work is the same shape as the roadmap's existing "Add AVR build to CI" item (pinned `nightly-2025-04-27`, `gcc-avr`, path filter), so it lands as one `cross-targets.yml` with three path-filtered jobs — RISC-V `check-hal`, AVR, Xtensa `check-hal-xtensa` — in that order of value. Runtime cost falls only on pushes touching those crates. Requirements for the Xtensa job specifically: install `espup`, `espup install --targets esp32` with a **pinned** `--toolchain-version` (this cycle: Xtensa Rust 1.95.0.0 — unpinned, an upstream bump breaks CI on unrelated changes), source the export file so `cargo +esp` resolves, and cache `~/.rustup/toolchains/esp` + `~/.espressif` keyed on that pin to avoid re-downloading a large toolchain per run. `-Z build-std=core` needs `rust-src`, which espup installs alongside.
+
+   Tracked on the roadmap under [Continuous Integration](../../ROADMAP.md#continuous-integration); no further work belongs to this upgrade cycle.
+
+## Session Log
+
+- 2026-08-12 — Bump landed and compile-verified: `esp-hal` `=1.1.0` → `=1.1.2`, `embuild` `=0.33.1` → `=0.33.3`. Patch-level only; no companion-crate or Embassy realignment needed (runbook step 4 was a no-op).
+- 2026-08-12 — Hardware validation completed on an ESP32-C6 (checks 1–4, 7) and an ESP32-C3 (check 5), the latter closing a gap open since 2026-04-29. Check 6 (WROOM-32 / Xtensa) recorded **N/A — board unavailable**, compile-verified only. Added `hal_c6_onboard_pulse` as a permanent GPIO8 regression guard, resolving open question 1. Re-validated check 7 after the `.ok()` → `.expect()` code-review follow-up, per the rule that a hardware sign-off is only valid for the binary that was actually run.
+- 2026-08-12 — Closed open question 2 during a roadmap-hygiene pass: `check-hal-xtensa` joins CI as a path-filtered job, not the local `verify` / `pre-commit` gate. Investigating it surfaced that **no** cross-compilation is gated today — not even RISC-V `check-hal` — so the work was folded into the roadmap's existing CI item as a single `cross-targets.yml` (RISC-V → AVR → Xtensa) rather than a one-off Xtensa job. Doc archived; check 6 stays N/A permanently, so it is not treated as outstanding work.

@@ -9,7 +9,7 @@ and applied during the 2026-04-29 quarterly maintenance pass.
 
 `esp-hal` was subsequently bumped **1.1.0 → 1.1.2** on 2026-08-12 (patch-only; every companion
 crate unchanged, so this was an isolated bump rather than a new wave). See
-[`docs/features/esp-hal-stack-upgrade-august-2026-v1.md`](features/esp-hal-stack-upgrade-august-2026-v1.md).
+[`docs/features/archive/esp-hal-stack-upgrade-august-2026-v1.md`](features/archive/esp-hal-stack-upgrade-august-2026-v1.md).
 
 | Crate                    | Current    | Notes                                                                                                                                                                                     |
 |:-------------------------|:-----------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
