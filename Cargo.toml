@@ -30,7 +30,7 @@ esp-idf-hal = { version = "0.46" }
 # should land via the maintenance workflow (see `maintenance-plan.md`) rather
 # than transparent fresh-resolution drift. Re-run `just check-hal` after any bump.
 # Chip selection and "unstable" are forwarded via features in the driver crate.
-esp-hal = { version = "=1.1.0" }
+esp-hal = { version = "=1.1.2" }
 # App descriptor required for IDF bootloader compatibility; chip feature forwarded from the driver crate.
 esp-bootloader-esp-idf = { version = "=0.5.0", default-features = false }
 # Bare-metal serial output via USB-JTAG ROM; no esp-hal dependency.

@@ -396,6 +396,39 @@ clean-idf:
         rm -rf $idf_dir/$t/debug/build/esp-idf-sys-*/
     done
 
+# drop superseded esp-idf-sys build dirs, keeping the newest per target (fixes "multiple IDF-built bootloaders")
+[group('Maintenance')]
+clean-idf-stale:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # A dependency bump rehashes esp-idf-sys for EVERY IDF target, but each target only
+    # grows its second directory the next time it is built — so the "multiple IDF-built
+    # bootloaders" error surfaces one architecture at a time. This sweeps them all at once,
+    # keeping the newest dir per target so the current build is preserved.
+    glob_base="$(scripts/idf-build-dir.sh --glob)"
+    shopt -s nullglob
+    removed=0
+    for build_dir in $glob_base/*/debug/build; do
+        dirs=( "$build_dir"/esp-idf-sys-*/ )
+        [ ${#dirs[@]} -le 1 ] && continue
+        target="$(basename "$(dirname "$(dirname "$build_dir")")")"
+        # Newest first, so everything after index 0 is superseded.
+        newest="$(ls -dt "${dirs[@]}" | head -1)"
+        for d in "${dirs[@]}"; do
+            [ "${d%/}" = "${newest%/}" ] && continue
+            printf 'removing %-7s %s (%s)\n' "$(du -sh "$d" | cut -f1)" "$(basename "${d%/}")" "$target"
+            rm -rf "$d"
+            removed=$((removed + 1))
+        done
+        printf 'kept              %s (%s)\n' "$(basename "${newest%/}")" "$target"
+    done
+    shopt -u nullglob
+    if [ "$removed" -eq 0 ]; then
+        echo "No superseded esp-idf-sys build dirs found — nothing to do."
+    else
+        echo "Removed $removed superseded esp-idf-sys build dir(s)."
+    fi
+
 # remove the persistent IDF build-dir cache entirely (the relocated esp-idf-sys CMake trees)
 [group('Maintenance')]
 clean-idf-cache:
