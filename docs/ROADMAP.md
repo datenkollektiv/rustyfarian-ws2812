@@ -41,7 +41,7 @@ timeline
               : Scope MAX_LEDS and fix positional effects for strips > 256 LEDs
               : Add grid module to README + scope guard in grid.rs
               : Document async support status in README driver table
-              : Condense justfile to a meaningful number of recipes
+              : Trim just --list to one scannable line per recipe
 
     Long term : Property tests for pure crates
               : Track rgb 0.9 migration
@@ -67,6 +67,52 @@ Add a GitHub Actions job that:
 - installs `gcc-avr` via `apt` and the pinned nightly toolchain (see `justfile`'s `avr_nightly` variable),
 - runs `cargo +<nightly> build -Z build-std=core --target avr-none -p rustyfarian-avr-ws2812`,
 - is path-filtered to trigger only on pushes that touch `rustyfarian-avr-ws2812/**` or `Cargo.*`.
+
+---
+
+## Developer Tooling
+
+### ✅ Trim `just --list` to one scannable line per recipe — done 2026-08-12
+
+*Renamed from "Condense justfile to a meaningful number of recipes".* The original framing
+blamed recipe **count**; measurement showed the problem was description **length**, and
+cutting recipes would not have fixed it — `clippy-all`, the worst offender at 286 columns,
+is not an alias.
+
+| Widest `just --list` row | Rows > 120 cols  | Rows > 100 cols  |
+|:-------------------------|:-----------------|:-----------------|
+| 286 → **99**             | 40 (48%) → **0** | 53 (63%) → **0** |
+
+72 recipes, all still documented, none renamed or removed. Grouping had already fixed the
+*structure*; this fixed the wrapping that was destroying the column alignment.
+
+**The mechanism, worth remembering:** `just` renders the **last** comment line above a
+recipe, skipping any attributes between. So detail stays in the file for whoever edits the
+recipe while `--list` shows a short label — no information is lost.
+
+```just
+# build all crates including ESP-IDF (requires espup; does NOT cover the esp-hal or AVR
+# crates — use check-hal / check-avr)
+# build every crate the ESP-IDF toolchain compiles
+[group('Build & Check')]
+build-all:
+```
+
+Budget is ~59 characters: the name column is padded to 40, so 59 keeps a row under 100.
+Regression check:
+
+```sh
+just --list | awk '{ print length }' | sort -rn | head -1   # expect <= 100
+```
+
+**Out of scope, deliberately:** reducing recipe count. 72 across 11 groups is navigable
+once rows stop wrapping.
+
+**Follow-up, not part of this item** — convenience-alias coverage is arbitrary rather than
+wrong: 6 `build-example-*` aliases exist for 31 examples, while `just build-example <crate>
+<name>` and `just flash <name>` (which infers the crate from the name prefix) already cover
+all of them. Decide whether aliases are curated shortcuts for common cases or should cover
+every example.
 
 ---
 
