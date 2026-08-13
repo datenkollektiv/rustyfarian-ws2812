@@ -71,12 +71,20 @@ check-idf:
 check-hal:
     cargo check {{ hal_crate }} --target {{ hal_target }} --target-dir {{ hal_dir }}
 
+# Library pass, then an --examples pass with `rt` so hal_c3_pulse is compiled too. The C6/imac
+# default set is covered by check-hal (requires: rustup target add riscv32imc-unknown-none-elf)
+# check the esp-hal driver on the ESP32-C3 target
+[group('Build & Check')]
+check-hal-c3:
+    cargo check {{ hal_crate }} --target riscv32imc-unknown-none-elf --target-dir {{ hal_dir }} --no-default-features --features esp32c3,unstable,pennant
+    cargo check {{ hal_crate }} --target riscv32imc-unknown-none-elf --target-dir {{ hal_dir }} --no-default-features --features esp32c3,unstable,pennant,rt --examples
+
 # check the esp-hal bare-metal driver on the Xtensa ESP32 target (requires: just setup esp)
 # check the esp-hal driver on the Xtensa ESP32 target
 [group('Build & Check')]
 check-hal-xtensa:
-    cargo +esp check {{ hal_crate }} --target xtensa-esp32-none-elf --target-dir {{ hal_dir }} --no-default-features --features esp32,unstable -Z build-std=core
-    cargo +esp check {{ hal_crate }} --target xtensa-esp32-none-elf --target-dir {{ hal_dir }} --no-default-features --features esp32,unstable,rt --examples -Z build-std=core
+    cargo +esp check {{ hal_crate }} --target xtensa-esp32-none-elf --target-dir {{ hal_dir }} --no-default-features --features esp32,unstable,pennant -Z build-std=core
+    cargo +esp check {{ hal_crate }} --target xtensa-esp32-none-elf --target-dir {{ hal_dir }} --no-default-features --features esp32,unstable,pennant,rt --examples -Z build-std=core
 
 # check the AVR SPI driver on host (no AVR toolchain)
 [group('Build & Check')]
@@ -190,11 +198,34 @@ audit:
 build-avr-example:
     cd examples/avr-nano-rainbow && cargo +{{ avr_nightly }} build --release -Z build-std=core
 
-# build every binary in the AVR Nano example crate (default + bitbang_demo + spi_rainbow + bitbang_spike)
+# build every binary in the AVR Nano example crate (default + bitbang_demo + spi_rainbow + bitbang_spike).
+# --locked is the CI reproducibility gate: it fails loudly if Cargo.toml was edited without
+# committing the regenerated Cargo.lock. Local dev recipes deliberately omit it.
 # build every binary in the AVR Nano example crate
 [group('AVR Examples')]
 build-avr-example-all-bins:
-    cd examples/avr-nano-rainbow && cargo +{{ avr_nightly }} build --release -Z build-std=core --bins
+    cd examples/avr-nano-rainbow && cargo +{{ avr_nightly }} build --release -Z build-std=core --bins --locked
+
+# build the AVR example against upstream avr-hal main instead of the pinned rev — the weekly
+# early-warning check. Works on a throwaway copy in a temp dir, so no tracked file is touched
+# even transiently; the `crates` symlink keeps the example's ../../crates path deps resolving.
+# build the AVR example against upstream avr-hal main
+[group('AVR Examples')]
+build-avr-example-upstream:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    root="{{ justfile_directory() }}"
+    probe="$(mktemp -d)"
+    trap 'rm -rf "$probe"' EXIT
+    mkdir -p "$probe/examples"
+    cp -R "$root/examples/avr-nano-rainbow" "$probe/examples/avr-nano-rainbow"
+    rm -rf "$probe/examples/avr-nano-rainbow/target"
+    ln -s "$root/crates" "$probe/crates"
+    ln -s "$root/Cargo.toml" "$probe/Cargo.toml"
+    cd "$probe/examples/avr-nano-rainbow"
+    sed -i.bak '/^rev = /d' Cargo.toml && rm -f Cargo.toml.bak
+    rm -f Cargo.lock
+    cargo +{{ avr_nightly }} build --release -Z build-std=core --bins
 
 # build and flash the AVR Nano rainbow demo — bit-bang backend, recommended (requires: just setup avr, avr-gcc, ravedude)
 # flash the AVR Nano rainbow demo (bit-bang)

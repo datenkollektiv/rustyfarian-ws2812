@@ -15,6 +15,11 @@ rgb = "0.8"
 
 [dependencies.arduino-hal]
 git = "https://github.com/Rahix/avr-hal"
+# Pinned to the same commit the official avr-hal-template generates. avr-hal publishes
+# nothing to crates.io and ships no tags or releases, so a commit SHA is the only ref
+# available. Bump deliberately; `Cargo.lock` is committed alongside, and the weekly
+# "AVR upstream early warning" workflow builds against upstream main to flag drift.
+rev = "e5c8f37fe48419956e722490a82b9ca9b9fc61a2"
 features = ["arduino-nano"]
 
 [dependencies.rustyfarian-avr-ws2812]

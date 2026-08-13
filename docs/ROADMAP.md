@@ -12,8 +12,9 @@ All six crates are on crates.io: the pure-logic trio (`bunting`, `pennant`,
 `rustyfarian-esp-hal-ws2812`) since the `0.6.0` wave.
 The 2026-05-05 vision review confirmed AVR as a first-class supported MCU
 family and ruled in-workspace networking demos (e.g. ESP-NOW) out of scope.
-Near-term priorities are getting the embedded targets under CI at all — no cross-compilation
-is gated today — and tightening the `cargo-deny` configuration.
+All three embedded targets (RISC-V, AVR, Xtensa) are now gated in CI by path-filtered
+cross-target workflows.
+The near-term priority is tightening the `cargo-deny` configuration.
 Mid-term priorities are removing the `esp-idf-hal` `send_and_wait` workaround
 when the upstream fix lands, `SmartLedsWriteAsync` for the async driver, and
 scoping `MAX_LEDS` correctly.
@@ -37,8 +38,7 @@ All completed items are documented in the [CHANGELOG](../CHANGELOG.md).
 timeline
     title Fuzzy Rustyfarian WS2812 Roadmap
 
-    Near term : Cross-target CI — RISC-V, AVR, Xtensa
-              : cargo-deny — ban multiple rgb versions
+    Near term : cargo-deny — ban multiple rgb versions
 
     Mid term  : Remove send_and_wait workaround (esp-idf-hal fix)
               : SmartLedsWriteAsync for esp-hal async driver
@@ -54,47 +54,6 @@ timeline
               : embedded-graphics-core evaluation
               : Monitor esp-idf-hal for async RMT support
 ```
-
----
-
-## Continuous Integration
-
-### Add a cross-target CI workflow (`cross-targets.yml`)
-
-**No cross-compilation is gated today.** `verify`, `pre-commit`, `ci` and all four
-GitHub workflows run `ubuntu-latest` + stable toolchain over the host-target pure
-crates only.
-Every embedded target this project exists to support — RISC-V, AVR, Xtensa — is
-checked on demand or not at all, so an upstream break in `esp-hal`, `avr-hal`, or a
-toolchain regression rots a driver silently.
-
-One workflow, three path-filtered jobs, in this order of value:
-
-1. **RISC-V — `just check-hal`.** Nearly free (one `rustup target add
-   riscv32imac-unknown-none-elf` on the stable toolchain) and covers the *primary*
-   target of `rustyfarian-esp-hal-ws2812`. Do this first; it is the cheapest
-   coverage on the roadmap.
-2. **AVR — `cargo +<nightly> build -Z build-std=core --target avr-none -p rustyfarian-avr-ws2812`.**
-   `rustyfarian-avr-ws2812` is first-class (VISION.md, 2026-05-05) but unbuilt in CI.
-   Needs `gcc-avr` via `apt` and the pinned nightly (see the `avr_nightly` variable
-   in the `justfile`).
-3. **Xtensa — `just check-hal-xtensa`.** The most expensive and the last to add.
-   Install `espup`, run `espup install --targets esp32` with a **pinned**
-   `--toolchain-version` (as of 2026-08: Xtensa Rust 1.95.0.0 — unpinned, an upstream
-   bump breaks CI on unrelated changes), source the export file so `cargo +esp`
-   resolves, and cache `~/.rustup/toolchains/esp` + `~/.espressif` keyed on that pin
-   to avoid re-downloading a large toolchain every run.
-   `-Z build-std=core` needs `rust-src`, which espup installs alongside.
-
-Path-filter each job to its own crate plus `Cargo.*`, so the runtime cost lands only
-on pushes that can actually break it.
-
-**Deliberately not in the local gate.** `check-hal-xtensa` and the AVR build require
-toolchains (`cargo +esp`, pinned nightly) that a contributor may not have installed;
-adding them to `verify` or `pre-commit` would convert a fast stable-Rust-only gate
-into a hard failure for anyone who has not run `just setup esp`.
-Decision recorded in
-[`docs/features/archive/esp-hal-stack-upgrade-august-2026-v1.md`](features/archive/esp-hal-stack-upgrade-august-2026-v1.md).
 
 ---
 

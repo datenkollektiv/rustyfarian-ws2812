@@ -1,0 +1,88 @@
+name: Cross-target Xtensa
+
+# Gates the bare-metal esp-hal driver on the Xtensa ESP32 (WROOM-32) target.
+# This is the most expensive of the three jobs — it installs the Xtensa Rust fork
+# via espup — hence the path filter and the toolchain cache.
+#
+# ROLE: this is a compile gate for *our source*, and a forward-compatibility canary for
+# the *toolchain*. The distinction matters when it goes red:
+#   - red after a change to this repo  -> treat as a normal blocking failure
+#   - red with no relevant source change -> upstream toolchain moved; investigate before
+#     assuming the PR is at fault, and consider pinning back to 1.95.0.0
+#
+# Toolchain pin: 1.97.0.0 (current latest), which matches what an unpinned
+# `just setup esp` installs locally, so CI and a fresh dev environment agree. Note this is
+# ahead of 1.95.0.0, the version the August 2026 esp-hal bump was hardware-validated
+# against — see docs/features/archive/esp-hal-stack-upgrade-august-2026-v1.md. Green here
+# means "compiles under the current toolchain", NOT "hardware-validated stack".
+
+# NOTE: the push and pull_request `paths:` lists below are duplicated and must stay in
+# sync. GitHub Actions does not support YAML anchors/aliases, so this cannot be factored out.
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "crates/rustyfarian-esp-hal-ws2812/**"
+      - "crates/bunting/**"
+      - "crates/pennant/**"
+      - "crates/ferriswheel/**"
+      - "Cargo.toml"
+      - ".github/workflows/cross-target-xtensa.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "crates/rustyfarian-esp-hal-ws2812/**"
+      - "crates/bunting/**"
+      - "crates/pennant/**"
+      - "crates/ferriswheel/**"
+      - "Cargo.toml"
+      - ".github/workflows/cross-target-xtensa.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cross-xtensa-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  xtensa:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The version string must stay in the cache key below — scripts/xtensa-toolchain.sh
+      # hard-fails when it finds more than one version under
+      # ~/.rustup/toolchains/esp/xtensa-esp-elf/*, which a version-less key would allow.
+      - name: Cache Xtensa toolchain
+        uses: actions/cache@v4
+        with:
+          path: ~/.rustup/toolchains/esp
+          key: xtensa-esp-${{ runner.os }}-1.97.0.0-esp32
+
+      # Installs the Xtensa Rust fork for esp32 only (not the RISC-V or S2/S3 targets).
+      # rust-src comes with it, so -Z build-std=core needs no extra step.
+      - name: Install Rust toolchain for Xtensa
+        uses: esp-rs/xtensa-toolchain@v1.7.0
+        with:
+          default: false
+          buildtargets: esp32
+          version: "1.97.0.0"
+          ldproxy: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Setup just
+        uses: extractions/setup-just@v2
+
+      - name: Check esp-hal driver (ESP32 WROOM-32, xtensa)
+        run: just check-hal-xtensa
