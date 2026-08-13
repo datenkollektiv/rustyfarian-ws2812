@@ -1,0 +1,69 @@
+name: Cross-target RISC-V
+
+# Gates the bare-metal esp-hal driver on both RISC-V configurations:
+# ESP32-C6/H2 (riscv32imac, with atomics) and ESP32-C3 (riscv32imc, no atomics).
+# Path-filtered: only runs when the driver crate or workspace manifest changes.
+
+# NOTE: the push and pull_request `paths:` lists below are duplicated and must stay in
+# sync. GitHub Actions does not support YAML anchors/aliases, so this cannot be factored out.
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "crates/rustyfarian-esp-hal-ws2812/**"
+      - "crates/bunting/**"
+      - "crates/pennant/**"
+      - "crates/ferriswheel/**"
+      - "Cargo.toml"
+      - ".github/workflows/cross-target-riscv.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "crates/rustyfarian-esp-hal-ws2812/**"
+      - "crates/bunting/**"
+      - "crates/pennant/**"
+      - "crates/ferriswheel/**"
+      - "Cargo.toml"
+      - ".github/workflows/cross-target-riscv.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cross-riscv-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTUP_TOOLCHAIN: stable
+
+jobs:
+  riscv:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: riscv32imac-unknown-none-elf, riscv32imc-unknown-none-elf
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Setup just
+        uses: extractions/setup-just@v2
+
+      # Coverage note: check-hal is a library-only check of the default (C6) feature set.
+      # check-hal-c3 runs twice — library, then `--examples` with `rt` enabled, so it also
+      # compiles hal_c3_pulse. Examples requiring features that are off (e.g. `async`) are
+      # skipped by Cargo rather than failing.
+      - name: Check esp-hal driver (ESP32-C6, riscv32imac)
+        run: just check-hal
+
+      - name: Check esp-hal driver (ESP32-C3, riscv32imc, incl. examples)
+        run: just check-hal-c3

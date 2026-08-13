@@ -2,6 +2,10 @@ target/
 .embuild
 # This is a library crate, so we don't pin the dependencies.
 Cargo.lock
+# Exception: avr-nano-rainbow is a firmware *binary* package, excluded from the workspace,
+# and depends on avr-hal by git (unpublished upstream). Its lockfile is the only thing
+# pinning the transitive dependency set, so CI reproducibility requires committing it.
+!examples/avr-nano-rainbow/Cargo.lock
 .cargo/config.toml
 
 .envrc

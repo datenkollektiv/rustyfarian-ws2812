@@ -18,6 +18,16 @@ Fix: add a `build.rs` to every crate that owns binaries or examples, calling `em
 Cargo's `rerun-if-changed` does not fire for a file that didn't exist before, so the IDF build script is not re-run on the first commit of `sdkconfig.defaults`.
 Fix: remove `target/<triple>/debug/build/esp-idf-sys-<hash>/` and rebuild. Subsequent edits to the file retrigger correctly.
 
+**Building a workspace-excluded package out-of-tree needs the workspace root `Cargo.toml` symlinked too, not just its path dependencies.**
+`examples/avr-nano-rainbow` depends on `../../crates/*`, and those crates use `version.workspace = true` inheritance, which requires a workspace root to resolve. Cargo searches upward from the **symlink** path rather than the resolved target, so symlinking only `crates/` into a temp dir never reaches the real repo root and fails with `failed to find a workspace root`.
+Fix: symlink both `crates` and the root `Cargo.toml` into the temp directory at the same relative depth the package expects — see the `build-avr-example-upstream` recipe.
+Verified 2026-08-13: the recipe builds clean from `mktemp -d` and leaves tracked files byte-identical.
+
+**A command-line `-Z build-std=core` overrides the workspace `.cargo/config.toml`'s `[unstable] build-std`, but two `.cargo/config.toml` files merge their arrays instead of overriding.**
+The workspace root sets `build-std = ["std", "panic_abort"]` for ESP-IDF; a child config that also set the key would merge to `["std", "panic_abort", "core"]`, which fails on AVR (no `std`).
+Fix: keep `build-std` out of child configs and pass `-Z build-std=core` on the command line, as every `*-avr-*` recipe does — `examples/avr-nano-rainbow/.cargo/config.toml` carries a comment explaining exactly this.
+Verified 2026-08-13: `just check-avr-target` runs clean from the workspace root with the root config's array in place.
+
 ---
 
 ## Toolchain & Dependencies
@@ -161,6 +171,20 @@ This produces the same vulnerability report output, works locally with no token,
 **`act -s GITHUB_TOKEN=<any-value>` forwards the value as HTTP Basic auth when cloning third-party actions, breaking the download with `authentication required: Invalid username or token`.**
 `act` treats `GITHUB_TOKEN` as a credential for all GitHub HTTP operations, not only steps that explicitly use `${{ secrets.GITHUB_TOKEN }}`.
 Fix: omit `-s GITHUB_TOKEN=…` entirely when the workflow doesn't need it. If a real token is needed for a specific step, scope it via a step-level `env:` block instead of a global `act` secret.
+
+---
+
+## CI Coverage
+
+**A `cargo check` or `cargo build` of a library-only crate never links, so neither can catch linker, ABI, or `-C target-cpu` breakage.**
+`rustyfarian-avr-ws2812` declares no `[[bin]]` and emits an rlib, so `cargo build --target avr-none` passes while the AVR linker goes entirely unexercised — `build` buys nothing over `check` here, despite the usual advice that it does.
+The only real link coverage is `just build-avr-example-all-bins`, which builds the workspace-excluded `examples/avr-nano-rainbow` package into four ELF executables (~15s).
+Fix: when a CI job's purpose is catching toolchain rot, gate the package that produces binaries, not the library crate — gating the driver alone looks like AVR coverage and is not.
+
+**Dev-dependencies are invisible when deriving CI path filters from `[dependencies]`, yet any `--examples` pass pulls them in.**
+`ferriswheel` appears only under `[dev-dependencies]` of `rustyfarian-esp-hal-ws2812`, but 14 of that crate's 17 examples use it, and both `check-hal-c3` and `check-hal-xtensa` run a `--examples` invocation.
+A path filter built from the runtime dependency list alone therefore lets a `ferriswheel` change break the ESP jobs without ever triggering them.
+Fix: derive workflow `paths:` from dependencies *and* dev-dependencies whenever the job builds examples, tests, or benches.
 
 ---
 
