@@ -38,7 +38,10 @@ rustyfarian-avr-ws2812 = { version = "0.6", features = ["bitbang"] }
 ```
 
 Requires nightly Rust for AVR — pin the toolchain in `rust-toolchain.toml`
-and build with `-Z build-std=core --target avr-none`:
+and build with `-Z build-std=core --target avr-none`.
+The pinned `nightly-2025-04-27` (the same nightly upstream `avr-hal` uses) reports 1.88, which is
+why this crate and the pure crates it depends on keep `rust-version = "1.88"` while the ESP driver
+crates declare 1.95.
 
 The type is const-generic over port address and pin bit.
 `0x0B` is `PORTD` on ATmega328P; bit `2` maps to Arduino pin D2.

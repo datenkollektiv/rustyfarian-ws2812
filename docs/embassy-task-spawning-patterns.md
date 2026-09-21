@@ -5,6 +5,10 @@ with `esp-hal 1.1.0` and `esp-rtos 0.3`.
 All answers are grounded in the actual versions pinned in this workspace's `Cargo.toml`
 and verified against the official docs and release notes.
 
+> **2026-09-21:** the workspace moved to `esp-hal 1.2.2` + `esp-rtos 0.4.0`.
+> The one change that touches this document is the scheduler entry point: `esp-hal 1.2.0` removed `SoftwareInterruptControl` and the `SW_INTERRUPT` singleton, and `esp_rtos::start` now takes `peripherals.FROM_CPU_INTR0` directly (see the example below and `docs/esp-hal-version-matrix.md`).
+> The five answers themselves were written against 1.1.0 / 0.3 and have **not** been re-verified against 0.4 beyond compiling the workspace examples.
+
 ## `make_static!` — Where Does it Live?
 
 `make_static!` is a macro in the `static_cell` crate (not in `esp-hal` or `esp-rtos`).
@@ -117,7 +121,6 @@ use embassy_time::Timer;
 use esp_hal::{
     Async,
     gpio::Level,
-    interrupt::software::SoftwareInterruptControl,
     rmt::{Channel, Rmt, Tx, TxChannelConfig, TxChannelCreator},
     time::Rate,
     timer::timg::TimerGroup,
@@ -146,8 +149,7 @@ async fn main(spawner: Spawner) -> ! {
     let peripherals = esp_hal::init(esp_hal::Config::default());
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
-    let sw_ints = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
-    esp_rtos::start(timg0.timer0, sw_ints.software_interrupt0);
+    esp_rtos::start(timg0.timer0, peripherals.FROM_CPU_INTR0);
 
     // into_async() on Rmt, not on Channel
     let rmt = Rmt::new(peripherals.RMT, Rate::from_mhz(80))

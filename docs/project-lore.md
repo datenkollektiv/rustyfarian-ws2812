@@ -40,6 +40,13 @@ Fix: prefix with `cargo +esp build …` or add `channel = "esp"` to a `rust-tool
 Using `RainbowEffect::new(N)?` in an `anyhow::Result`-returning `fn main` fails at compile time with a trait bound error on `std::error::Error`.
 Fix: use `.unwrap()` (or `.expect()`) for infallible construction validated at build time, matching the bare-metal pattern.
 
+**A workspace `rust-version` above what the pinned AVR nightly reports makes Cargo refuse every AVR build, including path dependencies.**
+`nightly-2025-04-27` identifies itself as `rustc 1.88.0-nightly`, and Cargo enforces `rust-version` against that number for every package in the graph, so a workspace-wide `rust-version = "1.95"` fails `just check-avr-target` and both AVR workflows with `rustc 1.88.0-nightly is not supported by the following package`.
+The nightly cannot simply move: upstream `avr-hal` main and `avr-hal-template` pin the same `nightly-2025-04-27`, `avr-none` is Tier 3 and needs the still-unstable `-Z build-std`, and AVR `asm!` needs `#![feature(asm_experimental_arch)]`.
+The bound covers the whole AVR build path, not just the AVR crate: overriding only `rustyfarian-avr-ws2812` to 1.88 still fails with `bunting@0.6.0 requires rustc 1.95`, because `bunting` is a path dependency that inherits the workspace value.
+Fix: keep the workspace `rust-version` at the nightly's version and raise it per crate only where the ESP stack demands it (`rustyfarian-esp-hal-ws2812`, `rustyfarian-esp-idf-ws2812`); re-check upstream's `rust-toolchain.toml` before raising the floor.
+Measured 2026-09-21 with a two-crate scratch workspace, then hit for real the same day when the first attempt at the `esp-hal 1.2` MSRV bump put 1.95 on the workspace.
+
 ---
 
 ## ESP32 Target Selection
@@ -128,6 +135,7 @@ Fix: `peripherals.GPIO4` for C3, `peripherals.GPIO18` for C6.
 `send_and_wait` wraps even C-native encoders (`BytesEncoder`) in a Rust `EncoderWrapper`, inserting a Rust callback in the ISR path. The panic handler then calls `usb_serial_jtag_write` → `_lock_acquire_recursive`, which aborts (recursive mutexes are illegal in ISRs).
 Symptom: `abort() was called at PC 0x...` with trace through `lock_acquire_generic` → `usb_serial_jtag_write`.
 Fix: use `start_send` + `wait_all_done` directly with `BytesEncoder` (a `RawEncoder`), bypassing `EncoderWrapper` so the ISR calls the C encode function with no Rust wrapper.
+Still present in `esp-idf-hal 0.47.0` (re-checked 2026-09-21 against `src/rmt/encoder.rs`); the workaround survives the 0.47 bump.
 
 **The new RMT API (`TxChannelDriver`) registers ISR callbacks via `rmt_tx_register_event_callbacks`, requiring a larger FreeRTOS ISR stack than the legacy API.**
 The default `CONFIG_FREERTOS_ISR_STACKSIZE=1536` overflows with the new API's callback overhead.

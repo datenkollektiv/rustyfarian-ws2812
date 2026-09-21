@@ -1,6 +1,36 @@
 # esp-hal Companion Crate Version Matrix
 
-## Current State — `esp-hal 1.1.2` (April 2026 release wave + August patch)
+## Current State — `esp-hal 1.2.2` (September 2026 wave)
+
+Applied 2026-09-21 during the quarterly maintenance cycle; tracked by
+[`docs/features/esp-hal-stack-upgrade-september-2026-v1.md`](features/esp-hal-stack-upgrade-september-2026-v1.md).
+Compile-verified on C6, C3 and Xtensa; **hardware-validated on C6 and C3 on 2026-09-24** (Xtensa still compile-only, no board).
+
+Not a single-day upstream wave: `esp-rtos`, `esp-bootloader-esp-idf` and `esp-println` were
+published together on 2026-08-26, while `esp-hal 1.2.0` followed on 2026-09-02 with 1.2.1 (09-08)
+and 1.2.2 (09-18) as independent patch releases. It is one upgrade for us because `esp-rtos 0.4`
+requires `esp-hal 1.2`. Every crate in the wave declares `rust-version = "1.95.0"`; the two ESP driver
+crates now declare 1.95, while the workspace floor stays at 1.88 because the AVR build path
+(driver plus the pure crates it consumes) is bound by the pinned AVR nightly — see the root
+`Cargo.toml` comment and `docs/project-lore.md`.
+
+| Crate                    | Current    | Notes                                                                                                                                                                                                        |
+|:-------------------------|:-----------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `esp-hal`                | **1.2.2**  | Removed `SoftwareInterruptControl` / `SW_INTERRUPT`, added `FROM_CPU_INTRn` singletons (#6142). No RMT/GPIO changes on our path; RMT entries are P4/S31 support. Still depends on `paste` directly           |
+| `esp-rtos`               | **0.4.0**  | `start(timer, FROM_CPU_INTR0<'static>)` on every chip, no arch cfg. Fixes a potential RISC-V crash (#5641) and task-stack lifetime bugs (#6032, #6027). Requires `embassy-executor 0.10`, `embassy-sync 0.8` |
+| `esp-bootloader-esp-idf` | **0.6.0**  | Pulls `esp-storage 0.10.0` (new transitive) alongside `esp-alloc 0.11.0`                                                                                                                                     |
+| `esp-println`            | **0.18.0** |                                                                                                                                                                                                              |
+| `embassy-executor`       | **0.10.0** | Unchanged — still what `esp-rtos 0.4` requires                                                                                                                                                               |
+| `embassy-sync`           | **0.8.0**  | Unchanged — still what `esp-rtos 0.4` requires                                                                                                                                                               |
+| `embassy-time`           | **0.5.1**  | Unchanged — `esp-rtos` does not depend on it (uses `embassy-time-driver 0.2` + `embassy-time-queue-utils 0.3`)                                                                                               |
+
+`esp-sync 0.3.0` still ships the deliberate `embassy-sync` 0.6.2 / 0.7.2 / 0.8.0 shim set;
+multiple `embassy-sync` versions in `Cargo.lock` remain expected. `esp-riscv-rt` moved to 0.15.0,
+`esp-hal-procmacros` to 0.23.0, `esp-config` to 0.8.0; `riscv` stays 0.15.0.
+
+---
+
+## Historical — `esp-hal 1.1.2` (April 2026 release wave + August patch)
 
 The workspace pins the coordinated companion crates from the wave released on 2026-04-16
 (with `esp-hal 1.1.0` itself on 2026-04-24), tracked by

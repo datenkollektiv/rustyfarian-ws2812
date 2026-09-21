@@ -3,7 +3,13 @@ name = "rustyfarian-esp-hal-ws2812"
 version = "0.6.0"
 authors.workspace = true
 edition.workspace = true
-rust-version.workspace = true
+# Above the workspace floor (1.88): esp-hal 1.2 and esp-rtos 0.4 declare rust-version 1.95.
+# The floor itself is bounded by the AVR nightly — see the root Cargo.toml.
+# `check-hal-xtensa` builds this crate with the espup `esp` toolchain, which must therefore
+# report a numeric version >= 1.95.0 (Cargo ignores the `-nightly` suffix). Local: 1.95.0.0;
+# CI pin: 1.97.0.0. An espup toolchain below 1.95 fails here with "not supported by the
+# following package", exactly like the AVR case.
+rust-version = "1.95"
 license.workspace = true
 repository.workspace = true
 description = "WS2812 (NeoPixel) LED driver using esp-hal RMT peripheral (bare-metal, no_std)"

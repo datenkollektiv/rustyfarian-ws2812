@@ -9,6 +9,7 @@
 
 Library-only workspace providing WS2812 (NeoPixel) LED support for ESP32 and `no_std` embedded Rust projects.
 No application code — just reusable, composable crates.
+MSRV is Rust 1.88 for the pure crates and the AVR driver, and 1.95 for the two ESP driver crates (`esp-hal 1.2` requires it); the floor cannot rise while AVR builds on a pinned nightly that reports 1.88.
 
 TL;DR Grab an ESP32-C6 board and check it out:
 
