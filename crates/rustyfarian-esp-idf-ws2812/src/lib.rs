@@ -35,9 +35,9 @@
 // Use `just check-idf` / `just build-all` for IDF-target verification.
 #![cfg(target_os = "espidf")]
 
-// Requires esp-idf-hal 0.46+ for TxChannelDriver and BytesEncoder.
-// Uses a workaround for send_and_wait bug present in 0.46.2
-// (see transmit_bytes and ROADMAP.md).
+// Built against esp-idf-hal 0.47 (TxChannelDriver and BytesEncoder arrived in 0.46).
+// Uses a workaround for a send_and_wait bug present in 0.46.2 and still
+// unfixed in 0.47.0 (see transmit_bytes and ROADMAP.md).
 use anyhow::Result;
 use bunting::rgb_to_grb;
 use core::time::Duration;

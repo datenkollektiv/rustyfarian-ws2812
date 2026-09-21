@@ -7,7 +7,7 @@
 
 `rustyfarian-ws2812` is a Cargo workspace of reusable WS2812 / NeoPixel LED crates for embedded Rust.
 The design philosophy is **sans-io**: pure animation logic lives in `no_std` crates with no hardware dependency, while three thin hardware wrappers (ESP-IDF, esp-hal, AVR) provide the actual driver glue.
-Target hardware: ESP32-C3 / C6 / WROOM-32 and ATmega328P. MSRV is `1.88`.
+Target hardware: ESP32-C3 / C6 / WROOM-32 and ATmega328P. MSRV is `1.88` for the pure crates and the AVR driver (bounded by the `nightly-2025-04-27` pin, which Cargo enforces across path dependencies), and `1.95` for `rustyfarian-esp-hal-ws2812` and `rustyfarian-esp-idf-ws2812` (required by `esp-hal 1.2`).
 
 ## Architecture
 

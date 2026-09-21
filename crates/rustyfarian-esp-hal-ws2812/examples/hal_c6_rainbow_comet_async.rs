@@ -45,7 +45,6 @@ use embassy_executor::Spawner;
 use embassy_time::Timer;
 use esp_hal::{
     gpio::Level,
-    interrupt::software::SoftwareInterruptControl,
     rmt::{Rmt, TxChannelConfig, TxChannelCreator},
     time::Rate,
     timer::timg::TimerGroup,
@@ -72,8 +71,7 @@ async fn main(_spawner: Spawner) -> ! {
     // `esp_rtos::start()` sets up the hardware timer that drives the embassy-time
     // clock; it must be called before the first `.await` that uses a timer.
     let timg0 = TimerGroup::new(peripherals.TIMG0);
-    let sw_ints = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
-    esp_rtos::start(timg0.timer0, sw_ints.software_interrupt0);
+    esp_rtos::start(timg0.timer0, peripherals.FROM_CPU_INTR0);
 
     let rmt = Rmt::new(peripherals.RMT, Rate::from_mhz(80))
         .unwrap()

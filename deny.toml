@@ -5,13 +5,14 @@ no-default-features = false
 
 [advisories]
 ignore = [
-    # paste is unmaintained (RUSTSEC-2024-0436). esp-hal 1.1.2 depends on it
-    # *directly*, and it also arrives transitively via riscv 0.15.0. Bumping
-    # riscv alone therefore cannot clear this — esp-hal must drop paste first.
+    # paste is unmaintained (RUSTSEC-2024-0436). esp-hal 1.2.2 depends on it
+    # *directly* (`paste = "1.0.15"` in its published Cargo.toml), and it also
+    # arrives transitively via riscv 0.15.0. Bumping riscv alone therefore cannot
+    # clear this — esp-hal must drop paste first.
     # Risk is negligible: proc-macro crate, no unsafe runtime code.
     # Re-evaluate after each esp-hal bump with `cargo tree -i paste`
-    # (re-checked 2026-08-12 against esp-hal 1.1.2: still a direct dependency).
-    { id = "RUSTSEC-2024-0436", reason = "direct dependency of esp-hal 1.1.2 and transitive via riscv 0.15.0; no safe upgrade available upstream" },
+    # (re-checked 2026-09-21 against esp-hal 1.2.2: still a direct dependency).
+    { id = "RUSTSEC-2024-0436", reason = "direct dependency of esp-hal 1.2.2 and transitive via riscv 0.15.0; no safe upgrade available upstream" },
 ]
 
 [licenses]

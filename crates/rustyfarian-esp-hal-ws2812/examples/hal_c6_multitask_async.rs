@@ -46,7 +46,6 @@ use embassy_sync::signal::Signal;
 use embassy_time::Timer;
 use esp_hal::{
     gpio::{Input, InputConfig, Level, Pull},
-    interrupt::software::SoftwareInterruptControl,
     rmt::{Rmt, TxChannelConfig, TxChannelCreator},
     time::Rate,
     timer::timg::TimerGroup,
@@ -185,8 +184,7 @@ async fn main(spawner: Spawner) -> ! {
 
     // Initialise the RTOS scheduler so that embassy-time's Timer works.
     let timg0 = TimerGroup::new(peripherals.TIMG0);
-    let sw_ints = SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
-    esp_rtos::start(timg0.timer0, sw_ints.software_interrupt0);
+    esp_rtos::start(timg0.timer0, peripherals.FROM_CPU_INTR0);
 
     // Configure RMT for WS2812 in async mode.
     let rmt = Rmt::new(peripherals.RMT, Rate::from_mhz(80))

@@ -1,11 +1,15 @@
 # Roadmap
 
-*Last updated: August 2026*
+*Last updated: September 2026*
 
 The April 2026 `esp-hal` release wave (`v0.5.0`) is shipped, the AVR bit-bang
 driver is the recommended backend (per ADR 007), the GPIO8 RMT hang is
 resolved upstream, and the Xtensa ESP32 / WROOM-32 bare-metal target is
-verified clean under `esp-hal 1.1.0`.
+verified clean under `esp-hal 1.2.2`.
+The September 2026 wave (`esp-hal 1.2.2`, `esp-rtos 0.4.0`, MSRV 1.95) is
+compile-verified on all three chips and hardware-validated on ESP32-C6 and
+ESP32-C3 — see
+[`docs/features/esp-hal-stack-upgrade-september-2026-v1.md`](features/esp-hal-stack-upgrade-september-2026-v1.md).
 All six crates are on crates.io: the pure-logic trio (`bunting`, `pennant`,
 `ferriswheel`) since `0.5.0`, and all three driver crates
 (`rustyfarian-avr-ws2812`, `rustyfarian-esp-idf-ws2812`,
@@ -90,9 +94,9 @@ removed and the dep graph cleans up.
 
 Current entries (as of 2026-05):
 
-- `RUSTSEC-2024-0436` — `paste` unmaintained; a **direct** dependency of `esp-hal 1.1.2`
+- `RUSTSEC-2024-0436` — `paste` unmaintained; a **direct** dependency of `esp-hal 1.2.2`
   as well as transitive through `riscv 0.15.0`. Bumping `riscv` alone therefore cannot
-  clear it — `esp-hal` must drop `paste` first. Re-checked 2026-08-12 against 1.1.2
+  clear it — `esp-hal` must drop `paste` first. Re-checked 2026-09-21 against 1.2.2
   (still present); re-run `cargo tree -i paste` after each `esp-hal` bump.
 
 (The `bare-metal` / `atdf2svd` exceptions previously needed for `rustyfarian-avr-ws2812`
@@ -143,6 +147,8 @@ can be updated.
 `esp-idf-hal 0.46.2` has a bug in `EncoderWrapper`: the `From<rmt_encode_state_t>` conversion
 panics on bitwise-OR'd flag values (e.g. `COMPLETE | MEM_FULL = 0x03`) that the C encoder
 legitimately returns.
+Re-checked 2026-09-21 against the `esp-idf-hal 0.47.0` source: the `_ => panic!` arm in
+`src/rmt/encoder.rs` is unchanged, so the workaround is still required on 0.47.
 Since the encode callback runs in ISR context, the panic triggers `abort()`.
 We work around this by using `start_send` + `wait_all_done` directly with the C-side
 `BytesEncoder`, bypassing the Rust `EncoderWrapper` entirely.
@@ -292,8 +298,10 @@ Decision should follow a stability review and user feedback.
 
 ### Monitor `esp-idf-hal` for async RMT support
 
-`rustyfarian-esp-idf-ws2812` is blocking-only because `esp-idf-hal 0.46`'s `TxChannelDriver`
-has no async API.
+`rustyfarian-esp-idf-ws2812` is blocking-only because `esp-idf-hal`'s `TxChannelDriver`
+has no async transmit API.
+Re-checked 2026-09-21: `0.47.0` added only an async `wait_for_progress`; `start_send`,
+`send_iter` and `send_and_wait` remain synchronous.
 If a future `esp-idf-hal` release adds async RMT (likely using `esp-idf-svc`'s executor or
 `tokio`, not Embassy), async support can be added to the IDF driver under a separate feature flag.
 This would be a different runtime from the HAL driver's Embassy-based async (see [ADR 008](adr/008-embassy-as-async-runtime.md))

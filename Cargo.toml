@@ -6,6 +6,13 @@ exclude = ["examples/avr-nano-rainbow"]
 [workspace.package]
 authors = ["datenkollektiv"]
 edition = "2021"
+# Workspace floor. The two ESP driver crates override this to 1.95 (required by esp-hal 1.2 /
+# esp-rtos 0.4). It cannot be raised here: `rustyfarian-avr-ws2812` and every pure crate on its
+# path (`bunting` directly; `ferriswheel` via the standalone `examples/avr-nano-rainbow`
+# package) build on the pinned `nightly-2025-04-27`, which reports
+# `rustc 1.88.0-nightly`, and Cargo refuses any package in the graph — path dependencies
+# included — whose rust-version exceeds the active toolchain. Raise only when upstream avr-hal
+# moves its nightly. See docs/project-lore.md § Toolchain & Dependencies.
 rust-version = "1.88"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/datenkollektiv/rustyfarian-ws2812"
@@ -24,21 +31,22 @@ pennant = { path = "crates/pennant", version = "0.6" }
 bunting = { path = "crates/bunting", version = "0.6" }
 
 # ESP32 dependencies
-esp-idf-hal = { version = "0.46" }
+esp-idf-hal = { version = "0.47" }
 # Exact pins are intentional: this stack uses `esp-hal/unstable` RMT and GPIO
 # matrix APIs, and companion crates are released as coordinated waves. Bumps
 # should land via the maintenance workflow (see `maintenance-plan.md`) rather
 # than transparent fresh-resolution drift. Re-run `just check-hal` after any bump.
 # Chip selection and "unstable" are forwarded via features in the driver crate.
-esp-hal = { version = "=1.1.2" }
+esp-hal = { version = "=1.2.2" }
 # App descriptor required for IDF bootloader compatibility; chip feature forwarded from the driver crate.
-esp-bootloader-esp-idf = { version = "=0.5.0", default-features = false }
+esp-bootloader-esp-idf = { version = "=0.6.0", default-features = false }
 # Bare-metal serial output via USB-JTAG ROM; no esp-hal dependency.
-esp-println = { version = "=0.17.0", default-features = false }
+esp-println = { version = "=0.18.0", default-features = false }
 # Async runtime for esp-hal (merged from esp-hal-embassy); embassy feature enables embassy-time driver.
-esp-rtos = { version = "=0.3.0", default-features = false }
-# Embassy timer API (Timer::after_millis etc.); version aligned with what `esp-rtos`
-# pulls transitively — refresh after each `esp-rtos` bump.
+esp-rtos = { version = "=0.4.0", default-features = false }
+# Embassy timer API (Timer::after_millis etc.). `esp-rtos` does not depend on `embassy-time`
+# itself (it uses `embassy-time-driver`), so keep this in step with the `embassy-executor` /
+# `embassy-sync` generation below rather than with an `esp-rtos` transitive.
 embassy-time = { version = "=0.5.1", default-features = false }
 # Embassy executor; needed for the Spawner type in #[esp_rtos::main] async entry points.
 # Version aligned with what `esp-rtos` pulls transitively.
