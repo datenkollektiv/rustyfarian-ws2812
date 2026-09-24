@@ -55,13 +55,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # The version string must stay in the cache key below — scripts/xtensa-toolchain.sh
       # hard-fails when it finds more than one version under
       # ~/.rustup/toolchains/esp/xtensa-esp-elf/*, which a version-less key would allow.
       - name: Cache Xtensa toolchain
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.rustup/toolchains/esp
           key: xtensa-esp-${{ runner.os }}-1.97.0.0-esp32
@@ -82,7 +82,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Setup just
-        uses: extractions/setup-just@v2
+        uses: extractions/setup-just@v4
 
       - name: Check esp-hal driver (ESP32 WROOM-32, xtensa)
         run: just check-hal-xtensa

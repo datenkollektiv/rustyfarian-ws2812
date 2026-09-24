@@ -46,7 +46,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # @master rather than @stable: this needs an exact pinned nightly plus a
       # component list. Keep the toolchain in lockstep with `avr_nightly` in the justfile.
@@ -66,7 +66,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Setup just
-        uses: extractions/setup-just@v2
+        uses: extractions/setup-just@v4
 
       - name: Check AVR SPI driver (avr-none)
         run: just check-avr-target
