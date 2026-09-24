@@ -36,7 +36,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install pinned AVR nightly toolchain
         uses: dtolnay/rust-toolchain@master
@@ -48,7 +48,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y gcc-avr binutils-avr avr-libc
 
       - name: Setup just
-        uses: extractions/setup-just@v2
+        uses: extractions/setup-just@v4
 
       # Deliberately uncached: the point is a clean resolution against upstream's tip.
       - name: Build AVR example against upstream avr-hal main

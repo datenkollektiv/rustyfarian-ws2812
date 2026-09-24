@@ -180,6 +180,10 @@ This produces the same vulnerability report output, works locally with no token,
 `act` treats `GITHUB_TOKEN` as a credential for all GitHub HTTP operations, not only steps that explicitly use `${{ secrets.GITHUB_TOKEN }}`.
 Fix: omit `-s GITHUB_TOKEN=…` entirely when the workflow doesn't need it. If a real token is needed for a specific step, scope it via a step-level `env:` block instead of a global `act` secret.
 
+**`act` never fetches `actions/checkout` — it substitutes a `docker cp` of the working tree (verified 2026-09-24).**
+The step reports `Success - Main Checkout` while the action's own code is never downloaded or executed, so a `checkout` version bump cannot be validated locally no matter which recipe runs.
+Consequence: `just act-*` proves nothing about a checkout upgrade; only a real push does.
+
 ---
 
 ## CI Coverage
@@ -193,6 +197,11 @@ Fix: when a CI job's purpose is catching toolchain rot, gate the package that pr
 `ferriswheel` appears only under `[dev-dependencies]` of `rustyfarian-esp-hal-ws2812`, but 14 of that crate's 17 examples use it, and both `check-hal-c3` and `check-hal-xtensa` run a `--examples` invocation.
 A path filter built from the runtime dependency list alone therefore lets a `ferriswheel` change break the ESP jobs without ever triggering them.
 Fix: derive workflow `paths:` from dependencies *and* dev-dependencies whenever the job builds examples, tests, or benches.
+
+**An action's Node runtime is only knowable from `runs.using` in its `action.yml` at the tag in use — release notes and summaries get it wrong (verified 2026-09-24).**
+Floating major tags move underneath you: during the Node 20 deprecation, `Swatinem/rust-cache@v2` already declared `node24` and needed no bump, while pinned `actions/checkout@v4` did — and a research summary dated that rust-cache migration to March 2024, before Node 24 existed.
+The runner's deprecation warning lists only the actions it flags, so it under-reports: composite actions (`dtolnay/rust-toolchain`, `taiki-e/install-action`, `esp-rs/xtensa-toolchain`) are exempt, and a node20 action in a path-filtered job that did not run is simply absent.
+Fix: read `https://raw.githubusercontent.com/<owner>/<repo>/<tag>/action.yml` for every action in `.github/workflows/`, not just the ones named in the warning.
 
 ---
 
