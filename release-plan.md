@@ -2,7 +2,7 @@
 
 Release process for the `rustyfarian-ws2812` workspace.
 
-> **Status:** Active process — last exercised for `v0.6.0` (published to crates.io 2026-05-20, all six crates).
+> **Status:** Active process — last exercised for `v0.7.0` (published to crates.io 2026-09-25, all six crates).
 > The staged publication flow below is proven; update this note after each release.
 
 ## Versioning

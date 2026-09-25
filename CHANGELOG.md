@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-09-25
+
 ### Added
 
 - `pennant`: `RgbGpioLed` adapter (behind the `hal` feature) that drives a discrete, non-WS2812 RGB LED over three separate `embedded-hal` 1.0 `OutputPin`s, switching each channel on/off from an `RGB8` colour via a per-channel brightness threshold (eight on/off colours, not analog colour mixing); a new `Polarity` enum selects common-anode (`ActiveLow`) or common-cathode (`ActiveHigh`, default) wiring, covering boards like the Cheap Yellow Display (ESP32-2432S028R) whose onboard RGB LED is active-low on GPIO 4/16/17
