@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- CI: `cross-target-avr-upstream` no longer deletes `Cargo.lock` before building against upstream `avr-hal`. Deleting it re-resolved every transitive registry dependency, so the job reported unrelated crate churn as upstream breakage — it had been red since 2026-09-07 because `encoding_rs 0.8.40` (reached via `yaml-rust2`) calls `slice::as_chunks`, stabilised in Rust 1.88.0 on 2025-06-26 and therefore still unstable on the pinned `nightly-2025-04-27`, while `avr-hal` itself was fine throughout. Dropping the `rev` pin alone is enough to re-resolve the three avr-hal git packages against the branch tip; registry dependencies now stay at their locked versions, so a failure means upstream `avr-hal` genuinely moved
+
 ## [0.7.0] - 2026-09-25
 
 ### Added

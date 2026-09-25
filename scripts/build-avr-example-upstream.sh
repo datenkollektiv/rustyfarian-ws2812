@@ -35,9 +35,22 @@ ln -s "$root/Cargo.toml" "$probe/Cargo.toml"
 
 cd "$probe/examples/avr-nano-rainbow"
 
-# Drop the pinned rev and the lockfile so Cargo resolves avr-hal main.
+# Drop the pinned rev so Cargo re-resolves the three avr-hal git packages
+# (arduino-hal, atmega-hal, avr-hal-generic) against the branch tip.
+#
+# The lockfile is deliberately KEPT. Deleting it re-resolves every transitive
+# registry dependency too, which makes this job fail on unrelated crate churn
+# rather than on upstream avr-hal breakage — the only thing it exists to detect.
+# That is not hypothetical: it went red from 2026-09-07 to 2026-09-21 because
+# `encoding_rs 0.8.40` (via yaml-rust2) started using `slice::as_chunks`,
+# stabilised in Rust 1.88.0 on 2025-06-26 and therefore still unstable on the
+# pinned nightly-2025-04-27. avr-hal itself was fine throughout.
+#
+# Removing the `rev` is enough on its own: it changes the git source spec, so the
+# locked entries no longer match and Cargo must refetch those three packages.
+# Registry deps stay at their locked versions unless upstream avr-hal genuinely
+# requires newer ones — in which case failing IS the signal.
 sed -i.bak '/^rev = /d' Cargo.toml && rm -f Cargo.toml.bak
-rm -f Cargo.lock
 
 # -Z build-std=core is passed on the command line rather than set in a child
 # .cargo/config.toml: two config files MERGE their build-std arrays instead of
