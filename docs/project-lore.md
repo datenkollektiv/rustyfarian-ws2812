@@ -203,6 +203,16 @@ Floating major tags move underneath you: during the Node 20 deprecation, `Swatin
 The runner's deprecation warning lists only the actions it flags, so it under-reports: composite actions (`dtolnay/rust-toolchain`, `taiki-e/install-action`, `esp-rs/xtensa-toolchain`) are exempt, and a node20 action in a path-filtered job that did not run is simply absent.
 Fix: read `https://raw.githubusercontent.com/<owner>/<repo>/<tag>/action.yml` for every action in `.github/workflows/`, not just the ones named in the warning.
 
+**A `rust-version` floor does not protect a pinned nightly, because `1.88.0-nightly` satisfies `rust-version = "1.88"` while lacking features that 1.88.0 stabilised.**
+`cross-target-avr-upstream` went red 2026-09-07 through 2026-09-21 on `encoding_rs 0.8.40` (published on exactly that first date, reached via `avr-hal → yaml-rust2`), which declares `rust-version = "1.88"` and calls `slice::as_chunks` — stabilised in Rust 1.88.0 on 2025-06-26, two months after the pinned `nightly-2025-04-27`.
+Cargo therefore selects the crate and the compiler then rejects it, so the MSRV gate gives no warning; the same quirk worked in our favour during the `esp-hal 1.2` bump, where `1.95.0-nightly` satisfied `rust-version = "1.95"`.
+Fix: keep a lockfile for anything built on a pinned nightly. A nightly older than a stabilisation date is a floor that `rust-version` cannot express.
+
+**An "upstream early-warning" job that deletes its lockfile tests every crate in the graph, not the upstream it names.**
+`build-avr-example-upstream` used to `rm -f Cargo.lock`, so three weeks of red actually reported unrelated registry churn while `avr-hal` itself was fine — and the noise meant nobody read the signal.
+Removing the `rev = ` line is sufficient on its own: it changes the git source spec, so the locked `arduino-hal` / `atmega-hal` / `avr-hal-generic` entries no longer match and Cargo refetches just those three, leaving registry deps at their locked versions.
+Fix (2026-09-25): drop the `rm -f Cargo.lock`. Verified by a run that compiled `avr-hal` at upstream `e0b0105b` while holding `encoding_rs` at the locked 0.8.35.
+
 ---
 
 ## Release & crates.io

@@ -50,6 +50,8 @@ jobs:
       - name: Setup just
         uses: extractions/setup-just@v4
 
-      # Deliberately uncached: the point is a clean resolution against upstream's tip.
+      # Deliberately uncached: the point is a fresh build against upstream avr-hal's tip.
+      # Scoped on purpose — only the avr-hal git packages re-resolve, so a failure here
+      # means upstream moved, not that an unrelated crate published a new version.
       - name: Build AVR example against upstream avr-hal main
         run: just build-avr-example-upstream
