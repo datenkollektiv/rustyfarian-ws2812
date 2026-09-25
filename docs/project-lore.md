@@ -205,6 +205,24 @@ Fix: read `https://raw.githubusercontent.com/<owner>/<repo>/<tag>/action.yml` fo
 
 ---
 
+## Release & crates.io
+
+**There is no known read-only way to prove a crates.io publish token is valid; every candidate test gives a wrong answer (all verified 2026-09-25).**
+`GET /api/v1/me` returns 403 for scoped tokens that publish fine, so a failure there is not evidence of a dead credential — it produced a false blocker and an unnecessary token re-mint during the v0.7.0 pre-flight.
+`cargo owner --list <crate>` is the opposite trap: it succeeds with a deliberately garbage token because `/crates/:name/owners` is a public endpoint, and refuses only when *no* token is present — so it tests presence and reports a false green for validity.
+`cargo publish --dry-run` authenticates not at all; it stops before upload and passes with no credentials.
+Fix: check presence only (`just doctor` prints `crates.io present`) and treat the first `cargo publish` of a staged release as the auth test — stage the pure crates first so a bad token fails before anything is uploaded.
+
+**`CARGO_REGISTRY_TOKEN` in the environment silently overrides `~/.cargo/credentials.toml`.**
+`cargo login` appears to succeed and changes nothing, so a stale exported token keeps winning.
+Fix: unset the variable, or export the new value rather than running `cargo login`.
+
+**Pinning a hardware sign-off to a commit SHA does not survive the GitHub flow (changed 2026-09-25).**
+Rebase-and-squash on merge rewrites the SHA, leaving the record pointing at a commit on no branch that will be garbage-collected — it reads as an invalidated validation even when no code changed.
+Fix: anchor validation records to the released version and the pinned dependency versions, and state invalidation in content terms (a change to the driver crate, the named example, or a pinned `esp-*` version).
+
+---
+
 ## Developer Tooling
 
 **`.claude/hooks/just-enforcer.sh` blocks Bash commands whose first word matches a binary wrapped by any `justfile` recipe but allows tools no recipe wraps (e.g. `sed`, `perl`, `find`, `git`).**

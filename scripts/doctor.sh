@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# doctor.sh — check development prerequisites (RAM disk, sccache)
+# doctor.sh — check development prerequisites (RAM disk, sccache, crates.io auth)
 # Usage: scripts/doctor.sh <ramdisk> <hal_dir> <idf_dir> [idf_build_dir] [idf_build_glob]
 
 if [ $# -lt 3 ]; then
@@ -58,6 +58,28 @@ if [ -n "$idf_build_dir" ]; then
     else
         printf "  idf build  configured %s (created on first IDF build)\n" "$idf_build_dir"
     fi
+fi
+
+# crates.io publish credentials — PRESENCE ONLY, deliberately not a validity check.
+# No read-only way to prove a publish token actually works is known, all verified 2026-09-25:
+#   - `cargo owner --list` succeeds with a garbage token, because /crates/:name/owners is a
+#     public endpoint; it only refuses when NO token is present. A false green.
+#   - `GET /api/v1/me` returns 403 for scoped tokens that publish perfectly well, so a
+#     failure there proves nothing either.
+#   - `cargo publish --dry-run` stops before upload and never authenticates at all.
+# The first real proof is Stage 1 of the release. Kept offline so `doctor` stays instant.
+# ${HOME:-$PWD} because a bare $HOME would trip `set -u` when HOME is unset and abort
+# the whole script before the sccache check below.
+cargo_home="${CARGO_HOME:-${HOME:-$PWD}/.cargo}"
+if [ -n "${CARGO_REGISTRY_TOKEN:-}" ]; then
+    printf "  crates.io  present  CARGO_REGISTRY_TOKEN set (validity proven only at publish)\n"
+    if [ -f "$cargo_home/credentials.toml" ]; then
+        printf "  crates.io  note     the env var overrides %s\n" "$cargo_home/credentials.toml"
+    fi
+elif [ -f "$cargo_home/credentials.toml" ]; then
+    printf "  crates.io  present  credentials.toml (validity proven only at publish)\n"
+else
+    printf "  crates.io  --       no token (needed only to publish; run: cargo login)\n"
 fi
 
 if command -v sccache >/dev/null 2>&1; then

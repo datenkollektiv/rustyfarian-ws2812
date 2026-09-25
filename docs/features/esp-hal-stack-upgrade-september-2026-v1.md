@@ -1,6 +1,6 @@
 # esp-hal stack upgrade — September 2026 (v1)
 
-**Status:** Validated (2026-09-24) — compile-verified on ESP32-C6, ESP32-C3 and Xtensa ESP32 (2026-09-21), and hardware-validated on ESP32-C6 and ESP32-C3 against commit `7530cf8`; ESP32-WROOM-32 (Xtensa) remains compile-verified only
+**Status:** Validated (2026-09-24) — compile-verified on ESP32-C6, ESP32-C3 and Xtensa ESP32 (2026-09-21), and hardware-validated on ESP32-C6 and ESP32-C3; ESP32-WROOM-32 (Xtensa) remains compile-verified only
 **Branch:** `september-2026-maintenance`
 **Cycle reference:** `audit/2026-09-21-quarterly-plan.md` (change 4), `audit/2026-09-21-upstream-verification.md`
 
@@ -122,7 +122,7 @@ Dependency-manager sign-off on the new graph: **APPROVE** — every added crate 
 
 ## Hardware validation — PASSED (C6 and C3)
 
-Run on 2026-09-24 against commit `7530cf8`, with no working-tree changes to any crate or example.
+Run on 2026-09-24 against the pinned stack this document describes — `esp-hal 1.2.2`, `esp-rtos 0.4.0`, `esp-bootloader-esp-idf 0.6.0`, `esp-println 0.18.0` — as released in `v0.7.0`.
 The `esp-rtos` scheduler changed underneath every async example, so this was not a formality.
 
 Pass criteria are those in `maintenance-plan.md` § Hardware tests (60 s run, no flicker or tearing, 3 repeatable runs, clean serial, board stable); every check below met them in full.
@@ -135,11 +135,10 @@ Pass criteria are those in `maintenance-plan.md` § Hardware tests (60 s run, no
 - [x] **6. `just run hal_c3_pulse`** and **`just run hal_c3_pulse_async`** — C3, GPIO4.
 - [ ] **7. `hal_esp32_pulse` / `hal_esp32_pulse_async`** — WROOM-32; N/A unless a board appears.
 
-A sign-off is valid only for the binary that ran; any later edit to an example re-runs its check.
+A sign-off is valid only for the binary that ran.
+It is invalidated by a change to `rustyfarian-esp-hal-ws2812`, to the example it names, or to any pinned `esp-*` version in the table above — not by unrelated commits, rebases or squashes.
 
 ### Sign-off
-
-All sign-offs are for commit `7530cf8`.
 
 | # | Check                       | Board    | Result   | Date       | Notes                                         |
 |:--|:----------------------------|:---------|:---------|:-----------|:----------------------------------------------|
@@ -160,5 +159,4 @@ All sign-offs are for commit `7530cf8`.
 
 - 2026-09-21 — Planned in the quarterly cycle; upstream claims verified against tagged sources; MSRV decision taken (workspace 1.95, AVR 1.88); doc drafted ahead of the bump.
 - 2026-09-21 — Bump applied; five async examples migrated to `FROM_CPU_INTR0`; first MSRV layout failed `just check-avr-target` on `bunting@0.6.0 requires rustc 1.95`; corrected to workspace 1.88 with the two ESP driver crates at 1.95; full chain re-run on the final manifests, all PASS; hardware validation not run (no boards).
-- 2026-09-24 — Hardware validation run on ESP32-C6 and ESP32-C3 against commit `7530cf8`: checks 1–6 all PASS to the full `maintenance-plan.md` criteria, including the GPIO8 onboard regression guard and the migrated `esp_rtos::start` under Embassy multitasking. Check 7 (WROOM-32) stays N/A — no board. The upgrade is no longer compile-verified only.
-˚
+- 2026-09-24 — Hardware validation run on ESP32-C6 and ESP32-C3: checks 1–6 all PASS to the full `maintenance-plan.md` criteria, including the GPIO8 onboard regression guard and the migrated `esp_rtos::start` under Embassy multitasking. Check 7 (WROOM-32) stays N/A — no board. The upgrade is no longer compile-verified only.

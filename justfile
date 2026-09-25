@@ -26,7 +26,7 @@ _default:
 
 # --- Build Environment ----------------------------------------------------
 
-# show RAM disk status, resolved target dirs, and sccache
+# show RAM disk status, resolved target dirs, sccache, and crates.io auth
 [group('Build Environment')]
 doctor:
     @scripts/doctor.sh "{{ ramdisk }}" "{{ hal_dir }}" "{{ idf_dir }}" "$(scripts/idf-build-dir.sh)" "$(scripts/idf-build-dir.sh --glob)"
@@ -212,20 +212,7 @@ build-avr-example-all-bins:
 # build the AVR example against upstream avr-hal main
 [group('AVR Examples')]
 build-avr-example-upstream:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    root="{{ justfile_directory() }}"
-    probe="$(mktemp -d)"
-    trap 'rm -rf "$probe"' EXIT
-    mkdir -p "$probe/examples"
-    cp -R "$root/examples/avr-nano-rainbow" "$probe/examples/avr-nano-rainbow"
-    rm -rf "$probe/examples/avr-nano-rainbow/target"
-    ln -s "$root/crates" "$probe/crates"
-    ln -s "$root/Cargo.toml" "$probe/Cargo.toml"
-    cd "$probe/examples/avr-nano-rainbow"
-    sed -i.bak '/^rev = /d' Cargo.toml && rm -f Cargo.toml.bak
-    rm -f Cargo.lock
-    cargo +{{ avr_nightly }} build --release -Z build-std=core --bins
+    scripts/build-avr-example-upstream.sh "{{ justfile_directory() }}" "{{ avr_nightly }}"
 
 # build and flash the AVR Nano rainbow demo — bit-bang backend, recommended (requires: just setup avr, avr-gcc, ravedude)
 # flash the AVR Nano rainbow demo (bit-bang)
@@ -390,42 +377,7 @@ act-all: act-fmt act-clippy act-ci act-audit
 # install components: just setup [tools|hal|avr|esp|all]
 [group('Setup')]
 setup component="all":
-    #!/usr/bin/env bash
-    set -euo pipefail
-    case "{{ component }}" in
-        tools)
-            cargo install cargo-deny cargo-audit cargo-watch espup
-            ;;
-        hal)
-            rustup target add riscv32imac-unknown-none-elf
-            rustup target add riscv32imc-unknown-none-elf
-            ;;
-        avr)
-            rustup toolchain install {{ avr_nightly }}
-            rustup component add rust-src --toolchain {{ avr_nightly }}
-            echo "AVR toolchain ready: {{ avr_nightly }}"
-            echo "Ensure avr-gcc is installed: brew install avr-gcc (macOS) / apt install gcc-avr (Debian)"
-            ;;
-        esp)
-            espup install
-            ;;
-        all)
-            cargo install cargo-deny cargo-audit cargo-watch espup
-            rustup target add riscv32imac-unknown-none-elf
-            rustup target add riscv32imc-unknown-none-elf
-            rustup toolchain install {{ avr_nightly }}
-            rustup component add rust-src --toolchain {{ avr_nightly }}
-            echo "AVR toolchain ready: {{ avr_nightly }}"
-            echo "Ensure avr-gcc is installed: brew install avr-gcc (macOS) / apt install gcc-avr (Debian)"
-            echo ""
-            echo "For Xtensa/ESP-IDF support, run: just setup esp"
-            ;;
-        *)
-            echo "error: unknown component '{{ component }}'" >&2
-            echo "usage: just setup [tools|hal|avr|esp|all]" >&2
-            exit 1
-            ;;
-    esac
+    scripts/setup.sh "{{ component }}" "{{ avr_nightly }}"
 
 # --- Maintenance ----------------------------------------------------------
 
