@@ -14,6 +14,12 @@ Refer to `CLAUDE.md` and the `/project-lore` skill for recording guidelines.
 Wrapping `esp-idf-sys` in a library crate (e.g. `rustyfarian-esp-idf-ws2812`) is not sufficient: the `--ldproxy-linker` link arg emitted by `esp-idf-sys`'s build script is not reliably forwarded to the final link step, causing `ldproxy: Cannot locate argument '--ldproxy-linker'`.
 Fix: add a `build.rs` to every crate that owns binaries or examples, calling `embuild::espidf::sysenv::output()`, and add `embuild` to its `[build-dependencies]`.
 
+**A bare `embuild` build-dependency compiles only because `esp-idf-sys` turns on its `espidf` feature through feature unification.**
+`embuild` 0.33 has no default features, and on the IDE target (`riscv32imac-unknown-none-elf`) `esp-idf-sys` is absent, so `build.rs` fails with `E0433: cannot find espidf in embuild`.
+A runtime `CARGO_CFG_TARGET_OS` early return in `build.rs` cannot help, because the failure is at compile time.
+Fix: declare `features = ["espidf"]` on the `embuild` build-dependency; `just check-ide` checks this path.
+Verified 2026-10-13: `just check-ide` gets past `build.rs`, and `just check-idf` stays green.
+
 **Deleting the cached `esp-idf-sys` build output is required when `sdkconfig.defaults` is first introduced.**
 Cargo's `rerun-if-changed` does not fire for a file that didn't exist before, so the IDF build script is not re-run on the first commit of `sdkconfig.defaults`.
 Fix: remove `target/<triple>/debug/build/esp-idf-sys-<hash>/` and rebuild. Subsequent edits to the file retrigger correctly.

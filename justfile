@@ -65,6 +65,11 @@ check-all:
 check-idf:
     cargo +esp check -p rustyfarian-esp-idf-ws2812 --target {{ idf_target }} --target-dir {{ idf_dir }} $(scripts/idf-build-dir.sh --config)
 
+# check the ESP-IDF driver on the IDE's default bare-metal target, as rust-analyzer sees it
+[group('Build & Check')]
+check-ide:
+    cargo check -p rustyfarian-esp-idf-ws2812 --target {{ hal_target }} --target-dir {{ hal_dir }}
+
 # check the esp-hal bare-metal driver (requires: rustup target add riscv32imac-unknown-none-elf)
 # check the esp-hal bare-metal driver (RISC-V target)
 [group('Build & Check')]

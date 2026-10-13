@@ -18,7 +18,9 @@ categories = ["embedded", "hardware-support"]
 targets = ["riscv32imac-esp-espidf"]
 
 [build-dependencies]
-embuild = "=0.33.5"
+# `espidf` is enabled explicitly: on IDE targets (riscv32imac-unknown-none-elf) esp-idf-sys is
+# absent from the graph, so feature unification no longer supplies it and build.rs fails to compile.
+embuild = { version = "=0.33.5", features = ["espidf"] }
 
 [dev-dependencies]
 ferriswheel = { workspace = true }
