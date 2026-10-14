@@ -134,7 +134,7 @@ a new wave appears upstream:
    new wave; the doc is evergreen and grows by appending. Update version refs
    in `docs/ROADMAP.md` and `docs/project-lore.md`.
 8. **Re-audit.** Re-run `just audit` and `just deny` on the upgraded graph.
-   Re-evaluate any ignored advisories in `deny.toml` (notably `paste` via `riscv`).
+   Re-evaluate any ignored advisories in `deny.toml` (notably `paste` via `esp-hal`/`riscv`, and `unsafe-libyaml` via `esp-config`).
 9. **Hardware retest.** See "Hardware tests" above. Always retest at least
    `hal_c6_pulse` and `hal_c6_multitask_async`. Take the chance to retest any
    open hardware-edge-case lore items — upstream may have fixed them silently.
@@ -156,6 +156,8 @@ a new wave appears upstream:
 - After every `esp-hal` upgrade, re-evaluate the `paste` advisory ignore — `riscv`
   may eventually move off `paste`, at which point the ignore can be removed.
   Use `just audit`'s "Dependency tree" output to confirm.
+- Likewise re-evaluate the `unsafe-libyaml` ignore (RUSTSEC-2024-0449): it is build-script-only via
+  `esp-config`'s `build` feature and can go once `esp-config` drops `serde_yaml`.
 
 ## CI/CD
 
