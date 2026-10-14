@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# xtensa-toolchain.sh — shared helper: add xtensa-esp32-elf-gcc to PATH if needed
+# xtensa-toolchain.sh — shared helper: add the Xtensa GCC (xtensa-esp-elf bundle, ESP32 and ESP32-S3) to PATH if needed
 # Source this file; do not execute it directly.
 
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then
@@ -35,7 +35,7 @@ setup_xtensa_toolchain() {
         if [ -n "$xtensa_bin" ]; then
             export PATH="$xtensa_bin:$PATH"
         else
-            printf 'Error: xtensa-esp32-elf-gcc not found. Searched:\n' >&2
+            printf 'Error: xtensa-esp32-elf-gcc (xtensa-esp-elf bundle, also provides xtensa-esp32s3-elf-gcc) not found. Searched:\n' >&2
             printf '  ~/.rustup/toolchains/esp/xtensa-esp-elf/*/xtensa-esp-elf/bin\n' >&2
             printf '  ~/.espressif/tools/xtensa-esp-elf/*/xtensa-esp-elf/bin\n' >&2
             printf 'Install ESP-IDF toolchain or source your toolchain environment export script.\n' >&2

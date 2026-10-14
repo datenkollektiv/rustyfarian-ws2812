@@ -44,6 +44,7 @@ default = ["esp32c6", "unstable", "pennant"]
 esp32c6 = ["esp-hal/esp32c6", "esp-bootloader-esp-idf/esp32c6", "esp-rtos?/esp32c6", "esp-println?/esp32c6"]
 esp32c3 = ["esp-hal/esp32c3", "esp-bootloader-esp-idf/esp32c3", "esp-rtos?/esp32c3", "esp-println?/esp32c3"]
 esp32   = ["esp-hal/esp32",   "esp-bootloader-esp-idf/esp32",   "esp-rtos?/esp32",   "esp-println?/esp32"]
+esp32s3 = ["esp-hal/esp32s3", "esp-bootloader-esp-idf/esp32s3", "esp-rtos?/esp32s3", "esp-println?/esp32s3"]
 unstable = ["esp-hal/unstable"]
 pennant = ["dep:pennant"]
 smart-leds = ["dep:smart-leds"]
@@ -68,6 +69,10 @@ required-features = ["esp32c6", "rt"]
 [[example]]
 name = "hal_esp32_pulse"
 required-features = ["esp32", "rt"]
+
+[[example]]
+name = "hal_s3_pulse"
+required-features = ["esp32s3", "rt"]
 
 [[example]]
 name = "hal_c6_breathe_color"
@@ -116,6 +121,10 @@ required-features = ["esp32c6", "rt", "async"]
 [[example]]
 name = "hal_esp32_pulse_async"
 required-features = ["esp32", "rt", "async"]
+
+[[example]]
+name = "hal_s3_pulse_async"
+required-features = ["esp32s3", "rt", "async"]
 
 [[example]]
 name = "hal_c6_multitask_async"

@@ -1,7 +1,7 @@
 # Maintenance Plan
 
 Regular maintenance workbook for `rustyfarian-ws2812` — a Cargo workspace
-of `no_std` embedded Rust crates targeting ESP32 (C3, C6, WROOM-32) and AVR
+of `no_std` embedded Rust crates targeting ESP32 (C3, C6, WROOM-32, S3) and AVR
 (ATmega328P) for WS2812 / NeoPixel LED control.
 
 Covers: build verification, dependency updates, security scanning, CI/CD
@@ -34,6 +34,7 @@ After any `esp-hal` minor bump, spot-check at least one example per chip family
 - `just build-example hal-ws2812 hal_c6_smart_leds` (smart-leds-trait integration)
 - `just build-example hal-ws2812 hal_c3_pulse` (C3)
 - `just build-example hal-ws2812 hal_esp32_pulse` (WROOM-32)
+- `just build-example hal-ws2812 hal_s3_pulse` (S3)
 
 ### Hardware tests
 End-to-end animation validation requires real boards. Connect over USB,
@@ -51,6 +52,8 @@ At minimum, exercise:
 - `just run hal_c6_multitask_async` — exercises the migrated Embassy task-spawn
   and the multi-task render+button architecture.
 - `just run hal_c3_pulse` and `just run hal_esp32_pulse` if those boards are present.
+- `just run hal_s3_pulse` and `just run hal_s3_pulse_async` — CrowPanel 1.28" (ESP32-S3),
+  onboard 5-LED ring on GPIO48, if present.
 
 If a previously-known-broken edge case has documented lore (e.g. a specific pin
 or setting), retest it on the new stack — upstream releases sometimes resolve

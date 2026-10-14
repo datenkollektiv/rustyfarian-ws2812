@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `rustyfarian-esp-hal-ws2812`: `esp32s3` chip feature (forwarded to esp-hal, `esp-bootloader-esp-idf`, optional `esp-rtos` and `esp-println`) mirroring the existing `esp32` feature. Compile-verified on `xtensa-esp32s3-none-elf` and hardware-validated on the CrowPanel 1.28" (2026-10-14); library code unchanged (no chip-specific configuration)
+- `rustyfarian-esp-hal-ws2812` and `rustyfarian-esp-idf-ws2812`: new examples for ESP32-S3 (`hal_s3_pulse` blocking, `hal_s3_pulse_async` async with `--features async`, `idf_s3_rainbow`) using the Elecrow CrowPanel 1.28" rotary knob (5-LED onboard ring on GPIO48). `idf_s3_rainbow` also supplies the IDF v5.3.3 bootloader that `scripts/ensure-bootloader.sh` builds for `just run hal_s3_*`, the same pattern as C3/C6/ESP32. `hal_s3_pulse_async` pulses only the first LED, as `AsyncStatusLed` drives a single status LED
+- Build tooling: `scripts/build-example.sh`, `run-example.sh`, `ensure-bootloader.sh` gained an `s3` chip arm (`xtensa-esp32s3-none-elf` / `xtensa-esp32s3-espidf`). Xtensa (`cargo +esp`, `-Zbuild-std=core`) now covers both `esp32` and `s3`. Corrected a stale comment: USB-Serial-JTAG was wrongly called "RISC-V only" (the S3 is Xtensa and has it; only the classic ESP32 lacks it)
+- CI: `cross-target-xtensa.yml` now checks the ESP32-S3 alongside ESP32; `buildtargets: esp32,esp32s3` and a new cache key `...-1.97.0.0-esp32-esp32s3`. New recipe alias `just build-example-s3-hal` for quick S3 example builds
+- `just check-hal-xtensa` now compile-checks the ESP32-S3 library and examples alongside ESP32
+
 ### Fixed
 
 - CI: `just deny` failed on RUSTSEC-2024-0449 (`unsafe-libyaml` unmaintained), reached via `serde_yaml` <- `esp-config 0.8.0`. The advisory is now ignored in `deny.toml` with rationale: `serde_yaml` is enabled only by `esp-config`'s `build` feature, which `esp-hal` and `esp-bootloader-esp-idf` request solely as a build-dependency, so the parser runs in host build scripts and never reaches firmware. No upstream fix exists yet (`esp-config 0.8.0` is the latest release)

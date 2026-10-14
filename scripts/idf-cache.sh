@@ -22,7 +22,7 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 #
 # A dependency bump rehashes esp-idf-sys for EVERY IDF target at once, so cleanup must
 # sweep all of them. This workspace currently builds riscv32imac-esp-espidf (C6),
-# riscv32imc-esp-espidf (C3) and xtensa-esp32-espidf (WROOM-32), but hardcoding that list
+# riscv32imc-esp-espidf (C3), xtensa-esp32-espidf (WROOM-32) and xtensa-esp32s3-espidf (S3), but hardcoding that list
 # means a target added later is silently skipped by `clean` while `clean-stale` still
 # finds it — a mismatch that would surface as a "multiple IDF-built bootloaders" error
 # no amount of cleaning could fix. Both commands therefore match `*/debug/build` under

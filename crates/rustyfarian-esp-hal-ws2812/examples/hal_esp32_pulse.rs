@@ -3,7 +3,7 @@
 //! Runs a [`PulseEffect`] (blue) from `ferriswheel` on a 12-LED WS2812B ring
 //! using the ESP32 RMT peripheral on GPIO4.
 //!
-//! See also `hal_c3_pulse.rs` and `hal_c6_pulse.rs`.
+//! See also `hal_c3_pulse.rs`, `hal_c6_pulse.rs`, and `hal_s3_pulse.rs`.
 //!
 //! ## Components
 //!

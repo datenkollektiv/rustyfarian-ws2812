@@ -113,12 +113,11 @@ impl<'d> Ws2812Rmt<'d> {
     /// Creates a new WS2812 driver with default channel configuration.
     ///
     /// The default uses one RMT memory block of 48 symbols, which is the block
-    /// size on ESP32-C3 and ESP32-C6. These chips have only two TX channels, so
-    /// the ESP-IDF default of 64 symbols would round up to two blocks and exhaust
-    /// all available TX candidates.
+    /// size on ESP32-C3, ESP32-C6 and ESP32-S3. The C3 and C6 have only two TX
+    /// channels, so the ESP-IDF default of 64 symbols would round up to two blocks
+    /// and exhaust all available TX candidates.
     ///
-    /// For other ESP32 variants (classic ESP32, S2, S3) where each block holds 64
-    /// symbols, use [`new_with_channel_config`] to pass an appropriate
+    /// For the classic ESP32 and the S2, where each block holds 64 symbols, use [`new_with_channel_config`] to pass an appropriate
     /// `TxChannelConfig`.
     ///
     /// # Arguments
