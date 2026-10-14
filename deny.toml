@@ -13,6 +13,15 @@ ignore = [
     # Re-evaluate after each esp-hal bump with `cargo tree -i paste`
     # (re-checked 2026-09-21 against esp-hal 1.2.2: still a direct dependency).
     { id = "RUSTSEC-2024-0436", reason = "direct dependency of esp-hal 1.2.2 and transitive via riscv 0.15.0; no safe upgrade available upstream" },
+    # unsafe-libyaml is unmaintained (RUSTSEC-2024-0449). It arrives via
+    # serde_yaml 0.9 <- esp-config 0.8.0, and only through esp-config's optional
+    # `build` feature, which esp-hal 1.2.2 and esp-bootloader-esp-idf 0.6.0 request
+    # solely as a [build-dependency]. With resolver 2 that feature never unifies into
+    # the target graph, so the YAML parser runs only in host build scripts reading
+    # esp_config.yml (trusted, upstream-shipped input) and never reaches firmware.
+    # No fix upstream: esp-config 0.8.0 is the latest release (checked 2026-10-14).
+    # Re-evaluate after each esp-hal bump with `cargo tree -i unsafe-libyaml`.
+    { id = "RUSTSEC-2024-0449", reason = "build-script-only dependency via esp-config 0.8.0 (build feature); never in firmware; no upgrade available upstream" },
 ]
 
 [licenses]

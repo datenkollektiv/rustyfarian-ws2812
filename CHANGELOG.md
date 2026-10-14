@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- CI: `just deny` failed on RUSTSEC-2024-0449 (`unsafe-libyaml` unmaintained), reached via `serde_yaml` <- `esp-config 0.8.0`. The advisory is now ignored in `deny.toml` with rationale: `serde_yaml` is enabled only by `esp-config`'s `build` feature, which `esp-hal` and `esp-bootloader-esp-idf` request solely as a build-dependency, so the parser runs in host build scripts and never reaches firmware. No upstream fix exists yet (`esp-config 0.8.0` is the latest release)
 - CI: `cross-target-avr-upstream` no longer deletes `Cargo.lock` before building against upstream `avr-hal`. Deleting it re-resolved every transitive registry dependency, so the job reported unrelated crate churn as upstream breakage — it had been red since 2026-09-07 because `encoding_rs 0.8.40` (reached via `yaml-rust2`) calls `slice::as_chunks`, stabilised in Rust 1.88.0 on 2025-06-26 and therefore still unstable on the pinned `nightly-2025-04-27`, while `avr-hal` itself was fine throughout. Dropping the `rev` pin alone is enough to re-resolve the three avr-hal git packages against the branch tip; registry dependencies now stay at their locked versions, so a failure means upstream `avr-hal` genuinely moved
 
 ## [0.7.0] - 2026-09-25
