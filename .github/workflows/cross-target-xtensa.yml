@@ -64,15 +64,15 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.rustup/toolchains/esp
-          key: xtensa-esp-${{ runner.os }}-1.97.0.0-esp32
+          key: xtensa-esp-${{ runner.os }}-1.97.0.0-esp32-esp32s3
 
-      # Installs the Xtensa Rust fork for esp32 only (not the RISC-V or S2/S3 targets).
+      # Installs the Xtensa Rust fork for esp32 and esp32s3 (not the RISC-V or S2 targets).
       # rust-src comes with it, so -Z build-std=core needs no extra step.
       - name: Install Rust toolchain for Xtensa
         uses: esp-rs/xtensa-toolchain@v1.7.0
         with:
           default: false
-          buildtargets: esp32
+          buildtargets: esp32,esp32s3
           version: "1.97.0.0"
           ldproxy: false
         env:
@@ -84,5 +84,5 @@ jobs:
       - name: Setup just
         uses: extractions/setup-just@v4
 
-      - name: Check esp-hal driver (ESP32 WROOM-32, xtensa)
+      - name: Check esp-hal driver (ESP32 WROOM-32 and ESP32-S3, Xtensa)
         run: just check-hal-xtensa

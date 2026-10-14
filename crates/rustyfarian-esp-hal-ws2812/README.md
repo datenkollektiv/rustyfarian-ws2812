@@ -5,8 +5,8 @@
 
 Bare-metal `no_std` WS2812 (NeoPixel) LED driver using the `esp-hal` RMT peripheral.
 
-Drives WS2812/NeoPixel addressable LEDs on ESP32-C3, ESP32-C6, and classic
-ESP32 targets without an OS or ESP-IDF. The driver is const-generic over the
+Drives WS2812/NeoPixel addressable LEDs on ESP32-C3, ESP32-C6, ESP32-S3, and
+classic ESP32 targets without an OS or ESP-IDF. The driver is const-generic over the
 pulse-code buffer size, allocates nothing at runtime, and supports both
 blocking and `async` (Embassy) operation. Implements `SmartLedsWrite` for
 the `smart-leds` ecosystem. For std/ESP-IDF projects see
@@ -41,6 +41,12 @@ rustyfarian-esp-hal-ws2812 = { version = "0.6", default-features = false, featur
 rustyfarian-esp-hal-ws2812 = { version = "0.6", default-features = false, features = ["esp32", "unstable", "pennant"] }
 ```
 
+**ESP32-S3** (requires the `esp` Xtensa toolchain):
+
+```toml
+rustyfarian-esp-hal-ws2812 = { version = "0.6", default-features = false, features = ["esp32s3", "unstable", "pennant"] }
+```
+
 ```rust
 use esp_hal::{rmt::{Rmt, TxChannelConfig, TxChannelCreator}, time::Rate};
 use rgb::RGB8;
@@ -66,6 +72,7 @@ led.set_pixel(RGB8::new(255, 0, 0)).unwrap();
 | `esp32c6` (default) | `riscv32imac-unknown-none-elf` | ESP32-C6-DevKitC-1                          |
 | `esp32c3`           | `riscv32imc-unknown-none-elf`  | ESP32-C3-DevKit-Rust-1, ESP32-C3-DevKitC-02 |
 | `esp32`             | `xtensa-esp32-none-elf`        | ESP32-WROOM-32 (requires `esp` toolchain)   |
+| `esp32s3`           | `xtensa-esp32s3-none-elf`      | Elecrow CrowPanel 1.28" knob (requires `esp` toolchain) |
 
 ## Features
 
@@ -74,6 +81,7 @@ led.set_pixel(RGB8::new(255, 0, 0)).unwrap();
 | `esp32c6`     | yes      | chip support for ESP32-C6                                                       |
 | `esp32c3`     | no       | chip support for ESP32-C3                                                       |
 | `esp32`       | no       | chip support for classic ESP32 / WROOM-32                                       |
+| `esp32s3`     | no       | chip support for ESP32-S3                                                       |
 | `async`       | no       | async `Ws2812Rmt` via Embassy executor                                          |
 | `pennant`     | yes      | implements `StatusLed`; `AsyncStatusLed` when `async` is also enabled           |
 | `smart-leds`  | no       | enables `smart-leds` brightness and gamma adapters                              |

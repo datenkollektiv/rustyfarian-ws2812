@@ -64,6 +64,9 @@ name = "idf_c6_rainbow"
 name = "idf_esp32_rainbow"
 
 [[example]]
+name = "idf_s3_rainbow"
+
+[[example]]
 name = "idf_esp32_rgb_cycle"
 required-features = ["rgb-gpio"]
 

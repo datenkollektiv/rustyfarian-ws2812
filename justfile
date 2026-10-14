@@ -84,12 +84,14 @@ check-hal-c3:
     cargo check {{ hal_crate }} --target riscv32imc-unknown-none-elf --target-dir {{ hal_dir }} --no-default-features --features esp32c3,unstable,pennant
     cargo check {{ hal_crate }} --target riscv32imc-unknown-none-elf --target-dir {{ hal_dir }} --no-default-features --features esp32c3,unstable,pennant,rt --examples
 
-# check the esp-hal bare-metal driver on the Xtensa ESP32 target (requires: just setup esp)
-# check the esp-hal driver on the Xtensa ESP32 target
+# check the esp-hal driver on the Xtensa ESP32 and ESP32-S3 targets (requires: just setup esp)
+# check the esp-hal driver on the Xtensa ESP32 and ESP32-S3 targets
 [group('Build & Check')]
 check-hal-xtensa:
     cargo +esp check {{ hal_crate }} --target xtensa-esp32-none-elf --target-dir {{ hal_dir }} --no-default-features --features esp32,unstable,pennant -Z build-std=core
     cargo +esp check {{ hal_crate }} --target xtensa-esp32-none-elf --target-dir {{ hal_dir }} --no-default-features --features esp32,unstable,pennant,rt --examples -Z build-std=core
+    cargo +esp check {{ hal_crate }} --target xtensa-esp32s3-none-elf --target-dir {{ hal_dir }} --no-default-features --features esp32s3,unstable,pennant -Z build-std=core
+    cargo +esp check {{ hal_crate }} --target xtensa-esp32s3-none-elf --target-dir {{ hal_dir }} --no-default-features --features esp32s3,unstable,pennant,rt --examples -Z build-std=core
 
 # check the AVR SPI driver on host (no AVR toolchain)
 [group('Build & Check')]
@@ -271,6 +273,11 @@ build-example-esp32: (build-example "idf-ws2812" "idf_esp32_rainbow")
 [group('ESP Examples')]
 build-example-esp32-hal: (build-example "hal-ws2812" "hal_esp32_pulse")
 
+# build the ESP32-S3 pulse example (alias for: just build-example hal-ws2812 hal_s3_pulse)
+# build the ESP32-S3 pulse example
+[group('ESP Examples')]
+build-example-s3-hal: (build-example "hal-ws2812" "hal_s3_pulse")
+
 # build the ESP32-WROOM discrete RGB LED (pennant RgbGpioLed) example (alias for: just build-example idf-ws2812 idf_esp32_rgb_cycle)
 # build the ESP32-WROOM discrete RGB LED example
 [group('ESP Examples')]
@@ -281,8 +288,8 @@ build-example-esp32-rgb: (build-example "idf-ws2812" "idf_esp32_rgb_cycle")
 [group('ESP Examples')]
 build-example-esp32-rgb-pulse: (build-example "idf-ws2812" "idf_esp32_rgb_pulse")
 
-# ensure the IDF-built v5.3.3 bootloader is in the build cache for the given chip (c3 or c6)
-# cache the IDF-built bootloader for a chip (c3|c6)
+# ensure the IDF-built v5.3.3 bootloader is in the build cache for the given chip
+# cache the IDF-built bootloader for a chip (c3|c6|esp32|s3)
 [group('ESP Examples')]
 ensure-bootloader chip:
     scripts/ensure-bootloader.sh "{{ chip }}" "{{ hal_dir }}" "{{ idf_dir }}"

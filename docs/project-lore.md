@@ -237,6 +237,12 @@ Fix: unset the variable, or export the new value rather than running `cargo logi
 Rebase-and-squash on merge rewrites the SHA, leaving the record pointing at a commit on no branch that will be garbage-collected — it reads as an invalidated validation even when no code changed.
 Fix: anchor validation records to the released version and the pinned dependency versions, and state invalidation in content terms (a change to the driver crate, the named example, or a pinned `esp-*` version).
 
+**A comment-only edit to an example changes its firmware binary when it adds or removes lines.**
+Every `.unwrap()` panic embeds a `core::panic::Location` with its source line number, so shifting the code below a doc comment changes the image even in release builds.
+A "docs only" polish after a hardware run therefore silently invalidates the sign-off for that binary.
+Fix: record the binary's `sha256` with the sign-off, then rebuild after any polish and compare; keep a comment rewrite within the same line count if the binary must stay identical.
+Verified 2026-10-14: adding two lines to `hal_s3_pulse_async.rs`'s header changed its sha256, and a same-line-count rewrite restored the flashed hash byte for byte.
+
 ---
 
 ## Developer Tooling

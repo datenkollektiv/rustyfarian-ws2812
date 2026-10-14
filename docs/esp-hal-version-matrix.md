@@ -4,7 +4,8 @@
 
 Applied 2026-09-21 during the quarterly maintenance cycle; tracked by
 [`docs/features/esp-hal-stack-upgrade-september-2026-v1.md`](features/esp-hal-stack-upgrade-september-2026-v1.md).
-Compile-verified on C6, C3 and Xtensa; **hardware-validated on C6 and C3 on 2026-09-24** (Xtensa still compile-only, no board).
+Compile-verified on C6, C3, ESP32 and ESP32-S3; **hardware-validated on C6 and C3 on 2026-09-24** and **ESP32-S3 on the CrowPanel 1.28" on 2026-10-14** (ESP32 compile-only, no board).
+The stack also covers ESP32-S3 since 2026-10-14 via the new `esp32s3` chip feature and examples (hardware-validated; RMT peripheral facts: channels 0–3 with 48 words of RAM per channel, APB clock source → `Rate::from_mhz(80)` with `RMT_CLK_DIV = 8` valid).
 
 Not a single-day upstream wave: `esp-rtos`, `esp-bootloader-esp-idf` and `esp-println` were
 published together on 2026-08-26, while `esp-hal 1.2.0` followed on 2026-09-02 with 1.2.1 (09-08)

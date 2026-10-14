@@ -37,10 +37,11 @@ fi
 case "$prefix" in
     hal)
         case "$chip" in
-            c3)    target="riscv32imc-unknown-none-elf"  ; mcu="esp32c3" ;;
-            c6)    target="riscv32imac-unknown-none-elf" ; mcu="esp32c6" ;;
-            esp32) target="xtensa-esp32-none-elf"        ; mcu="esp32"   ;;
-            *) printf 'Unknown chip "%s" in example "%s". Supported: c3, c6, esp32\n' "$chip" "$example" >&2; exit 1 ;;
+            c3)    target="riscv32imc-unknown-none-elf"  ; mcu="esp32c3"  ;;
+            c6)    target="riscv32imac-unknown-none-elf" ; mcu="esp32c6"  ;;
+            esp32) target="xtensa-esp32-none-elf"        ; mcu="esp32"    ;;
+            s3)    target="xtensa-esp32s3-none-elf"      ; mcu="esp32s3"  ;;
+            *) printf 'Unknown chip "%s" in example "%s". Supported: c3, c6, esp32, s3\n' "$chip" "$example" >&2; exit 1 ;;
         esac
         # Base features required by all HAL examples.
         #
@@ -48,11 +49,11 @@ case "$prefix" in
         #   - C6:    every example today calls esp_println::println from its panic handler.
         #            If a future C6 example is silent, this rule will over-enable for it —
         #            convert to a per-example case below or drop esp-println for that example.
-        #   - C3:    examples use a silent panic handler; esp-println is not needed.
-        #   - esp32: the esp-println dep is pinned to features = ["jtag-serial"] in Cargo.toml.
-        #            That transport requires USB-Serial-JTAG hardware which is RISC-V only
-        #            (C3/C6/H2/P4/S3); Xtensa LX6 lacks the peripheral. Switching to a
-        #            different transport (uart, rtt) is possible but not currently wired up.
+        #   - C3, esp32, s3: examples use a silent panic handler; esp-println is not needed.
+        #
+        # Transport: the esp-println dep is pinned to features = ["jtag-serial"] in Cargo.toml.
+        # USB-Serial-JTAG exists on C3, C6 and S3, but not on the classic ESP32 (LX6), so an
+        # esp32 example that prints would need a different transport (uart, rtt) — not wired up.
         case "$chip" in
             c6) hal_features="${mcu},unstable,pennant,rt,esp-println" ;;
             *)  hal_features="${mcu},unstable,pennant,rt" ;;
@@ -64,7 +65,12 @@ case "$prefix" in
             *_async)    hal_features="${hal_features},async" ;;
         esac
         printf 'Building %s for %s...\n' "$example" "$target"
-        if [ "$chip" = "esp32" ]; then
+        # Determine whether this chip is Xtensa (requires +esp toolchain and GCC).
+        case "$chip" in
+            esp32|s3) xtensa=1 ;;
+            *) xtensa=0 ;;
+        esac
+        if [ "$xtensa" = 1 ]; then
             # Xtensa requires +esp toolchain and xtensa-esp-elf GCC.
             # shellcheck source=./xtensa-toolchain.sh
             . "$SCRIPT_DIR/xtensa-toolchain.sh"
@@ -91,7 +97,8 @@ case "$prefix" in
             c3)    idf_target="riscv32imc-esp-espidf"  ; mcu="esp32c3"  ;;
             c6)    idf_target="riscv32imac-esp-espidf" ; mcu="esp32c6"  ;;
             esp32) idf_target="xtensa-esp32-espidf"    ; mcu="esp32"    ;;
-            *) printf 'Unknown chip "%s" in IDF example "%s". Supported: c3, c6, esp32\n' "$chip" "$example" >&2; exit 1 ;;
+            s3)    idf_target="xtensa-esp32s3-espidf"  ; mcu="esp32s3"  ;;
+            *) printf 'Unknown chip "%s" in IDF example "%s". Supported: c3, c6, esp32, s3\n' "$chip" "$example" >&2; exit 1 ;;
         esac
         # Optional cargo features this IDF example needs, keyed off its name.
         # The mapping lives in idf_example_features() (lib.sh) and must stay

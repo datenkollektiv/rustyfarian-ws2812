@@ -4,7 +4,7 @@
 //! and the [`AsyncStatusLed`] trait.
 //! The animation loop uses [`embassy_time::Timer`] to yield between frames.
 //!
-//! See also `hal_c3_pulse_async.rs` and `hal_c6_pulse_async.rs`.
+//! See also `hal_c3_pulse_async.rs`, `hal_c6_pulse_async.rs`, and `hal_s3_pulse_async.rs`.
 //!
 //! ## Components
 //!

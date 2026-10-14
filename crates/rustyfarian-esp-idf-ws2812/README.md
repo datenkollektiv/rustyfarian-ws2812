@@ -34,9 +34,9 @@ led.set_pixels_slice(&colors)?;
 ## Supported Boards
 
 Any ESP32 variant with RMT support via ESP-IDF.
-`Ws2812Rmt::new()` uses a default channel configuration tuned for ESP32-C3/C6
-(48-symbol RMT blocks, 2 TX channels).
-For classic ESP32, S2, or S3 use [`new_with_channel_config`](https://docs.rs/rustyfarian-esp-idf-ws2812)
+`Ws2812Rmt::new()` uses a default channel configuration tuned for 48-symbol RMT blocks,
+which suits ESP32-C3, ESP32-C6 and ESP32-S3.
+For classic ESP32 or S2 (64-symbol blocks) use [`new_with_channel_config`](https://docs.rs/rustyfarian-esp-idf-ws2812)
 with `memory_block_symbols: 64`.
 
 | Board                    | GPIO                 |

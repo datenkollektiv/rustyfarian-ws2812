@@ -1,15 +1,17 @@
 # Roadmap
 
-*Last updated: September 2026*
+*Last updated: October 2026*
 
 The April 2026 `esp-hal` release wave (`v0.5.0`) is shipped, the AVR bit-bang
 driver is the recommended backend (per ADR 007), the GPIO8 RMT hang is
 resolved upstream, and the Xtensa ESP32 / WROOM-32 bare-metal target is
 verified clean under `esp-hal 1.2.2`.
 The September 2026 wave (`esp-hal 1.2.2`, `esp-rtos 0.4.0`, MSRV 1.95) is
-compile-verified on all three chips and hardware-validated on ESP32-C6 and
-ESP32-C3 — see
-[`docs/features/esp-hal-stack-upgrade-september-2026-v1.md`](features/esp-hal-stack-upgrade-september-2026-v1.md).
+compile-verified on ESP32-C3, ESP32-C6, ESP32-WROOM-32, and ESP32-S3, with
+hardware-validated results on C6 and C3 — see
+[`docs/features/esp-hal-stack-upgrade-september-2026-v1.md`](features/esp-hal-stack-upgrade-september-2026-v1.md) —
+and on ESP32-S3 (CrowPanel 1.28") — see
+[`docs/features/esp-hal-esp32s3-support-v1.md`](features/esp-hal-esp32s3-support-v1.md).
 All six crates are on crates.io: the pure-logic trio (`bunting`, `pennant`,
 `ferriswheel`) since `0.5.0`, and all three driver crates
 (`rustyfarian-avr-ws2812`, `rustyfarian-esp-idf-ws2812`,
