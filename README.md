@@ -140,7 +140,7 @@ bunting = "0.6"
 ```
 
 `pennant` ships the `StatusLed`/`AsyncStatusLed` traits, `PulseEffect`, and `NoLed` by default.
-Enable the `hal` feature for the `SimpleLed` adapter (RGB → on/off GPIO via `embedded-hal` 1.0):
+Enable the `hal` feature for the `SimpleLed` adapter (RGB → on/off GPIO via `embedded-hal` 1.0, with a `Polarity` option for active-low LEDs):
 
 ```toml
 pennant = { version = "0.6", features = ["hal"] }

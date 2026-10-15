@@ -9,6 +9,12 @@
 //! Generic over [`embedded_hal::digital::OutputPin`], so it works with any HAL
 //! (ESP-IDF, nrf-hal, stm32-hal, or test mocks).
 //!
+//! # Polarity
+//!
+//! Active-low LEDs light when the pin is driven **low**.
+//! The default is [`Polarity::ActiveHigh`](crate::Polarity::ActiveHigh).
+//! Call [`with_polarity`](SimpleLed::with_polarity) with a [`Polarity`](crate::Polarity) to change it.
+//!
 //! # ESP-IDF example
 //!
 //! `esp-idf-hal`'s `PinDriver` implements `OutputPin`, so you can use it directly:
@@ -21,7 +27,21 @@
 //! let mut led = SimpleLed::new(pin);
 //! led.set_color(rgb::RGB8::new(0, 0, 255))?;
 //! ```
+//!
+//! # Active-low ESP-IDF example
+//!
+//! The ESP32-C3 SuperMini blue LED on GPIO8 lights when the pin is driven low:
+//!
+//! ```ignore
+//! use esp_idf_hal::gpio::PinDriver;
+//! use pennant::{Polarity, SimpleLed, StatusLed};
+//!
+//! let pin = PinDriver::output(peripherals.pins.gpio8)?;
+//! let mut led = SimpleLed::new(pin).with_polarity(Polarity::ActiveLow);
+//! led.set_color(rgb::RGB8::new(0, 0, 255))?;
+//! ```
 
+use crate::polarity::{set_channel, Polarity};
 use crate::{exceeds_threshold, StatusLed, DEFAULT_BRIGHTNESS_THRESHOLD};
 use embedded_hal::digital::OutputPin;
 use rgb::RGB8;
@@ -31,25 +51,44 @@ use rgb::RGB8;
 /// Converts RGB colors to on/off by checking if any color channel
 /// exceeds the brightness threshold (strict greater-than comparison).
 /// Equality does not turn the LED on, avoiding false triggers from low-level noise.
+/// The wiring [`Polarity`] defaults to [`Polarity::ActiveHigh`]; see [`SimpleLed::with_polarity`].
 pub struct SimpleLed<P: OutputPin> {
     pub(crate) pin: P,
     threshold: u8,
+    polarity: Polarity,
 }
 
 impl<P: OutputPin> SimpleLed<P> {
-    /// Creates a new SimpleLed with the default brightness threshold (10).
+    /// Creates a new SimpleLed with the default brightness threshold (10)
+    /// and [`Polarity::ActiveHigh`].
     pub fn new(pin: P) -> Self {
         Self {
             pin,
             threshold: DEFAULT_BRIGHTNESS_THRESHOLD,
+            polarity: Polarity::ActiveHigh,
         }
     }
 
-    /// Creates a new SimpleLed with a custom brightness threshold.
+    /// Creates a new SimpleLed with a custom brightness threshold
+    /// and [`Polarity::ActiveHigh`].
     ///
     /// The LED turns on when any RGB channel exceeds this threshold.
     pub fn with_threshold(pin: P, threshold: u8) -> Self {
-        Self { pin, threshold }
+        Self {
+            pin,
+            threshold,
+            polarity: Polarity::ActiveHigh,
+        }
+    }
+
+    /// Sets the wiring polarity.
+    ///
+    /// Use [`Polarity::ActiveLow`] for LEDs that light when the pin is driven low
+    /// (e.g. the ESP32-C3 SuperMini blue LED on GPIO8).
+    #[must_use]
+    pub fn with_polarity(mut self, polarity: Polarity) -> Self {
+        self.polarity = polarity;
+        self
     }
 }
 
@@ -59,10 +98,10 @@ impl<P: OutputPin> StatusLed for SimpleLed<P> {
     type Error = P::Error;
 
     fn set_color(&mut self, color: RGB8) -> Result<(), Self::Error> {
-        if exceeds_threshold(color, self.threshold) {
-            self.pin.set_high()
-        } else {
-            self.pin.set_low()
-        }
+        set_channel(
+            &mut self.pin,
+            exceeds_threshold(color, self.threshold),
+            self.polarity,
+        )
     }
 }
