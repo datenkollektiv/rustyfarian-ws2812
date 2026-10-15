@@ -45,6 +45,7 @@ timeline
     title Fuzzy Rustyfarian WS2812 Roadmap
 
     Near term : cargo-deny — ban multiple rgb versions
+              : Split esp-hal async feature from the example runtime (feature-doc)
 
     Mid term  : Remove send_and_wait workaround (esp-idf-hal fix)
               : SmartLedsWriteAsync for esp-hal async driver
@@ -131,6 +132,13 @@ versions in the dep graph at the time of the change.
 ---
 
 ## Hardware Driver Improvements
+
+### Split the esp-hal `async` feature from the example runtime
+
+The `async` feature of `rustyfarian-esp-hal-ws2812` pulls in `esp-rtos` and the `embassy-*` crates, although the driver's async impl needs only `esp_hal::Async`.
+Make `async` dependency-free and move the runtime behind a new example-only `embassy` feature.
+Requested from the downstream `rustyfarian-peripherals` project, which already uses this split for its async rotary encoder.
+Design and progress: [`docs/features/esp-hal-async-feature-split-v1.md`](features/esp-hal-async-feature-split-v1.md).
 
 ### Document async support status in README driver table
 

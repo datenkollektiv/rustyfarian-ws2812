@@ -76,17 +76,18 @@ led.set_pixel(RGB8::new(255, 0, 0)).unwrap();
 
 ## Features
 
-| Feature       | Default  | Description                                                                     |
-|:--------------|:---------|:--------------------------------------------------------------------------------|
-| `esp32c6`     | yes      | chip support for ESP32-C6                                                       |
-| `esp32c3`     | no       | chip support for ESP32-C3                                                       |
-| `esp32`       | no       | chip support for classic ESP32 / WROOM-32                                       |
-| `esp32s3`     | no       | chip support for ESP32-S3                                                       |
-| `async`       | no       | async `Ws2812Rmt` via Embassy executor                                          |
-| `pennant`     | yes      | implements `StatusLed`; `AsyncStatusLed` when `async` is also enabled           |
-| `smart-leds`  | no       | enables `smart-leds` brightness and gamma adapters                              |
-| `rt`          | no       | enables `esp-hal` runtime (for `#[entry]` examples)                             |
-| `esp-println` | no       | enables `esp-println` for debug output in examples                              |
+| Feature       | Default | Description                                                                                   |
+|:--------------|:--------|:----------------------------------------------------------------------------------------------|
+| `esp32c6`     | yes     | chip support for ESP32-C6                                                                     |
+| `esp32c3`     | no      | chip support for ESP32-C3                                                                     |
+| `esp32`       | no      | chip support for classic ESP32 / WROOM-32                                                     |
+| `esp32s3`     | no      | chip support for ESP32-S3                                                                     |
+| `async`       | no      | async `Ws2812Rmt<'d, Async, N>` impls; dependency-free, no executor or timer pulled in        |
+| `embassy`     | no      | Embassy executor, timer and sync runtime; implies `async`; required by the `*_async` examples |
+| `pennant`     | yes     | implements `StatusLed`; `AsyncStatusLed` when `async` is also enabled                         |
+| `smart-leds`  | no      | enables `smart-leds` brightness and gamma adapters                                            |
+| `rt`          | no      | enables `esp-hal` runtime (for `#[entry]` examples)                                           |
+| `esp-println` | no      | enables `esp-println` for debug output in examples                                            |
 
 ## Documentation
 

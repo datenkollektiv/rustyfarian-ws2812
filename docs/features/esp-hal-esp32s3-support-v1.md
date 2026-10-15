@@ -5,8 +5,8 @@ desk-work: available
 
 # Feature: ESP32-S3 support in `rustyfarian-esp-hal-ws2812` v1
 
-Upstream request U1 from the `rustyfarian-knob` esp-hal parity quest.
-Source: `review-queue/feature-request-esp-hal-ws2812-esp32s3.md`.
+Requested from the downstream `rustyfarian-knob` project (upstream request U1 of its esp-hal parity quest), filed 2026-10-13.
+The knob's CrowPanel 1.28" ESP32-S3 drives a 5-LED WS2812 ring on GPIO48 and could not use the esp-hal driver without an `esp32s3` feature.
 
 ## Decisions
 | Decision                                                       | Reason                                                       | Rejected Alternative                                 |

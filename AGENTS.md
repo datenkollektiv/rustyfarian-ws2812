@@ -47,7 +47,7 @@ For ad-hoc cargo invocations on platform-independent crates, always pass `--targ
 
 **Exact-pinned esp-hal stack.** `Cargo.toml` pins `esp-hal`, `esp-rtos`, `esp-bootloader-esp-idf`, `esp-println`, `embassy-executor`, `embassy-sync`, and `embassy-time` with `=` constraints. Bumps are coordinated waves — never relax to caret. See `docs/esp-hal-version-matrix.md`.
 
-**Example naming.** `{driver}_{chip}_{effect}`: `hal_c6_pulse`, `idf_c3_rainbow`, `hal_esp32_pulse_async`. Async variants take an `_async` suffix and require `--features async`.
+**Example naming.** `{driver}_{chip}_{effect}`: `hal_c6_pulse`, `idf_c3_rainbow`, `hal_esp32_pulse_async`. Async variants take an `_async` suffix and require `--features embassy`, which implies `async`.
 
 **Effect builder pattern.** Constructors return `Result<Self, EffectError>`; `with_*` methods chain. Inherent methods + `impl Effect` delegation avoids recursion. See any file under `crates/ferriswheel/src/` for the pattern (e.g. `pulse.rs`).
 

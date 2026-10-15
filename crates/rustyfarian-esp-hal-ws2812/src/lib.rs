@@ -50,7 +50,7 @@
 //! led.set_pixels_slice(&colors).unwrap();
 //! ```
 //!
-//! # Async Example (feature `async`)
+//! # Async Example (feature `embassy`)
 //!
 //! ```ignore
 //! use embassy_time::Timer;
@@ -129,10 +129,15 @@
 //! stabilises in the ecosystem.
 //! See ADR 006 for details.
 //!
-//! # Other async runtimes
+//! # Runtime Stack
 //!
-//! This crate's async support is built on `esp-hal`'s native async RMT channel and the
-//! `esp-rtos` Embassy executor, which is the standard async runtime for `esp-hal 1.0+`.
+//! The `async` feature gates the async `Ws2812Rmt<'d, Async, N>` API and adds no dependency of its own.
+//! The `embassy` feature implies `async` and pulls in the runtime stack:
+//! the `esp-rtos` executor, `embassy-time`, `embassy-executor` and `embassy-sync`.
+//! The `*_async` examples require `--features embassy`.
+//!
+//! The async API is built on `esp-hal`'s native async RMT channel and the `esp-rtos` Embassy executor,
+//! which is the standard async runtime for `esp-hal 1.0+`.
 //! Other Embassy-compatible executors (e.g., `embassy-executor` with a custom time driver)
 //! are theoretically possible but untested; the `RmtTxFuture` in `esp-hal` is executor-agnostic
 //! (it uses `core::task::Waker`), but the `embassy-time` timer support requires the
