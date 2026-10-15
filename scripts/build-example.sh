@@ -62,7 +62,7 @@ case "$prefix" in
         name=$(printf '%s' "$example" | cut -d_ -f3-)
         case "$name" in
             smart_leds) hal_features="${hal_features},smart-leds" ;;
-            *_async)    hal_features="${hal_features},async" ;;
+            *_async)    hal_features="${hal_features},embassy" ;;
         esac
         printf 'Building %s for %s...\n' "$example" "$target"
         # Determine whether this chip is Xtensa (requires +esp toolchain and GCC).

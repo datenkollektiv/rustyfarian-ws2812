@@ -83,11 +83,11 @@ Each example name encodes the driver, chip, and effect: `{driver}_{chip}_{effect
 | `hal_c6_cylon`               | esp-hal (no_std) | ESP32-C6                   | Cylon / scanner        | GPIO18     |                                                                                     |
 | `hal_c6_knight_rider`        | esp-hal (no_std) | ESP32-C6                   | Knight Rider / scanner | GPIO18     |                                                                                     |
 | `hal_c6_rainbow_comet`       | esp-hal (no_std) | ESP32-C6                   | Rainbow comet          | GPIO18     |                                                                                     |
-| `hal_c6_rainbow_comet_async` | esp-hal (no_std) | ESP32-C6                   | Rainbow comet (async)  | GPIO18     | `--features async`                                                                  |
-| `hal_c3_pulse_async`         | esp-hal (no_std) | ESP32-C3                   | Pulse (async)          | GPIO4      | `--features async`; first LED only (`AsyncStatusLed`)                               |
-| `hal_c6_pulse_async`         | esp-hal (no_std) | ESP32-C6                   | Pulse (async)          | GPIO18     | `--features async`; first LED only (`AsyncStatusLed`)                               |
-| `hal_esp32_pulse_async`      | esp-hal (no_std) | ESP32-WROOM-32             | Pulse (async)          | GPIO4      | `--features async`; first LED only (`AsyncStatusLed`)                               |
-| `hal_s3_pulse_async`         | esp-hal (no_std) | ESP32-S3 (CrowPanel 1.28") | Pulse (async)          | GPIO48     | `--features async`; first LED only (`AsyncStatusLed`)                               |
+| `hal_c6_rainbow_comet_async` | esp-hal (no_std) | ESP32-C6                   | Rainbow comet (async)  | GPIO18     | `--features embassy`                                                                |
+| `hal_c3_pulse_async`         | esp-hal (no_std) | ESP32-C3                   | Pulse (async)          | GPIO4      | `--features embassy`; first LED only (`AsyncStatusLed`)                             |
+| `hal_c6_pulse_async`         | esp-hal (no_std) | ESP32-C6                   | Pulse (async)          | GPIO18     | `--features embassy`; first LED only (`AsyncStatusLed`)                             |
+| `hal_esp32_pulse_async`      | esp-hal (no_std) | ESP32-WROOM-32             | Pulse (async)          | GPIO4      | `--features embassy`; first LED only (`AsyncStatusLed`)                             |
+| `hal_s3_pulse_async`         | esp-hal (no_std) | ESP32-S3 (CrowPanel 1.28") | Pulse (async)          | GPIO48     | `--features embassy`; first LED only (`AsyncStatusLed`)                             |
 | `hal_c6_smart_leds`          | esp-hal (no_std) | ESP32-C6                   | smart-leds interop     | GPIO18     | `--features smart-leds`                                                             |
 | `idf_c3_rainbow`             | ESP-IDF (std)    | ESP32-C3                   | Rainbow                | GPIO4      |                                                                                     |
 | `idf_c6_rainbow`             | ESP-IDF (std)    | ESP32-C6                   | Rainbow                | GPIO18     |                                                                                     |

@@ -36,9 +36,9 @@ The runtime choice affects:
 - **Which timer API examples demonstrate** — `Timer::after_millis().await`
 - **Version coupling** — `esp-rtos` 0.2 pins compatible `embassy-time` and `embassy-executor` versions
 
-### What the review queue raised
+### What the Embassy evaluation found
 
-A review of Embassy's fit in the Rustyfarian ecosystem (see `archive/review-queue/`) confirmed that:
+An evaluation of Embassy's fit in the Rustyfarian ecosystem, received from the wider project family in March 2026, confirmed that:
 
 - `esp-rtos` is Espressif's official integration of Embassy for `esp-hal 1.0+`
 - The pure logic crates (`ferriswheel`, `ws2812-pure`, `led-effects`) are completely unaffected by the runtime choice
@@ -58,21 +58,21 @@ Specifically:
 
 ### Boundaries
 
-| Crate                        | Embassy dependency           | Rationale                                                                     |
-|:-----------------------------|:-----------------------------|:------------------------------------------------------------------------------|
-| `rustyfarian-esp-hal-ws2812` | Yes (behind `async` feature) | Wraps `esp-hal`'s async RMT channel                                           |
-| `rustyfarian-esp-idf-ws2812` | No                           | `esp-idf-hal` has no async RMT; if it gains one, it will use its own executor |
-| `rustyfarian-avr-ws2812`     | No                           | AVR has no async ecosystem                                                    |
-| `ferriswheel`                | No — never                   | Pure computation, no I/O or runtime deps                                      |
-| `ws2812-pure`                | No — never                   | Pure computation                                                              |
-| `led-effects`                | No — never                   | Pure traits and logic                                                         |
+| Crate                        | Embassy dependency                              | Rationale                                                                     |
+|:-----------------------------|:------------------------------------------------|:------------------------------------------------------------------------------|
+| `rustyfarian-esp-hal-ws2812` | Yes (behind `embassy`; `async` is runtime-free) | Wraps `esp-hal`'s async RMT channel; the runtime serves the examples          |
+| `rustyfarian-esp-idf-ws2812` | No                                              | `esp-idf-hal` has no async RMT; if it gains one, it will use its own executor |
+| `rustyfarian-avr-ws2812`     | No                                              | AVR has no async ecosystem                                                    |
+| `ferriswheel`                | No — never                                      | Pure computation, no I/O or runtime deps                                      |
+| `ws2812-pure`                | No — never                                      | Pure computation                                                              |
+| `led-effects`                | No — never                                      | Pure traits and logic                                                         |
 
 The "never" entries are a hard constraint.
 If a future contributor proposes adding `embassy-time` to `ferriswheel` for a convenience `run_effect` loop, that proposal should be rejected per ADR 006 (Option C was explicitly rejected) and this ADR.
 
 ### Why not a separate crate?
 
-The review queue document suggested a `rustyfarian-embassy-ws2812` crate.
+The Embassy evaluation suggested a `rustyfarian-embassy-ws2812` crate.
 This was considered and rejected for consistency with ADR 005 and ADR 006:
 
 - ADR 005 splits crates along the **HAL boundary** (`esp-idf-hal` vs `esp-hal`), not along the runtime boundary
@@ -80,7 +80,11 @@ This was considered and rejected for consistency with ADR 005 and ADR 006:
 - `esp-hal` itself uses `Blocking`/`Async` as a type parameter on the same struct, not separate crates
 - A third driver crate would triple the maintenance surface with no architectural benefit
 
-The `async` feature flag on `rustyfarian-esp-hal-ws2812` is the right granularity.
+A feature flag on `rustyfarian-esp-hal-ws2812`, not a separate crate, is the right granularity.
+
+**Update (2026-10-15):** the flag was split in two.
+`async` gates only the async impl blocks and adds no dependency of its own; `embassy` implies `async` and pulls in the runtime stack for the examples.
+See [`docs/features/esp-hal-async-feature-split-v1.md`](../features/esp-hal-async-feature-split-v1.md).
 
 ## Consequences
 
