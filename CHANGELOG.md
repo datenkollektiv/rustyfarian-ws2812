@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Build tooling: `scripts/build-example.sh`, `run-example.sh`, `ensure-bootloader.sh` gained an `s3` chip arm (`xtensa-esp32s3-none-elf` / `xtensa-esp32s3-espidf`). Xtensa (`cargo +esp`, `-Zbuild-std=core`) now covers both `esp32` and `s3`. Corrected a stale comment: USB-Serial-JTAG was wrongly called "RISC-V only" (the S3 is Xtensa and has it; only the classic ESP32 lacks it)
 - CI: `cross-target-xtensa.yml` now checks the ESP32-S3 alongside ESP32; `buildtargets: esp32,esp32s3` and a new cache key `...-1.97.0.0-esp32-esp32s3`. New recipe alias `just build-example-s3-hal` for quick S3 example builds
 - `just check-hal-xtensa` now compile-checks the ESP32-S3 library and examples alongside ESP32
+- `pennant`: `SimpleLed` now honours `Polarity` — a new `SimpleLed::with_polarity(Polarity)` builder (default `ActiveHigh`, so existing behaviour is unchanged) lets active-low LEDs, such as the blue LED on GPIO8 of the ESP32-C3 SuperMini, light when the colour exceeds the threshold; `SimpleLed::new` and `SimpleLed::with_threshold` keep their signatures, and the `Polarity` enum moves to a private `polarity` module while remaining exported as `pennant::Polarity`
 
 ### Fixed
 

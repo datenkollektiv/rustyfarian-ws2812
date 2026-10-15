@@ -22,6 +22,7 @@
 //! on/off based on brightness.
 //! It is generic over [`embedded_hal::digital::OutputPin`], so it works with
 //! any HAL or test mock.
+//! It also accepts a [`Polarity`] via `with_polarity` for active-low LEDs.
 //!
 //! # RgbGpioLed (opt-in via `hal` feature)
 //!
@@ -58,10 +59,16 @@ mod simple_led;
 pub use simple_led::SimpleLed;
 
 #[cfg(feature = "hal")]
+mod polarity;
+
+#[cfg(feature = "hal")]
+pub use polarity::Polarity;
+
+#[cfg(feature = "hal")]
 mod rgb_gpio_led;
 
 #[cfg(feature = "hal")]
-pub use rgb_gpio_led::{Polarity, RgbGpioLed};
+pub use rgb_gpio_led::RgbGpioLed;
 
 #[cfg(feature = "hal")]
 mod rgb_pwm_led;
@@ -397,6 +404,62 @@ mod tests {
             let mut led = SimpleLed::with_threshold(MockPin::new(), 100);
             led.set_color(RGB8::new(100, 100, 100)).unwrap();
             assert!(!led.pin.is_high);
+        }
+
+        #[test]
+        fn test_simple_led_active_low_drives_low_when_above_threshold() {
+            let mut led = SimpleLed::new(MockPin::new()).with_polarity(Polarity::ActiveLow);
+            led.set_color(RGB8::new(0, 0, 255)).unwrap();
+            assert!(!led.pin.is_high);
+        }
+
+        #[test]
+        fn test_simple_led_active_low_drives_high_when_below_threshold() {
+            let mut led = SimpleLed::new(MockPin::new()).with_polarity(Polarity::ActiveLow);
+            led.set_color(RGB8::new(255, 0, 0)).unwrap();
+            assert!(!led.pin.is_high);
+            led.set_color(RGB8::new(0, 0, 0)).unwrap();
+            assert!(led.pin.is_high);
+            led.set_color(RGB8::new(255, 0, 0)).unwrap();
+            assert!(!led.pin.is_high);
+            led.set_color(RGB8::new(10, 10, 10)).unwrap();
+            assert!(led.pin.is_high);
+        }
+
+        #[test]
+        fn test_simple_led_default_polarity_is_active_high() {
+            let mut led = SimpleLed::new(MockPin::new());
+            led.set_color(RGB8::new(0, 0, 255)).unwrap();
+            assert!(led.pin.is_high);
+            led.set_color(RGB8::new(0, 0, 0)).unwrap();
+            assert!(!led.pin.is_high);
+
+            let mut led = SimpleLed::with_threshold(MockPin::new(), 100);
+            led.set_color(RGB8::new(200, 0, 0)).unwrap();
+            assert!(led.pin.is_high);
+            led.set_color(RGB8::new(0, 0, 0)).unwrap();
+            assert!(!led.pin.is_high);
+        }
+
+        #[test]
+        fn test_simple_led_explicit_active_high_matches_default() {
+            let mut led = SimpleLed::new(MockPin::new()).with_polarity(Polarity::ActiveHigh);
+            led.set_color(RGB8::new(0, 0, 255)).unwrap();
+            assert!(led.pin.is_high);
+            led.set_color(RGB8::new(0, 0, 0)).unwrap();
+            assert!(!led.pin.is_high);
+        }
+
+        #[test]
+        fn test_simple_led_with_polarity_composes_with_threshold() {
+            let mut led =
+                SimpleLed::with_threshold(MockPin::new(), 100).with_polarity(Polarity::ActiveLow);
+            led.set_color(RGB8::new(50, 50, 50)).unwrap();
+            assert!(led.pin.is_high);
+            led.set_color(RGB8::new(101, 0, 0)).unwrap();
+            assert!(!led.pin.is_high);
+            led.set_color(RGB8::new(100, 100, 100)).unwrap();
+            assert!(led.pin.is_high);
         }
     }
 

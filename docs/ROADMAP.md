@@ -46,6 +46,7 @@ timeline
 
     Near term : cargo-deny — ban multiple rgb versions
               : Split esp-hal async feature from the example runtime (feature-doc)
+              : pennant SimpleLed honours Polarity for active-low LEDs (feature-doc)
 
     Mid term  : Remove send_and_wait workaround (esp-idf-hal fix)
               : SmartLedsWriteAsync for esp-hal async driver
@@ -179,6 +180,13 @@ See [ADR 006](adr/006-async-support.md) and [ADR 008](adr/008-embassy-as-async-r
 ---
 
 ## Animation Effects & Pure Crates
+
+### `pennant::SimpleLed` honours `Polarity` for active-low LEDs
+
+`SimpleLed` always drives its pin high for "on", so boards with an active-low on-board LED light when they should be dark.
+Add a `with_polarity` builder mirroring `RgbGpioLed`, default unchanged.
+Requested from the downstream `rustbox-spookhouse` project for the ESP32-C3 SuperMini's GPIO8 LED.
+Design and progress: [`docs/features/pennant-simple-led-polarity-v1.md`](features/pennant-simple-led-polarity-v1.md).
 
 The current `ferriswheel` crate provides more than a dozen well-tested, ring-specific effects:
 `RainbowEffect`, `PulseEffect`, `BreatheEffect`, `SpinnerEffect`, `MeteorEffect`, `TwinkleEffect`, `FireEffect`, `CylonEffect`, `KnightRiderEffect`, `ChaseEffect`, `FlashEffect`, `ProgressEffect`, `SectionEffect`, and `RainbowCometEffect`.

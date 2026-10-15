@@ -13,6 +13,7 @@ The `hal` feature unlocks GPIO adapters built on
 [`embedded-hal`](https://crates.io/crates/embedded-hal) 1.0:
 
 - `SimpleLed` maps RGB colours onto a single plain on/off GPIO pin.
+  An optional `Polarity` flag (`with_polarity(Polarity::ActiveLow)`) supports active-low LEDs that light when the pin is driven low, such as the blue LED on GPIO8 of the ESP32-C3 SuperMini.
 - `RgbGpioLed` drives a discrete (non-WS2812) RGB LED over three separate GPIOs,
   switching each channel on/off with a `Polarity` flag for common-anode
   (active-low) wiring — e.g. the Cheap Yellow Display's onboard RGB LED.

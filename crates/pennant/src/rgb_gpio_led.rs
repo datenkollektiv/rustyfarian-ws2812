@@ -41,25 +41,10 @@
 //! led.set_color(rgb::RGB8::new(0, 0, 255))?; // blue on
 //! ```
 
+use crate::polarity::{set_channel, Polarity};
 use crate::{channel_on, StatusLed, DEFAULT_BRIGHTNESS_THRESHOLD};
 use embedded_hal::digital::{ErrorType, OutputPin};
 use rgb::RGB8;
-
-/// Wiring polarity of a discrete LED channel.
-///
-/// Selects which pin level corresponds to the **lit / maximum-brightness** state.
-/// Shared by [`RgbGpioLed`] (on/off) and [`RgbPwmLed`](crate::RgbPwmLed) (PWM); for
-/// the PWM adapter, [`ActiveLow`](Polarity::ActiveLow) means the channel is
-/// brightest at minimum duty (the pin spends the least time high), so the duty is
-/// the inverse of brightness.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum Polarity {
-    /// The channel is brightest when the pin is driven **high** (common-cathode).
-    #[default]
-    ActiveHigh,
-    /// The channel is brightest when the pin is driven **low** (common-anode).
-    ActiveLow,
-}
 
 /// A discrete (non-addressable) RGB LED driven over three GPIO pins.
 ///
@@ -130,21 +115,6 @@ where
     pub fn with_polarity(mut self, polarity: Polarity) -> Self {
         self.polarity = polarity;
         self
-    }
-}
-
-/// Drives a single channel pin to reflect the desired on/off state, honouring
-/// polarity.
-#[inline]
-fn set_channel<P: OutputPin>(pin: &mut P, on: bool, polarity: Polarity) -> Result<(), P::Error> {
-    let drive_high = match polarity {
-        Polarity::ActiveHigh => on,
-        Polarity::ActiveLow => !on,
-    };
-    if drive_high {
-        pin.set_high()
-    } else {
-        pin.set_low()
     }
 }
 
