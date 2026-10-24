@@ -25,7 +25,7 @@ The `hal` feature unlocks GPIO adapters built on
   flag as `RgbGpioLed` for common-anode / common-cathode wiring.
 
 ```toml
-pennant = { version = "0.6", features = ["hal"] }
+pennant = { version = "0.7", features = ["hal"] }
 ```
 
 Part of the [`rustyfarian-ws2812`](https://github.com/datenkollektiv/rustyfarian-ws2812)

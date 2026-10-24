@@ -34,7 +34,7 @@ backend renders correctly on the same hardware (see [ADR 007](https://github.com
 Add to `Cargo.toml`:
 
 ```toml
-rustyfarian-avr-ws2812 = { version = "0.6", features = ["bitbang"] }
+rustyfarian-avr-ws2812 = { version = "0.7", features = ["bitbang"] }
 ```
 
 Requires nightly Rust for AVR — pin the toolchain in `rust-toolchain.toml`
