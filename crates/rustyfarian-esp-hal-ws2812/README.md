@@ -26,25 +26,25 @@ defaults and select exactly one chip feature.
 **ESP32-C6** (default — no `Cargo.toml` override needed):
 
 ```toml
-rustyfarian-esp-hal-ws2812 = { version = "0.6" }
+rustyfarian-esp-hal-ws2812 = { version = "0.7" }
 ```
 
 **ESP32-C3:**
 
 ```toml
-rustyfarian-esp-hal-ws2812 = { version = "0.6", default-features = false, features = ["esp32c3", "unstable", "pennant"] }
+rustyfarian-esp-hal-ws2812 = { version = "0.7", default-features = false, features = ["esp32c3", "unstable", "pennant"] }
 ```
 
 **Classic ESP32 / WROOM-32** (requires the `esp` Xtensa toolchain):
 
 ```toml
-rustyfarian-esp-hal-ws2812 = { version = "0.6", default-features = false, features = ["esp32", "unstable", "pennant"] }
+rustyfarian-esp-hal-ws2812 = { version = "0.7", default-features = false, features = ["esp32", "unstable", "pennant"] }
 ```
 
 **ESP32-S3** (requires the `esp` Xtensa toolchain):
 
 ```toml
-rustyfarian-esp-hal-ws2812 = { version = "0.6", default-features = false, features = ["esp32s3", "unstable", "pennant"] }
+rustyfarian-esp-hal-ws2812 = { version = "0.7", default-features = false, features = ["esp32s3", "unstable", "pennant"] }
 ```
 
 ```rust

@@ -44,6 +44,11 @@ Files to update when bumping to `X.Y.Z`:
 - `crates/rustyfarian-esp-idf-ws2812/Cargo.toml` — `version = "X.Y.Z"`
 - `crates/rustyfarian-esp-hal-ws2812/Cargo.toml` — `version = "X.Y.Z"`
 - `crates/rustyfarian-avr-ws2812/Cargo.toml` — `version = "X.Y.Z"`
+- Root `Cargo.toml` `[workspace.dependencies]` — `bunting`, `pennant`, `ferriswheel` pins to `version = "X.Y"`
+- `examples/avr-nano-rainbow/Cargo.lock` — regenerate with `just build-avr-example` (tracked; `just build-avr-example-all-bins` runs `--locked`)
+- README usage snippets — `"X.Y"` in `README.md`, `crates/pennant/README.md`, `crates/rustyfarian-esp-hal-ws2812/README.md`, `crates/rustyfarian-avr-ws2812/README.md`
+
+The last three were missed in the v0.7.0 release; the README snippets stayed at `"0.6"` for a month.
 
 Post-release version bump: none (no snapshot pattern).
 
