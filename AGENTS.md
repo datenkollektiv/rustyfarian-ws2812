@@ -55,6 +55,8 @@ For ad-hoc cargo invocations on platform-independent crates, always pass `--targ
 
 **Documentation style.** One sentence per line. Use `sh` fences (not `bash`/`shell`). Never put comments inside code snippets — explanatory text goes above the snippet. ADRs follow Michael Nygard format under `docs/adr/NNN-short-description.md`.
 
+**No private project names.** This repository is public. Never name a private downstream repository in a tracked file (docs, CHANGELOG, code comments, commit messages); write "a downstream project" instead. Public `rustyfarian-*` repositories may be named.
+
 **Changelog and ADRs.** Behaviour changes go under `## [Unreleased]` in `CHANGELOG.md` (Keep a Changelog format). Architectural decisions get a new ADR before the code lands.
 
 ## Important Files

@@ -44,7 +44,8 @@ All completed items are documented in the [CHANGELOG](../CHANGELOG.md).
 timeline
     title Fuzzy Rustyfarian WS2812 Roadmap
 
-    Near term : cargo-deny — ban multiple rgb versions
+    Near term : Deadline-free async transmit for long esp-hal frames (feature-doc)
+              : cargo-deny — ban multiple rgb versions
               : Split esp-hal async feature from the example runtime (feature-doc)
               : pennant SimpleLed honours Polarity for active-low LEDs (feature-doc)
 
@@ -134,6 +135,13 @@ versions in the dep graph at the time of the change.
 
 ## Hardware Driver Improvements
 
+### Deadline-free async transmit for long esp-hal frames
+
+`Ws2812Rmt<'d, Async, N>` garbles frames longer than one RMT channel's RAM, because esp-hal 1.2.2 refills TX RAM from the executor, not the ISR.
+Busy-poll such frames inside a critical section until esp-hal refills in the ISR.
+Reported by two downstream projects (12 and 64 LEDs on ESP32-C3).
+Design and progress: [`docs/features/esp-hal-async-long-frame-refill-v1.md`](features/esp-hal-async-long-frame-refill-v1.md).
+
 ### Split the esp-hal `async` feature from the example runtime
 
 The `async` feature of `rustyfarian-esp-hal-ws2812` pulls in `esp-rtos` and the `embassy-*` crates, although the driver's async impl needs only `esp_hal::Async`.
@@ -185,7 +193,7 @@ See [ADR 006](adr/006-async-support.md) and [ADR 008](adr/008-embassy-as-async-r
 
 `SimpleLed` always drives its pin high for "on", so boards with an active-low on-board LED light when they should be dark.
 Add a `with_polarity` builder mirroring `RgbGpioLed`, default unchanged.
-Requested from the downstream `rustbox-spookhouse` project for the ESP32-C3 SuperMini's GPIO8 LED.
+Requested by a downstream project for the ESP32-C3 SuperMini's GPIO8 LED.
 Design and progress: [`docs/features/pennant-simple-led-polarity-v1.md`](features/pennant-simple-led-polarity-v1.md).
 
 The current `ferriswheel` crate provides more than a dozen well-tested, ring-specific effects:

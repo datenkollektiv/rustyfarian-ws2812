@@ -30,7 +30,7 @@ A consumer enabling `async` for `Ws2812Rmt<'_, Async, N>` is forced to take `esp
 - Precedent: `rustyfarian-peripherals` async rotary `Encoder` uses the same `async` / `embassy` split.
 
 ## Open Questions
-- [ ] Should the GitHub cross-target workflows build one `embassy` example to guard the new feature wiring? No CI job builds any `*_async` example today; one `hal_c6_pulse_async` check in the RISC-V job would cover it.
+- [x] Should CI build an `embassy` example to guard the feature wiring? Yes: `just check-hal-async` in the RISC-V job builds all `*_async` examples (2026-10-31).
 
 ## State
 - [x] Design approved

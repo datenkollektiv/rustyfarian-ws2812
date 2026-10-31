@@ -83,6 +83,21 @@ The pin moved from a `configure_tx` parameter to a chained `.with_pin(...)` call
 The migration is mechanical for our examples but invasive — every `hal_*` example uses this pattern.
 Compile-time error in 1.1.0 with the old call site: `error[E0061]: this method takes 1 argument but 2 arguments were supplied … unexpected argument #1 of type 'GPIO18<'static>'`.
 
+**Async RMT frames longer than one channel's RAM (48 codes on C3/C6/S3, 64 on ESP32) garble or shift when the executor misses the refill deadline, because esp-hal 1.2.2 refills TX RAM in the transmit future's `poll`, not in the ISR.**
+The async ISR only clears the interrupt and wakes the task, and the refill threshold is half the channel RAM, so the hardware wraps about 30 µs after the refill is due.
+A late refill resends stale codes.
+The blocking `wait()` refills in a busy loop and meets the deadline unless interrupts delay it.
+Diagnostic signal: a frame that fits in channel RAM never garbles, and garbling scales with executor load (other tasks, Wi-Fi traffic) rather than with frame size alone.
+Source-verified 2026-10-31 against esp-hal 1.2.2 (not hardware-verified).
+Fix in principle: the critical-section path removes executor latency from the refill path by polling the future with a no-op waker, bounded by a timeout; it does not guarantee the waveform (flash-cache misses, cross-core flash stalls and high-priority Xtensa interrupt levels remain), so the workaround stays until esp-hal refills in the ISR.
+The blocking driver is not a fallback: its polling refill has the same deadline and radio or other interrupts can delay it.
+Mitigation to measure for flash-cache misses: `ESP_HAL_CONFIG_PLACE_RMT_DRIVER_IN_RAM=true`.
+
+**Dropping an unfinished async RMT TX future inside a critical section spins on the classic ESP32, because `TxGuard::drop` waits for the End event when the chip has no immediate TX stop.**
+Source-verified 2026-10-31 against esp-hal 1.2.2 (`rmt.rs:1428-1440`, `3106-3113`; not hardware-verified): `rmt.has_tx_immediate_stop` is `false` on ESP32, so the drop spins until the hardware reaches the end marker, with interrupts masked if the drop happens there.
+Diagnostic signal: a timeout on a long frame that never returns on ESP32 but returns on C3/C6/S3.
+Fix: keep the future in a slot declared outside the critical section, so it drops after the section ends; the spin then runs in the caller's interrupt state, which is masked only if the caller already masks it.
+
 **`embassy-executor 0.10.0` reshaped the task-spawn API: `Spawner::spawn` now returns `()`, and `#[embassy_executor::task]` functions return `Result<SpawnToken, SpawnError>`.**
 The old idiom `spawner.spawn(task()).unwrap()` no longer compiles; the unwrap moves *inside* the spawn argument: `spawner.spawn(task().unwrap())`.
 `Spawner::must_spawn` does not exist on `embassy-executor 0.10.0` despite the compiler suggesting "method `spawn` with a similar name" — the explicit pattern is the supported one.
@@ -93,6 +108,16 @@ Intentional upstream: `NoopRawMutex` ("single executor, no contention") is funda
 Fix: switch the static to `CriticalSectionRawMutex`. For non-static, executor-local primitives passed by reference, `NoopRawMutex` remains the zero-cost choice.
 
 ---
+
+**Boot log visible but no `println!` output on an ESP32-C3 means esp-println writes to the native USB-Serial-JTAG port while the board's USB socket is a USB-UART bridge.**
+The IDF bootloader logs to UART0, which a CH340/CP210x bridge carries, so the boot log appears and then the app is silent.
+Diagnostic signal: the port is `/dev/cu.usbserial-*` (bridge) rather than `/dev/cu.usbmodem*` (native USB); `ioreg -p IOUSB` shows vendor 0x1A86 (WCH) or 0x10C4 (Silicon Labs).
+Fix: build esp-println with the `auto` transport, which falls back to UART0 when no host is on the native port (verified on hardware 2026-10-31: a CH340-bridged C3 printed nothing with `jtag-serial` and logs normally with `auto`).
+
+**An RMT end marker with a non-zero first half (`PulseCode::new(Low, 2800, Low, 0)`) holds the line low for that half before the transmission ends, so the WS2812 latch can ride inside the frame.**
+`is_end_marker` only needs one zero length, and the End event fires after the first half has been sent, so an awaited short frame already includes its 280 µs latch.
+Diagnostic signal: with the latch encoded and no software wait, back-to-back 1-LED frames still repeat at ≥ 308 µs; if the half were dropped they would repeat at ~30–100 µs.
+Timing-verified on an ESP32-C3 on 2026-10-31 with `hal_c3_frame_sweep_async` (342–345 µs, 3 cycles); not yet confirmed with a logic analyser or on C6, S3 or the classic ESP32.
 
 ## espflash
 

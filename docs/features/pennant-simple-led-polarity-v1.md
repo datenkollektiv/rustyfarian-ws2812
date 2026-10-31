@@ -5,7 +5,7 @@ desk-work: available
 
 # Feature: `pennant::SimpleLed` honours `Polarity` v1
 
-Requested from the downstream `rustbox-spookhouse` project for its ESP-IDF prop on the ESP32-C3 SuperMini, filed 2026-10-15 and needed by 2026-10-20.
+Requested by a downstream project for its ESP-IDF prop on the ESP32-C3 SuperMini, filed 2026-10-15 and needed by 2026-10-20.
 The SuperMini's blue LED on GPIO8 is active-low, so `SimpleLed` lights when it should be dark and the consumer keeps a local wrapper instead of using `StatusLed`.
 
 ## Decisions

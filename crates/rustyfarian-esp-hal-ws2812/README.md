@@ -65,13 +65,33 @@ let mut led: Ws2812Rmt<_, N> = Ws2812Rmt::new(channel);
 led.set_pixel(RGB8::new(255, 0, 0)).unwrap();
 ```
 
+## Long Frames in Async Mode
+
+With the `async` feature, a frame is truly async only while it fits in one RMT channel's RAM: one LED on ESP32-C3, ESP32-C6 and ESP32-S3, two LEDs on ESP32.
+Longer frames follow the `LongFramePolicy` set with `with_long_frame_policy`.
+The default, `LongFramePolicy::CriticalSection`, sends them with interrupts masked, 1.2–1.3 µs per pulse code (roughly 0.36 ms for 12 LEDs), and the executor does not run other tasks during them.
+`LongFramePolicy::Reject` returns `Error::FrameTooLong` instead and sends nothing.
+For radio firmware, keep the interrupts-off time at or below about 1 ms (about 32 LEDs) or use `Reject`.
+
+The blocking driver is not a fallback for long frames: without a critical section, radio or other interrupts can delay its refill, so corrupt output remains possible.
+On esp-hal 1.2.2 only `Reject` never risks corrupt output or long interrupts-off time, so keep frames within channel RAM when radio load matters.
+
+Every frame waits at least 280 µs after the previous one so the LEDs latch.
+Async frames that fit in channel RAM carry this interval in the signal, so they cost no CPU time but complete about 280 µs later.
+Other frames busy-wait the remainder before the next frame, and this needs esp-hal's `rt` feature.
+
+The critical-section path removes executor latency from the refill path, but it does not guarantee the waveform.
+Flash-cache misses, flash stalls on the other core and high-priority Xtensa interrupt levels can still delay a refill, and the hardware waveform is not yet validated.
+Test Wi-Fi, ESP-NOW and UART traffic with your real strip length.
+See the crate documentation for the full caveats.
+
 ## Supported Targets
 
-| Feature             | Target triple                  | Boards                                      |
-|:--------------------|:-------------------------------|:--------------------------------------------|
-| `esp32c6` (default) | `riscv32imac-unknown-none-elf` | ESP32-C6-DevKitC-1                          |
-| `esp32c3`           | `riscv32imc-unknown-none-elf`  | ESP32-C3-DevKit-Rust-1, ESP32-C3-DevKitC-02 |
-| `esp32`             | `xtensa-esp32-none-elf`        | ESP32-WROOM-32 (requires `esp` toolchain)   |
+| Feature             | Target triple                  | Boards                                                  |
+|:--------------------|:-------------------------------|:--------------------------------------------------------|
+| `esp32c6` (default) | `riscv32imac-unknown-none-elf` | ESP32-C6-DevKitC-1                                      |
+| `esp32c3`           | `riscv32imc-unknown-none-elf`  | ESP32-C3-DevKit-Rust-1, ESP32-C3-DevKitC-02             |
+| `esp32`             | `xtensa-esp32-none-elf`        | ESP32-WROOM-32 (requires `esp` toolchain)               |
 | `esp32s3`           | `xtensa-esp32s3-none-elf`      | Elecrow CrowPanel 1.28" knob (requires `esp` toolchain) |
 
 ## Features
@@ -82,7 +102,7 @@ led.set_pixel(RGB8::new(255, 0, 0)).unwrap();
 | `esp32c3`     | no      | chip support for ESP32-C3                                                                     |
 | `esp32`       | no      | chip support for classic ESP32 / WROOM-32                                                     |
 | `esp32s3`     | no      | chip support for ESP32-S3                                                                     |
-| `async`       | no      | async `Ws2812Rmt<'d, Async, N>` impls; dependency-free, no executor or timer pulled in        |
+| `async`       | no      | async `Ws2812Rmt<'d, Async, N>` impls; no executor or timer, only `critical-section`          |
 | `embassy`     | no      | Embassy executor, timer and sync runtime; implies `async`; required by the `*_async` examples |
 | `pennant`     | yes     | implements `StatusLed`; `AsyncStatusLed` when `async` is also enabled                         |
 | `smart-leds`  | no      | enables `smart-leds` brightness and gamma adapters                                            |

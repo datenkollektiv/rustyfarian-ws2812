@@ -92,6 +92,19 @@ check-hal-xtensa:
     cargo +esp check {{ hal_crate }} --target xtensa-esp32-none-elf --target-dir {{ hal_dir }} --no-default-features --features esp32,unstable,pennant,rt --examples -Z build-std=core
     cargo +esp check {{ hal_crate }} --target xtensa-esp32s3-none-elf --target-dir {{ hal_dir }} --no-default-features --features esp32s3,unstable,pennant -Z build-std=core
     cargo +esp check {{ hal_crate }} --target xtensa-esp32s3-none-elf --target-dir {{ hal_dir }} --no-default-features --features esp32s3,unstable,pennant,rt --examples -Z build-std=core
+    cargo +esp check {{ hal_crate }} --target xtensa-esp32-none-elf --target-dir {{ hal_dir }} --no-default-features --features esp32,unstable,pennant,async -Z build-std=core
+    cargo +esp check {{ hal_crate }} --target xtensa-esp32s3-none-elf --target-dir {{ hal_dir }} --no-default-features --features esp32s3,unstable,pennant,async -Z build-std=core
+
+# Async library pass on C6 and C3, then an --examples pass with `embassy,rt` so the *_async
+# examples compile (hal_c6_*_async, hal_c3_pulse_async). `embassy` implies `async` and pulls esp-rtos.
+# (requires: rustup target add riscv32imac-unknown-none-elf riscv32imc-unknown-none-elf)
+# check the esp-hal driver's async API on the ESP32-C6 and ESP32-C3 targets
+[group('Build & Check')]
+check-hal-async:
+    cargo check {{ hal_crate }} --target {{ hal_target }} --target-dir {{ hal_dir }} --features async
+    cargo check {{ hal_crate }} --target {{ hal_target }} --target-dir {{ hal_dir }} --features embassy,rt,esp-println,smart-leds --examples
+    cargo check {{ hal_crate }} --target riscv32imc-unknown-none-elf --target-dir {{ hal_dir }} --no-default-features --features esp32c3,unstable,pennant,async
+    cargo check {{ hal_crate }} --target riscv32imc-unknown-none-elf --target-dir {{ hal_dir }} --no-default-features --features esp32c3,unstable,pennant,rt,embassy,esp-println --examples
 
 # check the AVR SPI driver on host (no AVR toolchain)
 [group('Build & Check')]
@@ -186,6 +199,12 @@ clippy-idf:
 [group('Test & Lint')]
 clippy-hal:
     cargo clippy {{ hal_crate }} --target {{ hal_target }} --target-dir {{ hal_dir }} -- -D warnings
+
+# run clippy on the esp-hal driver's async API (requires: rustup target add riscv32imac-unknown-none-elf)
+# clippy the esp-hal driver async API
+[group('Test & Lint')]
+clippy-hal-async:
+    cargo clippy {{ hal_crate }} --target {{ hal_target }} --target-dir {{ hal_dir }} --features async -- -D warnings
 
 # check dependency licenses, advisories, and bans
 [group('Test & Lint')]
@@ -331,6 +350,12 @@ erase-flash:
 [group('Documentation')]
 doc:
     cargo doc {{ pure_crates }} --target {{ host_target }} --no-deps
+
+# build rustdoc for the esp-hal driver, default features and with `async` (requires: rustup target add riscv32imac-unknown-none-elf)
+[group('Documentation')]
+doc-hal:
+    cargo doc {{ hal_crate }} --target {{ hal_target }} --target-dir {{ hal_dir }} --no-deps
+    cargo doc {{ hal_crate }} --target {{ hal_target }} --target-dir {{ hal_dir }} --no-deps --features async
 
 # build and open docs in browser
 [group('Documentation')]

@@ -62,6 +62,43 @@ without any driver change on our side). Hardware tests done in 2026-04-29's
 cycle confirmed the upgraded ESP32-C6 driver works with the onboard
 SK68XXMINI LED on GPIO8.
 
+### Long-frame async release gate
+
+The async driver must keep consecutive frames at least `WS2812_RESET_US` (280 µs) apart and
+must recover cleanly from `Error::FrameTooLong`.
+The crate cannot run these checks on the host, so the gate is a logic-analyser capture of
+`hal_c3_frame_sweep_async` on an ESP32-C3, plus the C6 if one is available.
+
+Run it with `just run hal_c3_frame_sweep_async` and keep the serial monitor open.
+Every cycle must end with `cycle N: PASS (0 failures)` and the ring must show the verdict in dim green.
+The log covers what software can see: errors, transmits shorter than the wire time, and frame periods
+missing the 280 µs latch; it cannot see the waveform itself.
+
+Capture the data line (GPIO4 on C3) while the example runs for at least three full loops.
+Then check each frame size in the capture, 1, 2, 3, 12 and 64 LEDs:
+
+- Symbol count is 24 × LEDs per frame.
+- T0H and T1H pulse widths are within the WS2812B spec.
+- No repeated or stale bit groups from the previous frame.
+- Latch (line low) between back-to-back frames is at least 280 µs.
+
+Recovery and transitions:
+
+- `FrameTooLong` under `LongFramePolicy::Reject`, then a successful 1-LED frame.
+- Short ↔ long alternation with no delay has no dropped or merged frames.
+- The example keeps cycling after phase 4 (no stuck waveform, no `PANIC:` line in the log).
+
+Repeat the full capture with `ESP_HAL_CONFIG_PLACE_RMT_DRIVER_IN_RAM=true` and again with
+`false`, then compare the two captures.
+Differences in latch timing or frame boundaries are a failure.
+
+Radio load (Wi-Fi or ESP-NOW) must run during the capture.
+Networking demos are out of scope for this repo, and one chip runs one firmware, so port the
+sweep's phases into a downstream firmware that also drives the radio, and capture that.
+
+For every run, record the SHA-256 of the flashed binary (`shasum -a 256` on the ELF from
+`just build-example`), the board, the capture file name and the placement setting.
+
 ## Dependency Updates
 
 ### Workspace `Cargo.toml`
