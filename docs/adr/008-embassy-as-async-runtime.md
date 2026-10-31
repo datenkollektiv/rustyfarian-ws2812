@@ -83,7 +83,7 @@ This was considered and rejected for consistency with ADR 005 and ADR 006:
 A feature flag on `rustyfarian-esp-hal-ws2812`, not a separate crate, is the right granularity.
 
 **Update (2026-10-15):** the flag was split in two.
-`async` gates only the async impl blocks and adds no dependency of its own; `embassy` implies `async` and pulls in the runtime stack for the examples.
+`async` gates only the async impl blocks and pulls in no runtime (its only dependency, `critical-section`, is already in esp-hal's graph and serves the long-frame workaround); `embassy` implies `async` and pulls in the runtime stack for the examples.
 See [`docs/features/esp-hal-async-feature-split-v1.md`](../features/esp-hal-async-feature-split-v1.md).
 
 ## Consequences

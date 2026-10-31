@@ -60,10 +60,14 @@ jobs:
 
       # Coverage note: check-hal is a library-only check of the default (C6) feature set.
       # check-hal-c3 runs twice — library, then `--examples` with `rt` enabled, so it also
-      # compiles hal_c3_pulse. Examples requiring features that are off (e.g. `async`) are
-      # skipped by Cargo rather than failing.
+      # compiles hal_c3_pulse. check-hal-async covers the `async` feature on C6 and C3 and
+      # compiles the *_async examples with `embassy,rt`. Examples requiring features that are
+      # off are skipped by Cargo rather than failing.
       - name: Check esp-hal driver (ESP32-C6, riscv32imac)
         run: just check-hal
 
       - name: Check esp-hal driver (ESP32-C3, riscv32imc, incl. examples)
         run: just check-hal-c3
+
+      - name: Check esp-hal driver async API (ESP32-C6 and ESP32-C3, incl. examples)
+        run: just check-hal-async

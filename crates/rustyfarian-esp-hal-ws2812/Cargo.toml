@@ -24,6 +24,7 @@ features = ["esp32c6", "unstable"]
 
 [dependencies]
 esp-hal.workspace = true
+critical-section = { workspace = true, optional = true }
 esp-bootloader-esp-idf.workspace = true
 rgb.workspace = true
 bunting.workspace = true
@@ -34,7 +35,7 @@ esp-rtos = { workspace = true, optional = true }
 embassy-time = { workspace = true, optional = true }
 embassy-executor = { workspace = true, optional = true }
 embassy-sync = { workspace = true, optional = true }
-esp-println = { workspace = true, optional = true, default-features = false, features = ["jtag-serial"] }
+esp-println = { workspace = true, optional = true, default-features = false, features = ["auto"] }
 
 [dev-dependencies]
 ferriswheel = { workspace = true }
@@ -50,7 +51,7 @@ pennant = ["dep:pennant"]
 smart-leds = ["dep:smart-leds"]
 rt = ["esp-hal/rt"]
 esp-println = ["dep:esp-println"]
-async = ["esp-hal/unstable"]
+async = ["esp-hal/unstable", "dep:critical-section"]
 embassy = ["async", "dep:esp-rtos", "dep:embassy-time", "dep:embassy-executor", "dep:embassy-sync", "esp-rtos/embassy"]
 
 [[example]]
@@ -114,6 +115,10 @@ required-features = ["esp32c6", "rt", "embassy"]
 [[example]]
 name = "hal_c3_pulse_async"
 required-features = ["esp32c3", "rt", "embassy"]
+
+[[example]]
+name = "hal_c3_frame_sweep_async"
+required-features = ["esp32c3", "rt", "embassy", "esp-println"]
 
 [[example]]
 name = "hal_c6_pulse_async"

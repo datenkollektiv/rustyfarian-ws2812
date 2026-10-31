@@ -52,11 +52,12 @@ case "$prefix" in
         #   - C6:    every example today calls esp_println::println from its panic handler.
         #            If a future C6 example is silent, this rule will over-enable for it —
         #            convert to a per-example case below or drop esp-println for that example.
-        #   - C3, esp32, s3: examples use a silent panic handler; esp-println is not needed.
+        #   - C3, esp32, s3: examples use a silent panic handler; esp-println is not needed,
+        #            except hal_c3_frame_sweep_async, which logs its verdict (per-example case below).
         #
-        # Transport: the esp-println dep is pinned to features = ["jtag-serial"] in Cargo.toml.
-        # USB-Serial-JTAG exists on C3, C6 and S3, but not on the classic ESP32 (LX6), so an
-        # esp32 example that prints would need a different transport (uart, rtt) — not wired up.
+        # Transport: the esp-println dep uses features = ["auto"] in Cargo.toml: USB-Serial-JTAG
+        # when a host is attached to the chip's native USB port (C3, C6, S3), otherwise UART0, which
+        # boards with a USB-UART bridge (CH340, CP210x) and the classic ESP32 use.
         case "$chip" in
             c6) hal_features="${mcu},unstable,pennant,rt,esp-println" ;;
             *)  hal_features="${mcu},unstable,pennant,rt" ;;
@@ -65,6 +66,7 @@ case "$prefix" in
         name=$(printf '%s' "$example" | cut -d_ -f3-)
         case "$name" in
             smart_leds) hal_features="${hal_features},smart-leds" ;;
+            frame_sweep_async) hal_features="${hal_features},embassy,esp-println" ;;
             *_async)    hal_features="${hal_features},embassy" ;;
         esac
         printf 'Building %s for %s...\n' "$example" "$hal_target"
