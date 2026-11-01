@@ -101,8 +101,8 @@ async fn main(_spawner: Spawner) -> ! {
     // Animation loop.
     //
     // Each iteration:
-    //   1. `set_pixels_slice().await` — yields to the executor while the RMT peripheral
-    //      transmits pulses (~360 µs for 12 LEDs). Other tasks run during this window.
+    //   1. `set_pixels_slice().await` — a 12-LED frame (289 codes) exceeds one channel's RAM,
+    //      so it is sent inside a critical section (~0.4 ms, interrupts masked) and does not yield.
     //   2. `Timer::after_millis(30).await` — yields for ~30 ms. Other tasks run here too.
     //
     // Frame timing note: `Timer::after_millis` specifies the *minimum* delay — if the

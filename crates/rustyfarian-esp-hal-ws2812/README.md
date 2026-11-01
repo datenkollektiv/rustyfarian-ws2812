@@ -73,15 +73,21 @@ The default, `LongFramePolicy::CriticalSection`, sends them with interrupts mask
 `LongFramePolicy::Reject` returns `Error::FrameTooLong` instead and sends nothing.
 For radio firmware, keep the interrupts-off time at or below about 1 ms (about 32 LEDs) or use `Reject`.
 
-The blocking driver is not a fallback for long frames: without a critical section, radio or other interrupts can delay its refill, so corrupt output remains possible.
-On esp-hal 1.2.2 only `Reject` never risks corrupt output or long interrupts-off time, so keep frames within channel RAM when radio load matters.
+Firmware with a radio that uses `CriticalSection` must build with `ESP_HAL_CONFIG_PLACE_RMT_DRIVER_IN_RAM=true`.
+A downstream ESP32-C3 bench garbled 12-LED frames with Wi-Fi active until this setting was enabled.
+The crate cannot detect this setting, so the requirement is yours to enforce.
+
+The blocking driver has the same refill deadline.
+Plain `set_pixels_slice` can be corrupted by radio or other interrupts, while `set_pixels_slice_masked` wraps the transmit in a critical section, costing about 0.36 ms for 12 LEDs; that pattern was validated with Wi-Fi active on the ESP32-C3.
+No option is proven to keep long frames correct under radio load on esp-hal 1.2.2.
+`Reject`, which keeps frames within channel RAM, is the only option that never masks interrupts.
 
 Every frame waits at least 280 µs after the previous one so the LEDs latch.
 Async frames that fit in channel RAM carry this interval in the signal, so they cost no CPU time but complete about 280 µs later.
 Other frames busy-wait the remainder before the next frame, and this needs esp-hal's `rt` feature.
 
 The critical-section path removes executor latency from the refill path, but it does not guarantee the waveform.
-Flash-cache misses, flash stalls on the other core and high-priority Xtensa interrupt levels can still delay a refill, and the hardware waveform is not yet validated.
+The hardware waveform and the poll-gap margin are not yet validated.
 Test Wi-Fi, ESP-NOW and UART traffic with your real strip length.
 See the crate documentation for the full caveats.
 
@@ -102,7 +108,7 @@ See the crate documentation for the full caveats.
 | `esp32c3`     | no      | chip support for ESP32-C3                                                                     |
 | `esp32`       | no      | chip support for classic ESP32 / WROOM-32                                                     |
 | `esp32s3`     | no      | chip support for ESP32-S3                                                                     |
-| `async`       | no      | async `Ws2812Rmt<'d, Async, N>` impls; no executor or timer, only `critical-section`          |
+| `async`       | no      | async `Ws2812Rmt<'d, Async, N>` impls; no executor or timer                                   |
 | `embassy`     | no      | Embassy executor, timer and sync runtime; implies `async`; required by the `*_async` examples |
 | `pennant`     | yes     | implements `StatusLed`; `AsyncStatusLed` when `async` is also enabled                         |
 | `smart-leds`  | no      | enables `smart-leds` brightness and gamma adapters                                            |

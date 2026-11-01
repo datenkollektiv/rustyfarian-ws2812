@@ -90,8 +90,19 @@ The blocking `wait()` refills in a busy loop and meets the deadline unless inter
 Diagnostic signal: a frame that fits in channel RAM never garbles, and garbling scales with executor load (other tasks, Wi-Fi traffic) rather than with frame size alone.
 Source-verified 2026-10-31 against esp-hal 1.2.2 (not hardware-verified).
 Fix in principle: the critical-section path removes executor latency from the refill path by polling the future with a no-op waker, bounded by a timeout; it does not guarantee the waveform (flash-cache misses, cross-core flash stalls and high-priority Xtensa interrupt levels remain), so the workaround stays until esp-hal refills in the ISR.
-The blocking driver is not a fallback: its polling refill has the same deadline and radio or other interrupts can delay it.
+Plain blocking `set_pixels_slice` is not a fallback: its polling refill has the same deadline and radio or other interrupts can delay it.
+Blocking inside `critical_section::with` (`set_pixels_slice_masked`) was reported clean with Wi-Fi active (downstream rgb-clock bench, ESP32-C3, 2026-11-01).
 Mitigation to measure for flash-cache misses: `ESP_HAL_CONFIG_PLACE_RMT_DRIVER_IN_RAM=true`.
+
+**With Wi-Fi active, critical-section long frames garbled on ESP32-C3 when the refill loop ran from flash; with the radio never started, the same frames were clean.**
+Reported by the downstream rgb-clock bench (12 LEDs, ESP32-C3, 2026-11-01): modem sleep off still garbled, RAM placement clean, and the blocking driver inside `critical_section::with` clean even with its code in flash.
+Fixed on the same bench at `3a1d3f8` (2026-11-01): clean with only the crate's loop in RAM and esp-hal's RMT code in flash, also clean with the esp-hal setting, and `set_pixels_slice_masked` clean; `3a1d3f8` also cut the clock reads from two per poll to one per 16 polls, so RAM placement and the cheaper loop are not separated.
+Our no-radio bench (ESP32-C3, 12-LED ring, 2026-11-01): a cold cache alone (32 KB flash sweep before each frame, send time 440 → 865 µs) stayed visually clean.
+Root cause is a hypothesis, not measured: the radio adds contention on shared resources (bus, SRAM, cache refills) that stretches the flash fetches of the refill loop.
+Measured on the same bench at `735b506` (2026-11-01): with interrupts masked, the longest pass of the polling loop was 8–9 µs without the radio, 27–47 µs with the radio and esp-hal's RMT code in RAM, and 76–77 µs with it in flash; all frames were clean, so the slowdown is real but its position relative to the refill is not known.
+Diagnostic signal: garbling appears only with the radio up and disappears with the RAM-placement setting.
+Gaps between poll returns cannot bound refill latency, because the refill runs inside a poll; a 77 µs gap with clean frames (`735b506`) shows this.
+Fix in principle: keep the refill loop small and in RAM; esp-hal's setting adds further margin and stays recommended for radio firmware, which the crate cannot detect. One clean bench is not a guarantee, and the hardware gate stays open.
 
 **Dropping an unfinished async RMT TX future inside a critical section spins on the classic ESP32, because `TxGuard::drop` waits for the End event when the chip has no immediate TX stop.**
 Source-verified 2026-10-31 against esp-hal 1.2.2 (`rmt.rs:1428-1440`, `3106-3113`; not hardware-verified): `rmt.has_tx_immediate_stop` is `false` on ESP32, so the drop spins until the hardware reaches the end marker, with interrupts masked if the drop happens there.
@@ -120,6 +131,11 @@ Diagnostic signal: with the latch encoded and no software wait, back-to-back 1-L
 Timing-verified on an ESP32-C3 on 2026-10-31 with `hal_c3_frame_sweep_async` (342–345 µs, 3 cycles); not yet confirmed with a logic analyser or on C6, S3 or the classic ESP32.
 
 ## espflash
+
+**Connecting `espflash monitor` (including the one `just run` starts) resets the board, so a WS2812 animation freezes on its last frame for a moment and looks like a driver stall.**
+The capture then starts with a fresh ROM boot (`rst:0x1 (POWERON)`), and holding RST freezes the ring the same way; BOOT (GPIO9) has no effect at runtime.
+Diagnostic signal: a freeze that coincides with a monitor connect or a button press, while the app's own per-second log shows no gap.
+Before reporting a visual stall, watch a power-cycled board with no monitor attached (confirmed on an ESP32-C3 on 2026-11-01).
 
 **`espflash 4.x --ignore-app-descriptor` only bypasses the "descriptor missing" check (bare-metal binaries), not the "descriptor misaligned" check.**
 A binary built for the wrong MCU (wrong `memory.ld`) places the app descriptor at a misaligned flash offset; `--ignore-app-descriptor` does not suppress that error.
