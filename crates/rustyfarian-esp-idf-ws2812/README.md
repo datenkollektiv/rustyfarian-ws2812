@@ -31,6 +31,21 @@ let colors = [RGB8::new(255, 0, 0), RGB8::new(0, 255, 0), RGB8::new(0, 0, 255)];
 led.set_pixels_slice(&colors)?;
 ```
 
+## Long Frames and Radios
+
+The RMT channel is refilled from the RMT interrupt service routine (ISR), so task latency does not delay the refill.
+That tolerates a busy task, but it is not hard real time: other interrupts can still delay it.
+
+The RMT ISR is not IRAM-safe by default in ESP-IDF v5.3.3 (`CONFIG_RMT_ISR_IRAM_SAFE` defaults to `n`), and it runs at a low or medium shared interrupt priority.
+Do not enable `CONFIG_RMT_ISR_IRAM_SAFE`.
+With the setting on, `Ws2812Rmt::new` can fail with `ESP_ERR_INVALID_ARG` ("on_trans_done callback not in IRAM"), because esp-idf-hal registers its flash-resident ISR handler as the `on_trans_done` callback.
+Other invalid configurations can also return `ESP_ERR_INVALID_ARG`, so the constructor's error names the setting as a likely cause rather than the only one.
+On a downstream ESP32-C3 bench, the firmware with the setting on failed to start and rolled back its OTA image.
+With the default, the ring stayed clean through a 1.6 MB OTA download (about 17 s, about 170 frames; one run, no analyser).
+
+Every frame waits at least `WS2812_RESET_US` (280 µs) after the end of the previous one so the LEDs latch.
+The driver busy-waits only for the remainder of that interval.
+
 ## Supported Boards
 
 Any ESP32 variant with RMT support via ESP-IDF.

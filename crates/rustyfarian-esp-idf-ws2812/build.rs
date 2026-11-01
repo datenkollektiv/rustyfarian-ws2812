@@ -1,4 +1,6 @@
 fn main() {
+    // Set by `sysenv::output()` when the firmware enables `CONFIG_RMT_ISR_IRAM_SAFE`.
+    println!("cargo::rustc-check-cfg=cfg(esp_idf_rmt_isr_iram_safe)");
     // Only run IDF-specific setup when building for an ESP-IDF target.
     // For bare-metal targets (e.g. riscv32imac-unknown-none-elf used by IDE
     // tooling), return early — the library body is also cfg-gated, so no IDF

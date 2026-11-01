@@ -61,6 +61,10 @@
 //! 3V3   ──────────► VCC
 //! ```
 //!
+//! **Masked-time ceiling:** the 64-LED phases mask interrupts for about 2 ms under the default `CriticalSection` policy,
+//! which is above the default 1 ms nominal-masked-time ceiling and would return `Error::FrameTooLong`.
+//! The example lifts the ceiling with `with_max_nominal_masked_us(None)`.
+//!
 //! **Power note:** colours are kept dim so 64 LEDs stay within USB current limits.
 //!
 //! ## Build
@@ -218,7 +222,7 @@ async fn main(_spawner: Spawner) -> ! {
         .unwrap()
         .with_pin(peripherals.GPIO4);
 
-    let mut ws = Driver::new(channel);
+    let mut ws = Driver::new(channel).with_max_nominal_masked_us(None);
     let mut frame = [RGB8::new(0, 0, 0); NUM_LEDS];
     let mut cycle: u32 = 0;
 
