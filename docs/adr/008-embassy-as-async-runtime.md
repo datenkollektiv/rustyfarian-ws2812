@@ -84,7 +84,7 @@ A feature flag on `rustyfarian-esp-hal-ws2812`, not a separate crate, is the rig
 
 **Update (2026-10-15):** the flag was split in two.
 `async` gates only the async impl blocks and pulls in no runtime (its only dependency, `critical-section`, is already in esp-hal's graph and serves the long-frame workaround); `embassy` implies `async` and pulls in the runtime stack for the examples.
-See [`docs/features/esp-hal-async-feature-split-v1.md`](../features/esp-hal-async-feature-split-v1.md).
+See [`docs/features/archive/esp-hal-async-feature-split-v1.md`](../features/archive/esp-hal-async-feature-split-v1.md).
 
 ## Consequences
 
