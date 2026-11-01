@@ -792,7 +792,12 @@ impl<'d, const N: usize> Ws2812Rmt<'d, Blocking, N> {
     /// - [`Error::FrameTooLong`] if the frame exceeds one channel's RAM and the policy is [`LongFramePolicy::Reject`], or is [`LongFramePolicy::CriticalSection`] with a frame above the masked-time ceiling.
     /// - [`Error::Transmit`] if the RMT transmission fails or a long frame times out and then ends.
     /// - [`Error::ChannelLost`] if a long frame times out and does not end during the drain, or the driver lost its channel earlier.
+    ///
+    /// An empty slice sends nothing and returns `Ok(())`, matching [`SmartLedsWrite::write`] with an empty iterator.
     pub fn set_pixels_slice(&mut self, rgbs: &[RGB8]) -> Result<(), Error> {
+        if rgbs.is_empty() {
+            return Ok(());
+        }
         let needed = self.encode_slice(rgbs)?;
         self.send(needed)
     }
@@ -826,11 +831,16 @@ impl<'d, const N: usize> Ws2812Rmt<'d, Blocking, N> {
     /// - [`Error::BufferTooSmall`] if `N < rgbs.len() * 24 + 1`.
     /// - [`Error::Transmit`] if the RMT transmission fails or the frame times out and then ends.
     /// - [`Error::ChannelLost`] if the frame times out and does not end during the drain, or the driver lost its channel earlier.
+    ///
+    /// An empty slice sends nothing and returns `Ok(())`.
     #[deprecated(
         since = "0.8.0",
         note = "the default LongFramePolicy::CriticalSection of set_pixels_slice masks long frames, and frames that fit in channel RAM need no masking; call set_pixels_slice instead (see its docs and with_max_nominal_masked_us for the masked-time ceiling)"
     )]
     pub fn set_pixels_slice_masked(&mut self, rgbs: &[RGB8]) -> Result<(), Error> {
+        if rgbs.is_empty() {
+            return Ok(());
+        }
         let needed = self.encode_slice(rgbs)?;
         self.wait_until_next_frame();
         self.transmit_bounded(needed, true)
@@ -1032,6 +1042,7 @@ impl<'d, const N: usize> Ws2812Rmt<'d, Async, N> {
     ///
     /// Colours are transmitted in WS2812 GRB order.
     /// The buffer size `N` must be at least `rgbs.len() * 24 + 1`.
+    /// An empty slice sends nothing and returns `Ok(())`, matching `SmartLedsWrite::write` with an empty iterator.
     ///
     /// Frames longer than one RMT channel's RAM (1 LED on ESP32-C3, ESP32-C6 and ESP32-S3, 2 LEDs on ESP32) do not yield.
     /// With the default [`LongFramePolicy::CriticalSection`] they busy-poll with interrupts masked, about 1.2–1.3 µs per pulse code, so a 12-LED frame holds the CPU for about 360 µs.
@@ -1089,6 +1100,9 @@ impl<'d, const N: usize> Ws2812Rmt<'d, Async, N> {
     /// }
     /// ```
     pub async fn set_pixels_slice(&mut self, rgbs: &[RGB8]) -> Result<(), Error> {
+        if rgbs.is_empty() {
+            return Ok(());
+        }
         let num_leds = rgbs.len();
         let needed = num_leds * 24 + 1;
         if needed > N {

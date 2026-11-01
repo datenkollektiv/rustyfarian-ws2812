@@ -34,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `rustyfarian-esp-hal-ws2812`: both drivers now enforce the 280 µs latch between frames (`set_pixel`, `set_pixels_slice`, `SmartLedsWrite::write`). Short async frames (fit in channel RAM) carry the latch in the signal, so they complete about 280 µs later and use no CPU wait. Long frames on the critical-section path and blocking frames busy-wait only when frames come faster than 280 µs, in the caller's interrupt state. The wait needs esp-hal's `rt` feature; without it the wait gives up after about 1000 unchanged timer reads. A cancelled async transmit also schedules the latch wait for the next frame
 - `rustyfarian-esp-hal-ws2812`: `critical-section` is a regular dependency instead of one enabled by `async`, so the crate always carries it; the masked paths need its implementation from esp-hal's `rt` feature
 - `rustyfarian-esp-hal-ws2812`: the long-frame polling loop is placed in RAM with `#[esp_hal::ram]`, and it reads the clock every 16 polls instead of every poll, so a timeout overshoots by a few microseconds at most; the long-frame path is otherwise unchanged
+- `rustyfarian-esp-hal-ws2812` and `rustyfarian-esp-idf-ws2812`: **Breaking (behaviour):** `set_pixels_slice(&[])` now sends nothing and returns `Ok(())`, matching `SmartLedsWrite::write` with an empty iterator; previously it transmitted a bare end marker, which latches no data and is indistinguishable from silence on the strip. The deprecated `set_pixels_slice_masked` aligns the same way
 
 ### Deprecated
 
