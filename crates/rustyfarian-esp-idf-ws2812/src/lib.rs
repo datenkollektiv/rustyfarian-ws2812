@@ -327,6 +327,7 @@ impl<'d> Ws2812Rmt<'d> {
     /// Sets multiple pixels from a slice.
     ///
     /// Use this for LED strips with multiple pixels.
+    /// An empty slice sends nothing and returns `Ok(())`, matching `SmartLedsWrite::write` with an empty iterator.
     ///
     /// # Arguments
     ///
@@ -338,6 +339,9 @@ impl<'d> Ws2812Rmt<'d> {
             bytes.push((grb >> 16) as u8);
             bytes.push((grb >> 8) as u8);
             bytes.push(grb as u8);
+        }
+        if bytes.is_empty() {
+            return Ok(());
         }
         transmit_bytes(
             &mut self.tx,
