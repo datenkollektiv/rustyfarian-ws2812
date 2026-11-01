@@ -41,8 +41,33 @@ No `Await` (plain `transmit().await`) variant ships now.
 It is the known-garbling mode and bounds nothing, so offering it as a policy would endorse the behaviour the review rejected.
 It can be added without a breaking change once esp-hal refills TX RAM in the ISR.
 
-The blocking driver is not offered as a fallback for long frames.
+Plain blocking `set_pixels_slice` is not a fallback for long frames.
 Its polling refill has the same deadline, and radio or other interrupts can delay it.
+`set_pixels_slice_masked` is the blocking option that masks interrupts for the frame, at the same interrupts-off cost as `CriticalSection`.
+It was validated with Wi-Fi active on the ESP32-C3, so it is offered alongside the async policy rather than hidden behind it.
+
+### Radio firmware and RAM placement
+
+A downstream bench (ESP32-C3, 12 LEDs, 2026-11-01) saw `CriticalSection` frames garble only with Wi-Fi active.
+Modem sleep off did not help.
+With `ESP_HAL_CONFIG_PLACE_RMT_DRIVER_IN_RAM=true` the frames stayed clean, and the blocking driver inside a critical section stayed clean even with its code in flash.
+The working hypothesis is radio contention on shared resources (bus, SRAM, cache refills); it is not measured.
+
+`poll_to_completion` is placed in RAM by `#[esp_hal::ram]`, but the esp-hal poll it calls is placed only by the esp-hal setting above.
+The crate cannot detect that setting, because it is an esp-hal-internal cfg, so radio firmware must enable it.
+RAM placement adds margin; it is not a proven guarantee.
+
+### Considered and rejected: poll-gap diagnostics
+
+A `long-frame-diagnostics` feature was built to record the number of polls, the longest gap between two polls and the duration of the last critical-section frame.
+It was removed before release and is not part of the API.
+The reason is that esp-hal refills the channel RAM inside `TxFuture::poll`, so the gap between two poll returns cannot bound the refill latency.
+The downstream bench saw 77 µs gaps with clean frames (`735b506`), so a gap threshold would have given false alarms and false comfort.
+Margin evidence is downstream visual validation with Wi-Fi active on `3a1d3f8`, plus the still-open analyser capture.
+
+### Clock reads
+
+The poll loop reads the clock every 16 polls (`POLLS_PER_CLOCK_READ`), not on every poll, so the loop stays tight; a timeout overshoots by a few microseconds at most.
 
 ### Drop after the critical section
 
@@ -94,11 +119,14 @@ The timestamp wait remains the mechanism for the critical-section and blocking p
 
 - `Error` is now `#[non_exhaustive]`, so downstream `match` expressions need a wildcard arm.
 - The latch wait needs esp-hal's `rt` feature to take effect, on every path that busy-waits.
+- `critical-section` is now a regular dependency of the crate, so it is always carried, while its implementation still comes from esp-hal's `rt` feature.
 - Short async frames complete about 280 µs later, which caps the achievable frame rate for very short frames.
 - Long and blocking frames that follow each other closely busy-wait up to 280 µs before the next frame.
 
 ### Residual risks
 
+- **Radio contention** on shared resources (bus, SRAM, cache refills) is the working hypothesis for the Wi-Fi failure; the margin under radio load is not measured by an analyser yet.
+- **RAM placement is not enforced:** `ESP_HAL_CONFIG_PLACE_RMT_DRIVER_IN_RAM=true` is documented for radio firmware, but the crate cannot detect it.
 - **Flash-cache misses** can still stall the refill path.
   `ESP_HAL_CONFIG_PLACE_RMT_DRIVER_IN_RAM` is the mitigation to measure.
 - **Flash stalls caused by the other core** on ESP32 and ESP32-S3 can stall the refill path.

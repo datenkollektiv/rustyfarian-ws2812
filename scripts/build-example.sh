@@ -50,7 +50,7 @@ case "$prefix" in
         #            If a future C6 example is silent, this rule will over-enable for it —
         #            convert to a per-example case below or drop esp-println for that example.
         #   - C3, esp32, s3: examples use a silent panic handler; esp-println is not needed,
-        #            except hal_c3_frame_sweep_async, which logs its verdict (per-example case below).
+        #            except the logging C3 examples (frame_sweep, rainbow_comet, comet_under_load; per-example case below).
         #
         # Transport: the esp-println dep uses features = ["auto"] in Cargo.toml: USB-Serial-JTAG
         # when a host is attached to the chip's native USB port (C3, C6, S3), otherwise UART0, which
@@ -63,7 +63,7 @@ case "$prefix" in
         name=$(printf '%s' "$example" | cut -d_ -f3-)
         case "$name" in
             smart_leds) hal_features="${hal_features},smart-leds" ;;
-            frame_sweep_async) hal_features="${hal_features},embassy,esp-println" ;;
+            frame_sweep_async|rainbow_comet_async|comet_under_load_async) hal_features="${hal_features},embassy,esp-println" ;;
             *_async)    hal_features="${hal_features},embassy" ;;
         esac
         printf 'Building %s for %s...\n' "$example" "$target"

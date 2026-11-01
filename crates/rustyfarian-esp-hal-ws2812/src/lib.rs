@@ -103,7 +103,8 @@
 //! Longer frames follow the `LongFramePolicy` set with `with_long_frame_policy`.
 //! The default, `LongFramePolicy::CriticalSection`, drives them to completion inside a critical section, so the executor cannot run other tasks while they transmit.
 //! `LongFramePolicy::Reject` returns [`Error::FrameTooLong`] instead and sends nothing.
-//! The blocking driver has no policy: it polls its refill in the caller's interrupt state, so long frames can miss the refill deadline there too.
+//! The blocking driver has no policy: plain `set_pixels_slice` polls its refill in the caller's interrupt state, so long frames can miss the refill deadline there too.
+//! `set_pixels_slice_masked` is the blocking option that masks interrupts for the frame.
 //!
 //! | Chip                         | Channel RAM | Largest truly async frame |
 //! |:-----------------------------|:------------|:--------------------------|
@@ -123,25 +124,43 @@
 //! - Interrupts are masked for the whole frame, 1.2–1.3 µs per pulse code: roughly 0.36 ms for 12 LEDs and 1.9 ms for 64 LEDs.
 //! - Keep the interrupts-off time at or below about 1 ms on radio firmware, which is about 32 LEDs (24 codes at 1.3 µs per LED).
 //!   Above that, use `LongFramePolicy::Reject`.
-//! - The blocking driver is not a fallback for long frames.
-//!   Without a critical section it has the same ~30 µs refill deadline, and radio or other interrupts can delay its polling refill, so corrupt output remains possible.
-//!   Wrapped in `critical_section::with`, it has the same interrupts-off cost as `CriticalSection`.
-//!
-//! On esp-hal 1.2.2 no option guarantees correct long frames under radio load.
-//! `Reject`, which keeps every frame within channel RAM, is the only option that never risks corrupt output or long interrupts-off time.
-//! The real fix is an ISR-side refill upstream.
 //! - Such interrupt-off windows can disturb Wi-Fi and ESP-NOW and overflow UART FIFOs, so test your radio and serial traffic with the real strip length.
 //! - On dual-core chips (ESP32 and ESP32-S3), any `critical_section::with` on the other core waits for the whole frame; its interrupts stay live.
 //! - The critical-section implementation comes from esp-hal's `rt` feature, so firmware without `rt` fails to link.
 //! - The executor does not run other tasks during a long frame.
 //!
+//! ## Radio firmware
+//!
+//! Firmware with a radio must build with `ESP_HAL_CONFIG_PLACE_RMT_DRIVER_IN_RAM=true` when it uses `CriticalSection`.
+//! On an ESP32-C3 with Wi-Fi active, a downstream bench garbled 12-LED frames until this setting was enabled.
+//! With the radio not started the frames stayed clean; modem sleep did not help while Wi-Fi was active.
+//! With the setting enabled the frames stayed clean with the radio on.
+//! The crate cannot enforce or detect this setting, because it is an esp-hal-internal cfg.
+//! `poll_to_completion` is placed in RAM, but the esp-hal poll it calls is not, unless the setting is on.
+//! RAM placement adds margin; it is not a proven guarantee, and the hardware gate stays open.
+//!
+//! ## Blocking driver
+//!
+//! Plain `set_pixels_slice` on the blocking driver has the same ~30 µs refill deadline and no critical section, so radio or other interrupts can delay its polling refill and corrupt the frame.
+//! `set_pixels_slice_masked` wraps the same transmit in `critical_section::with`, with the interrupts-off cost above (about 0.36 ms for 12 LEDs).
+//! That pattern was validated with Wi-Fi active on the ESP32-C3.
+//!
+//! ## No option is proven under radio load
+//!
+//! On esp-hal 1.2.2 no option is proven to keep long frames correct under radio load.
+//! `CriticalSection` and `set_pixels_slice_masked` mask interrupts for the whole frame.
+//! `Reject` keeps every frame within channel RAM, so it never masks interrupts and never needs a refill.
+//! The real fix is an ISR-side refill upstream.
+//!
 //! Residual risks, not yet proven on hardware:
 //!
 //! - Flash-cache misses can still stall the refill path.
-//!   Building with `ESP_HAL_CONFIG_PLACE_RMT_DRIVER_IN_RAM=true` is the mitigation to measure.
+//!   The `ESP_HAL_CONFIG_PLACE_RMT_DRIVER_IN_RAM` setting above is the mitigation.
+//! - Shared-resource contention from the radio (bus, SRAM and cache refills) is the working hypothesis for the Wi-Fi failure; it is not measured yet.
 //! - On ESP32 and ESP32-S3, the other core can stall the refill path through its flash accesses.
 //! - High-priority interrupt levels on Xtensa are not verified to be masked by `critical_section`.
-//! - The waveform on the data pin has not been captured yet; the `hal_c3_frame_sweep_async` example is the planned capture target.
+//! - The poll-gap margin is not measured on hardware yet, and the waveform on the data pin has not been captured.
+//!   The `hal_c3_frame_sweep_async` example is the planned capture target.
 //!
 //! This is a workaround.
 //! It can be removed once esp-hal refills the channel RAM from the interrupt.
@@ -203,7 +222,8 @@
 //!
 //! # Runtime Stack
 //!
-//! The `async` feature gates the async `Ws2812Rmt<'d, Async, N>` API and pulls in no runtime: its only dependency is `critical-section`, which `esp-hal` already uses (see [Long frames in async mode](crate#long-frames-in-async-mode)).
+//! The `async` feature gates the async `Ws2812Rmt<'d, Async, N>` API and pulls in no runtime.
+//! `critical-section` is a regular dependency of this crate, used by the masked transmit paths (see [Long frames in async mode](crate#long-frames-in-async-mode)); its implementation comes from esp-hal's `rt` feature.
 //! The `embassy` feature implies `async` and pulls in the runtime stack:
 //! the `esp-rtos` executor, `embassy-time`, `embassy-executor` and `embassy-sync`.
 //! The `*_async` examples require `--features embassy`.
@@ -224,7 +244,7 @@ use bunting::rgb_to_grb;
 #[cfg(feature = "async")]
 use core::{
     future::Future,
-    pin::pin,
+    pin::{pin, Pin},
     task::{Context, Poll, Waker},
 };
 use esp_hal::time::{Duration, Instant};
@@ -533,13 +553,43 @@ impl<'d, const N: usize> Ws2812Rmt<'d, Blocking, N> {
     /// The buffer size `N` must be at least `rgbs.len() * 24 + 1`.
     ///
     /// The blocking refill is a polling loop, so interrupts can still delay it for long frames.
-    /// Wrap the call in `critical_section::with` if your firmware has a heavy interrupt load.
+    /// Use [`set_pixels_slice_masked`](Self::set_pixels_slice_masked) if your firmware has a heavy interrupt load or a radio.
     ///
     /// # Errors
     ///
     /// - [`Error::BufferTooSmall`] if `N < rgbs.len() * 24 + 1`.
     /// - [`Error::Transmit`] if the RMT transmission fails or the channel was previously lost.
     pub fn set_pixels_slice(&mut self, rgbs: &[RGB8]) -> Result<(), Error> {
+        let needed = self.encode_slice(rgbs)?;
+        self.do_transmit(needed)
+    }
+
+    /// Sets multiple LEDs from a color slice, with interrupts masked for the whole frame.
+    ///
+    /// Same validation, encoding and errors as [`set_pixels_slice`](Self::set_pixels_slice).
+    /// The latch wait runs first, outside the critical section.
+    /// The transmit and its refill polling then run inside `critical_section::with`,
+    /// so interrupts cannot delay the refill: about 1.2–1.3 µs per pulse code,
+    /// roughly 0.36 ms for 12 LEDs.
+    /// Afterwards the next frame is held back by [`WS2812_RESET_US`].
+    ///
+    /// This is the pattern validated with Wi-Fi active on the ESP32-C3.
+    /// The masked window can disturb radio and serial traffic on long strips, so test with the real strip length.
+    /// The hardware gate for this pattern is still open.
+    /// The critical section needs esp-hal's `rt` feature to link.
+    ///
+    /// # Errors
+    ///
+    /// - [`Error::BufferTooSmall`] if `N < rgbs.len() * 24 + 1`.
+    /// - [`Error::Transmit`] if the RMT transmission fails or the channel was previously lost.
+    pub fn set_pixels_slice_masked(&mut self, rgbs: &[RGB8]) -> Result<(), Error> {
+        let needed = self.encode_slice(rgbs)?;
+        self.wait_until_next_frame();
+        critical_section::with(|_| self.transmit_now(needed))
+    }
+
+    /// Validates and encodes `rgbs` into the buffer and returns the frame length in pulse codes.
+    fn encode_slice(&mut self, rgbs: &[RGB8]) -> Result<usize, Error> {
         let num_leds = rgbs.len();
         let needed = num_leds * 24 + 1;
         if needed > N {
@@ -549,7 +599,7 @@ impl<'d, const N: usize> Ws2812Rmt<'d, Blocking, N> {
             Self::encode_color(rgb, &mut self.buffer[i * 24..(i + 1) * 24]);
         }
         self.buffer[num_leds * 24] = PulseCode::end_marker();
-        self.do_transmit(needed)
+        Ok(needed)
     }
 
     /// Sends `buffer[..len]` via the RMT channel and waits for completion.
@@ -564,8 +614,16 @@ impl<'d, const N: usize> Ws2812Rmt<'d, Blocking, N> {
     /// Uses `Option<Channel>` to handle esp-hal's ownership-based transmit API:
     /// `transmit()` consumes the channel and `wait()` returns it.
     fn do_transmit(&mut self, len: usize) -> Result<(), Error> {
-        let ch = self.channel.take().ok_or(Error::Transmit)?;
         self.wait_until_next_frame();
+        self.transmit_now(len)
+    }
+
+    /// Transmits `buffer[..len]` and waits for completion, without the latch wait.
+    ///
+    /// Shared by [`Self::do_transmit`] and [`Self::set_pixels_slice_masked`],
+    /// which calls it inside a critical section.
+    fn transmit_now(&mut self, len: usize) -> Result<(), Error> {
+        let ch = self.channel.take().ok_or(Error::Transmit)?;
         if let Some(last) = len.checked_sub(1).and_then(|i| self.buffer.get_mut(i)) {
             *last = PulseCode::end_marker();
         }
@@ -666,6 +724,7 @@ impl<'d, const N: usize> Ws2812Rmt<'d, Async, N> {
     ///
     /// Frames longer than one RMT channel's RAM (1 LED on ESP32-C3, ESP32-C6 and ESP32-S3, 2 LEDs on ESP32) do not yield.
     /// With the default [`LongFramePolicy::CriticalSection`] they busy-poll with interrupts masked, about 1.2–1.3 µs per pulse code, so a 12-LED frame holds the CPU for about 360 µs.
+    /// Firmware with a radio should build with `ESP_HAL_CONFIG_PLACE_RMT_DRIVER_IN_RAM=true`; see [Radio firmware](crate#radio-firmware).
     /// With [`LongFramePolicy::Reject`] they return [`Error::FrameTooLong`] instead.
     /// See [`Long frames in async mode`](crate#long-frames-in-async-mode).
     /// A call that follows a blocking or long-frame transmit may first busy-wait the rest of the latch interval; see [Frame spacing (latch)](crate#frame-spacing-latch).
@@ -816,30 +875,10 @@ impl<'d, const N: usize> Ws2812Rmt<'d, Async, N> {
             let deadline_us =
                 Instant::now().duration_since_epoch().as_micros() + tx_timeout_us(data.len());
             slot.set(Some(ch.transmit(data)));
-            let mut cx = Context::from_waker(Waker::noop());
-            let mut previous_us = 0;
-            let mut stalled_reads = 0;
-            loop {
-                let Some(fut) = slot.as_mut().as_pin_mut() else {
-                    return Err(Error::Transmit);
-                };
-                if let Poll::Ready(result) = fut.poll(&mut cx) {
-                    return result.map_err(|_| Error::Transmit);
-                }
-                let now_us = Instant::now().duration_since_epoch().as_micros();
-                if now_us >= deadline_us {
-                    return Err(Error::Transmit);
-                }
-                if now_us == previous_us {
-                    stalled_reads += 1;
-                    if stalled_reads >= LATCH_WAIT_MAX_STALLED_READS {
-                        return Err(Error::Transmit);
-                    }
-                } else {
-                    stalled_reads = 0;
-                    previous_us = now_us;
-                }
-            }
+            let Some(fut) = slot.as_mut().as_pin_mut() else {
+                return Err(Error::Transmit);
+            };
+            poll_to_completion(fut, deadline_us)
         })
     }
 }
@@ -863,6 +902,57 @@ impl Drop for NextFrameStamp<'_> {
         } else {
             latch_deadline()
         });
+    }
+}
+
+/// Polls between two clock reads in the long-frame loop.
+///
+/// A poll costs well under a microsecond, so reading the clock every poll would slow the refill loop.
+/// Sixteen polls bound the timeout overshoot to a few microseconds.
+#[cfg(feature = "async")]
+const POLLS_PER_CLOCK_READ: u32 = 16;
+
+/// Polls `fut` to completion with a no-op waker, bounded by `deadline_us` and a stopped-timer check.
+///
+/// This is the loop that runs inside the critical section of a long frame.
+/// It is deliberately not generic: the future is type-erased, so the function is a single
+/// instance that `#[esp_hal::ram]` places in RAM.
+/// Executing it from flash would let a flash-cache miss stall the refill past its deadline.
+/// The poll of the esp-hal future itself is placed by esp-hal's own `place-rmt-driver-in-ram` option.
+///
+/// The clock is read every [`POLLS_PER_CLOCK_READ`] polls.
+/// A timeout, or [`LATCH_WAIT_MAX_STALLED_READS`] unchanged clock reads, returns [`Error::Transmit`].
+#[cfg(feature = "async")]
+#[esp_hal::ram]
+fn poll_to_completion(
+    mut fut: Pin<&mut dyn Future<Output = Result<(), esp_hal::rmt::Error>>>,
+    deadline_us: u64,
+) -> Result<(), Error> {
+    let mut cx = Context::from_waker(Waker::noop());
+    let mut polls: u32 = 0;
+    let mut previous_us = 0;
+    let mut stalled_reads = 0;
+    loop {
+        if let Poll::Ready(result) = fut.as_mut().poll(&mut cx) {
+            return result.map_err(|_| Error::Transmit);
+        }
+        polls = polls.wrapping_add(1);
+        if !polls.is_multiple_of(POLLS_PER_CLOCK_READ) {
+            continue;
+        }
+        let now_us = Instant::now().duration_since_epoch().as_micros();
+        if now_us >= deadline_us {
+            return Err(Error::Transmit);
+        }
+        if now_us == previous_us {
+            stalled_reads += 1;
+            if stalled_reads >= LATCH_WAIT_MAX_STALLED_READS {
+                return Err(Error::Transmit);
+            }
+        } else {
+            stalled_reads = 0;
+            previous_us = now_us;
+        }
     }
 }
 
