@@ -77,10 +77,10 @@ The decisions are recorded in [ADR 010](../adr/010-interchangeable-driver-semant
 
 - [x] Design decided and recorded in [ADR 010](../adr/010-interchangeable-driver-semantics.md) (Accepted 2026-11-01)
 - [x] [ADR 009](../adr/009-long-frame-policy-and-latch.md) points to ADR 010
-- [ ] esp-hal: blocking routing, `Poll`, bounded masked transmit, `core::error::Error`, `tx_channel_config()`, `from_channel_creator`
-- [ ] ESP-IDF: `WS2812_RESET_US` latch with `next_frame_at`
-- [ ] Documentation: crate READMEs, rustdoc, CHANGELOG `[Unreleased]`
-- [ ] Checks: `just verify`, `just test`, `just check-hal-xtensa`, example builds
+- [x] esp-hal: blocking routing, `Poll`, bounded masked transmit, `core::error::Error`, `tx_channel_config()`, `from_channel_creator` (landed in ea0cf39, 2026-11-01)
+- [x] ESP-IDF: `WS2812_RESET_US` latch with `next_frame_at` (landed in ea0cf39, 2026-11-01)
+- [x] Documentation: crate READMEs, rustdoc, CHANGELOG `[Unreleased]`
+- [x] Checks: `just verify`, `just test`, `just check-hal-xtensa`, example builds (re-run 2026-11-02, all PASS)
 - [x] Hardware re-bench of `f53c5e8` on a downstream ESP32-C3 (rev v0.3, 12 LEDs on GPIO4, Wi-Fi active, RMT not in RAM), 2026-11-01:
   - [x] R1 `set_pixels_slice` default policy: clean, 0 errors
   - [x] R2 `SmartLedsWrite::write`: clean, 0 errors
@@ -116,3 +116,4 @@ The decisions are recorded in [ADR 010](../adr/010-interchangeable-driver-semant
 - 2026-11-01 — Downstream re-bench of `f53c5e8` (C3, Wi-Fi active): R1, R2, R5 clean; R3 `Poll` garbled with ambiguous `Transmit`; R4 `FrameTooLong` only; `Error::ChannelLost` added to separate the two R3 cases; results recorded in ADR 010
 - 2026-11-02 — `set_pixels_slice_masked` deprecated (`since = "0.8.0"`); the re-benches confirmed the default `CriticalSection` policy covers its use case; downstream still calls it, so removal is deferred past 0.8
 - 2026-11-02 — Empty-slice semantics aligned: `set_pixels_slice(&[])` (blocking and async) and `set_pixels_slice_masked(&[])` are no-ops returning `Ok(())` in both drivers; matches `SmartLedsWrite::write` with an empty iterator
+- 2026-11-02 — State checklist brought up to date: implementation, docs and check boxes ticked; landed in ea0cf39, checks re-run (`verify`, `test`, `check-hal-xtensa`, all PASS)

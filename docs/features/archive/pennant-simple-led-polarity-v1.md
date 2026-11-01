@@ -28,7 +28,7 @@ The SuperMini's blue LED on GPIO8 is active-low, so `SimpleLed` lights when it s
 - Write-on-change caching stays out of scope.
 
 ## Open Questions
-- [ ] Publish `pennant` 0.7.1 before 2026-10-20 so the consumer can drop its Git pin?
+- [x] Publish `pennant` 0.7.1 before 2026-10-20 so the consumer can drop its Git pin? Moot: the date passed without a 0.7.1; per this repository's release policy the change ships with the 0.8 wave, and a downstream deadline does not keep a feature open once the code has landed.
 
 ## State
 - [x] Design approved

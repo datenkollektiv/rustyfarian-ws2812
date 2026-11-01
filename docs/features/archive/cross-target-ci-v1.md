@@ -134,3 +134,6 @@ Measured locally (Apple Silicon, warm cargo registry):
   1.95.0.0 that the August esp-hal bump was hardware-validated against. The green `avr` job also
   confirms the current `avr-hal` default branch builds, which the open question below notes is not
   a guarantee for future runs.
+- 2026-11-02 — Archived. The two State items left unticked (path-filter exclusion, Xtensa cache
+  restore) were never separately proven and are carried as watch items, not blockers; no local CI
+  evidence was available at archive time.

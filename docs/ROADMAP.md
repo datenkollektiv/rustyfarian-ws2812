@@ -9,9 +9,9 @@ verified clean under `esp-hal 1.2.2`.
 The September 2026 wave (`esp-hal 1.2.2`, `esp-rtos 0.4.0`, MSRV 1.95) is
 compile-verified on ESP32-C3, ESP32-C6, ESP32-WROOM-32, and ESP32-S3, with
 hardware-validated results on C6 and C3 — see
-[`docs/features/esp-hal-stack-upgrade-september-2026-v1.md`](features/esp-hal-stack-upgrade-september-2026-v1.md) —
+[`docs/features/archive/esp-hal-stack-upgrade-september-2026-v1.md`](features/archive/esp-hal-stack-upgrade-september-2026-v1.md) —
 and on ESP32-S3 (CrowPanel 1.28") — see
-[`docs/features/esp-hal-esp32s3-support-v1.md`](features/esp-hal-esp32s3-support-v1.md).
+[`docs/features/archive/esp-hal-esp32s3-support-v1.md`](features/archive/esp-hal-esp32s3-support-v1.md).
 All six crates are on crates.io: the pure-logic trio (`bunting`, `pennant`,
 `ferriswheel`) since `0.5.0`, and all three driver crates
 (`rustyfarian-avr-ws2812`, `rustyfarian-esp-idf-ws2812`,
@@ -48,13 +48,11 @@ timeline
     Near term : Interchangeable esp-hal and ESP-IDF drivers (feature-doc)
               : Deadline-free async transmit for long esp-hal frames (feature-doc)
               : cargo-deny — ban multiple rgb versions
-              : Split esp-hal async feature from the example runtime (feature-doc)
-              : pennant SimpleLed honours Polarity for active-low LEDs (feature-doc)
 
     Mid term  : Remove send_and_wait workaround (esp-idf-hal fix)
               : SmartLedsWriteAsync for esp-hal async driver
               : Scope MAX_LEDS and fix positional effects for strips > 256 LEDs
-              : Add grid module to README + scope guard in grid.rs
+              : Add scope guard in grid.rs (README row done)
               : Document async support status in README driver table
               : Decide build-example-* convenience-alias coverage policy
 
@@ -153,13 +151,6 @@ Busy-poll such frames inside a critical section until esp-hal refills in the ISR
 Reported by two downstream projects (12 and 64 LEDs on ESP32-C3).
 Design and progress: [`docs/features/esp-hal-async-long-frame-refill-v1.md`](features/esp-hal-async-long-frame-refill-v1.md).
 
-### Split the esp-hal `async` feature from the example runtime
-
-The `async` feature of `rustyfarian-esp-hal-ws2812` pulls in `esp-rtos` and the `embassy-*` crates, although the driver's async impl needs only `esp_hal::Async`.
-Make `async` dependency-free and move the runtime behind a new example-only `embassy` feature.
-Requested from the downstream `rustyfarian-peripherals` project, which already uses this split for its async rotary encoder.
-Design and progress: [`docs/features/esp-hal-async-feature-split-v1.md`](features/esp-hal-async-feature-split-v1.md).
-
 ### Document async support status in README driver table
 
 `rustyfarian-esp-hal-ws2812` has an `async` feature with `AsyncStatusLed`.
@@ -200,13 +191,6 @@ See [ADR 006](adr/006-async-support.md) and [ADR 008](adr/008-embassy-as-async-r
 
 ## Animation Effects & Pure Crates
 
-### `pennant::SimpleLed` honours `Polarity` for active-low LEDs
-
-`SimpleLed` always drives its pin high for "on", so boards with an active-low on-board LED light when they should be dark.
-Add a `with_polarity` builder mirroring `RgbGpioLed`, default unchanged.
-Requested by a downstream project for the ESP32-C3 SuperMini's GPIO8 LED.
-Design and progress: [`docs/features/pennant-simple-led-polarity-v1.md`](features/pennant-simple-led-polarity-v1.md).
-
 The current `ferriswheel` crate provides more than a dozen well-tested, ring-specific effects:
 `RainbowEffect`, `PulseEffect`, `BreatheEffect`, `SpinnerEffect`, `MeteorEffect`, `TwinkleEffect`, `FireEffect`, `CylonEffect`, `KnightRiderEffect`, `ChaseEffect`, `FlashEffect`, `ProgressEffect`, `SectionEffect`, and `RainbowCometEffect`.
 
@@ -229,17 +213,13 @@ Fix: change `advance_position` and all `position` fields to `usize`.
 These two items must move together: raising `MAX_LEDS` without fixing the `u8` positions is
 a soundness bug.
 
-### Add `grid` module to README crate table and scope guard in `grid.rs`
+### Add a scope-guard comment to `grid.rs`
 
-`bunting` 0.5.0 added `GridBuffer` / `GridLayout` / `GAMMA_2_0`, but the `bunting` row in
-the README crate table makes no mention of it.
-A user searching for matrix/grid support will look in `ferriswheel` and conclude it doesn't exist.
+`bunting` 0.5.0 added `GridBuffer` / `GridLayout` / `GAMMA_2_0`.
+The README crate-table half of this item is done — the `bunting` row now mentions `grid`.
 
-Two small changes:
-
-1. One sentence in the `bunting` README row: "also provides `grid` — pure data-layout types for matrix displays."
-2. A `// SCOPE:` comment at the top of `grid.rs` quoting the VISION non-goal
-   ("matrix-first animation vocabulary is out of scope") to guard against feature creep.
+Remaining: a `// SCOPE:` comment at the top of `grid.rs` quoting the VISION non-goal
+("matrix-first animation vocabulary is out of scope") to guard against feature creep.
 
 ### Deferred follow-ups
 

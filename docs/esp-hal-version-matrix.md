@@ -3,7 +3,7 @@
 ## Current State — `esp-hal 1.2.2` (September 2026 wave)
 
 Applied 2026-09-21 during the quarterly maintenance cycle; tracked by
-[`docs/features/esp-hal-stack-upgrade-september-2026-v1.md`](features/esp-hal-stack-upgrade-september-2026-v1.md).
+[`docs/features/archive/esp-hal-stack-upgrade-september-2026-v1.md`](features/archive/esp-hal-stack-upgrade-september-2026-v1.md).
 Compile-verified on C6, C3, ESP32 and ESP32-S3; **hardware-validated on C6 and C3 on 2026-09-24** and **ESP32-S3 on the CrowPanel 1.28" on 2026-10-14** (ESP32 compile-only, no board).
 The stack also covers ESP32-S3 since 2026-10-14 via the new `esp32s3` chip feature and examples (hardware-validated; RMT peripheral facts: channels 0–3 with 48 words of RAM per channel, APB clock source → `Rate::from_mhz(80)` with `RMT_CLK_DIV = 8` valid).
 
