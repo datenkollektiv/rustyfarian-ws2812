@@ -108,11 +108,11 @@
 //! A stalled refill can keep interrupts masked up to the timeout below, about 2.5 ms at the default limit, and the stopped-clock fallback can take longer.
 //! A longer frame returns [`Error::FrameTooLong`] in both modes instead of masking, and `with_max_nominal_masked_us(None)` lifts the ceiling.
 //! The estimate assumes the slowest pulse code (1.3 µs) for every code.
-//! `LongFramePolicy::Poll`, `LongFramePolicy::Reject` and `set_pixels_slice_masked` ignore the ceiling.
+//! `LongFramePolicy::Poll`, `LongFramePolicy::Reject` and the deprecated `set_pixels_slice_masked` ignore the ceiling.
 //! `LongFramePolicy::Poll` polls the refill with interrupts live instead.
 //! That keeps interrupts running but lets them delay the refill, and in async mode it blocks the executor too.
 //! `LongFramePolicy::Reject` returns [`Error::FrameTooLong`] instead and sends nothing.
-//! `set_pixels_slice_masked` is the blocking method that always masks interrupts for the frame, whatever the length, policy and ceiling.
+//! The deprecated `set_pixels_slice_masked` is the blocking method that always masks interrupts for the frame, whatever the length, policy and ceiling; the default policy covers its use case.
 //!
 //! | Chip                         | Channel RAM | Largest frame without a refill |
 //! |:-----------------------------|:------------|:-------------------------------|
@@ -156,7 +156,7 @@
 //! The evidence is an earlier async bench, not commit f53c5e8: on an ESP32-C3 with Wi-Fi active, a downstream bench garbled async 12-LED frames until this setting was enabled.
 //! With the radio not started the frames stayed clean; modem sleep did not help while Wi-Fi was active.
 //! With the setting enabled the frames stayed clean with the radio on.
-//! The blocking masked path (`set_pixels_slice` under the default policy, `SmartLedsWrite::write` and `set_pixels_slice_masked`) benched clean in three runs at commit f53c5e8 without the setting on a downstream ESP32-C3, with 12 LEDs and Wi-Fi active.
+//! The blocking masked path (`set_pixels_slice` under the default policy, `SmartLedsWrite::write` and the deprecated `set_pixels_slice_masked`) benched clean in three runs at commit f53c5e8 without the setting on a downstream ESP32-C3, with 12 LEDs and Wi-Fi active.
 //! The setting is still recommended for firmware with a radio as margin.
 //! The crate cannot enforce or detect this setting, because it is an esp-hal-internal cfg.
 //! `poll_to_completion` and the blocking polling loops are placed in RAM, but the esp-hal poll they call is not, unless the setting is on.
@@ -169,13 +169,13 @@
 //! The bounded blocking paths at commit f53c5e8 benched clean downstream on one ESP32-C3 with Wi-Fi active and 12 LEDs.
 //! Async, other chips, longer strips, waveform capture and the drop and rebuild path remain unvalidated.
 //! `LongFramePolicy::Poll` runs the refill with interrupts live; radio or other interrupts can delay it and corrupt the frame.
-//! `set_pixels_slice_masked` masks regardless of the policy.
+//! The deprecated `set_pixels_slice_masked` masks regardless of the policy.
 //! A single LED (25 codes) always needs no refill and never masks interrupts.
 //!
 //! ## No option is proven under radio load
 //!
 //! On esp-hal 1.2.2 no option is proven to keep long frames correct under radio load.
-//! `CriticalSection` and `set_pixels_slice_masked` mask interrupts for the whole frame, and masking is not a waveform guarantee.
+//! `CriticalSection` and the deprecated `set_pixels_slice_masked` mask interrupts for the whole frame, and masking is not a waveform guarantee.
 //! `Poll` leaves interrupts live and is expected to garble long frames under radio load.
 //! `Reject` keeps every frame within channel RAM, so it never masks interrupts and never needs a refill.
 //! The real fix is an ISR-side refill upstream.
@@ -686,7 +686,7 @@ impl<'d, Dm: esp_hal::DriverMode, const N: usize> Ws2812Rmt<'d, Dm, N> {
     /// The ceiling limits the nominal estimate, not a hard interrupts-off bound.
     /// A stalled refill can keep interrupts masked up to the timeout of 2 µs per code plus 1 ms, about 2.5 ms at the default,
     /// and the stopped-clock fallback can take longer.
-    /// [`LongFramePolicy::Poll`], [`LongFramePolicy::Reject`], frames that fit in channel RAM and [`Ws2812Rmt::set_pixels_slice_masked`] ignore it.
+    /// [`LongFramePolicy::Poll`], [`LongFramePolicy::Reject`], frames that fit in channel RAM and the deprecated [`Ws2812Rmt::set_pixels_slice_masked`] ignore it.
     /// It applies to blocking and async mode alike.
     /// A refused frame sends nothing and is visible only through [`Error::FrameTooLong`], so log it once rather than on every frame.
     #[must_use]
@@ -784,7 +784,7 @@ impl<'d, const N: usize> Ws2812Rmt<'d, Blocking, N> {
     /// [`LongFramePolicy::Poll`] polls with interrupts live, and [`LongFramePolicy::Reject`] returns [`Error::FrameTooLong`].
     /// Masking interrupts is not a waveform guarantee; see [Long frames](crate#long-frames).
     /// Firmware with a radio should build with `ESP_HAL_CONFIG_PLACE_RMT_DRIVER_IN_RAM=true` as margin; see [Radio firmware](crate#radio-firmware).
-    /// [`set_pixels_slice_masked`](Self::set_pixels_slice_masked) masks regardless of the policy and the ceiling.
+    /// The deprecated [`set_pixels_slice_masked`](Self::set_pixels_slice_masked) masks regardless of the policy and the ceiling.
     ///
     /// # Errors
     ///
@@ -798,6 +798,13 @@ impl<'d, const N: usize> Ws2812Rmt<'d, Blocking, N> {
     }
 
     /// Sets multiple LEDs from a colour slice, always with interrupts masked for the whole frame.
+    ///
+    /// **Deprecated.** With the default [`LongFramePolicy::CriticalSection`], [`set_pixels_slice`](Self::set_pixels_slice)
+    /// masks long frames the same way, and frames that fit in channel RAM need no refill and so no masking.
+    /// Call `set_pixels_slice` instead; if a long strip hits the masked-time ceiling, raise or lift it
+    /// with [`with_max_nominal_masked_us`](Self::with_max_nominal_masked_us).
+    /// [`LongFramePolicy::Poll`] is not an equivalent replacement: it leaves interrupts live, so radio or other interrupts can delay the refill and corrupt the frame.
+    /// A driver configured with `Poll` or `Reject` keeps this deprecated method as its only masked option until removal; migrating to `set_pixels_slice` requires restoring `CriticalSection`, at least for the frames that need masking.
     ///
     /// Same validation, encoding and errors as [`set_pixels_slice`](Self::set_pixels_slice),
     /// except that it masks regardless of the frame length, the [`LongFramePolicy`] and the masked-time ceiling, and never returns [`Error::FrameTooLong`].
@@ -819,6 +826,10 @@ impl<'d, const N: usize> Ws2812Rmt<'d, Blocking, N> {
     /// - [`Error::BufferTooSmall`] if `N < rgbs.len() * 24 + 1`.
     /// - [`Error::Transmit`] if the RMT transmission fails or the frame times out and then ends.
     /// - [`Error::ChannelLost`] if the frame times out and does not end during the drain, or the driver lost its channel earlier.
+    #[deprecated(
+        since = "0.8.0",
+        note = "the default LongFramePolicy::CriticalSection of set_pixels_slice masks long frames, and frames that fit in channel RAM need no masking; call set_pixels_slice instead (see its docs and with_max_nominal_masked_us for the masked-time ceiling)"
+    )]
     pub fn set_pixels_slice_masked(&mut self, rgbs: &[RGB8]) -> Result<(), Error> {
         let needed = self.encode_slice(rgbs)?;
         self.wait_until_next_frame();

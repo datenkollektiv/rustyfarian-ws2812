@@ -76,6 +76,9 @@ The 2026-11-01 amendment below changes what happens after a blocking timeout.
 `set_pixels_slice_masked` always masks interrupts, regardless of length and policy.
 Its deprecation is deferred, because downstream code uses it.
 
+**2026-11-02 update:** the method is now deprecated with `since = "0.8.0"`, because the f53c5e8/c85a61a re-benches confirmed the default `CriticalSection` policy covers its use case.
+The method stays functional and uncapped for the 0.8 cycle; removal is a later decision.
+
 ### Error
 
 - `Error` implements `core::error::Error`.

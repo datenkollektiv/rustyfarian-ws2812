@@ -100,7 +100,7 @@ A dead classic ESP32 peripheral can still hang in the drop, which fills the end 
 On an async timeout, the future is dropped and the frame is lost; the async driver does not lose its channel.
 Frames that fit in channel RAM are not bounded by the timeout or the ceiling.
 
-`set_pixels_slice_masked` always masks interrupts, regardless of length and policy.
+The deprecated `set_pixels_slice_masked` always masks interrupts, regardless of length and policy; the default policy covers that use case, so call `set_pixels_slice` instead.
 Firmware with a radio that uses the async `CriticalSection` path should build with `ESP_HAL_CONFIG_PLACE_RMT_DRIVER_IN_RAM=true`.
 The only evidence that requires it is an earlier async bench, which garbled 12-LED frames with Wi-Fi active until the setting was enabled.
 For the blocking driver, the setting is recommended as margin only.
