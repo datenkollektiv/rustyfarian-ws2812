@@ -90,7 +90,10 @@ The blocking `wait()` refills in a busy loop and meets the deadline unless inter
 Diagnostic signal: a frame that fits in channel RAM never garbles, and garbling scales with executor load (other tasks, Wi-Fi traffic) rather than with frame size alone.
 Source-verified 2026-10-31 against esp-hal 1.2.2 (not hardware-verified).
 Fix in principle: the critical-section path removes executor latency from the refill path by polling the future with a no-op waker, bounded by a timeout; it does not guarantee the waveform (flash-cache misses, cross-core flash stalls and high-priority Xtensa interrupt levels remain), so the workaround stays until esp-hal refills in the ISR.
-Plain blocking `set_pixels_slice` is not a fallback: its polling refill has the same deadline and radio or other interrupts can delay it.
+Unmasked blocking polling (`LongFramePolicy::Poll`) has the same ~30 µs refill deadline, and radio or other interrupts can delay it.
+Diagnostic signal: occasional `Error::Transmit` timeouts under Wi-Fi with `Ok` frames in between (downstream C3 bench, 12 LEDs, `c85a61a`, 2026-11-01: 23 `Transmit` in 8,419 frames, mostly while Wi-Fi associates, no `ChannelLost`).
+Fix in principle: keep unmasked polling opt-in, and let the default blocking `CriticalSection` policy mask long frames instead, capped by the masked-time ceiling (1000 µs nominal, about 32 LEDs; the cap is an estimate, not a bound).
+Verified against the code 2026-11-01; the earlier "not a fallback" wording predates that default.
 Blocking inside `critical_section::with` (`set_pixels_slice_masked`) was reported clean with Wi-Fi active (downstream rgb-clock bench, ESP32-C3, 2026-11-01).
 Mitigation to measure for flash-cache misses: `ESP_HAL_CONFIG_PLACE_RMT_DRIVER_IN_RAM=true`.
 
@@ -107,6 +110,12 @@ Fix in principle: keep the refill loop small and in RAM; esp-hal's setting adds 
 **Dropping an unfinished async RMT TX future inside a critical section spins on the classic ESP32, because `TxGuard::drop` waits for the End event when the chip has no immediate TX stop.**
 Source-verified 2026-10-31 against esp-hal 1.2.2 (`rmt.rs:1428-1440`, `3106-3113`; not hardware-verified): `rmt.has_tx_immediate_stop` is `false` on ESP32, so the drop spins until the hardware reaches the end marker, with interrupts masked if the drop happens there.
 Diagnostic signal: a timeout on a long frame that never returns on ESP32 but returns on C3/C6/S3.
+
+**A blocking single-shot RMT transmit in esp-hal 1.2.2 has no abort that returns the channel: `TxTransaction` offers only `poll()`, the unbounded `wait()`, or a drop that loses the channel.**
+`stop()` exists only on `ContinuousTxTransaction`, while a failed `Channel::transmit` does hand the channel back as `Err((Error, Self))`.
+Source-verified 2026-11-01 (`rmt.rs:1498-1545`, `1561-1600`, `1749-1766`); the driver's earlier "transmit failure consumes the channel" belief was wrong.
+A late refill garbles the frame but still lets it end, because the writer refills on every Threshold event (`rmt/writer.rs`): downstream C3 bench, `c85a61a`, 2026-11-01, 0 `ChannelLost` in 8,419 `Poll` frames under Wi-Fi.
+Fix in principle: after a timeout, keep polling unmasked for a second budget, and drop only if the frame still has not ended (`Error::ChannelLost`); see ADR 010.
 Fix: keep the future in a slot declared outside the critical section, so it drops after the section ends; the spin then runs in the caller's interrupt state, which is masked only if the caller already masks it.
 
 **`embassy-executor 0.10.0` reshaped the task-spawn API: `Spawner::spawn` now returns `()`, and `#[embassy_executor::task]` functions return `Result<SpawnToken, SpawnError>`.**
@@ -184,6 +193,12 @@ Symptom: `abort() was called at PC 0x...` with trace through `lock_acquire_gener
 Fix: use `start_send` + `wait_all_done` directly with `BytesEncoder` (a `RawEncoder`), bypassing `EncoderWrapper` so the ISR calls the C encode function with no Rust wrapper.
 Still present in `esp-idf-hal 0.47.0` (re-checked 2026-09-21 against `src/rmt/encoder.rs`); the workaround survives the 0.47 bump.
 
+**`CONFIG_RMT_ISR_IRAM_SAFE=y` makes `Ws2812Rmt::new` fail with `ESP_ERR_INVALID_ARG` ("on_trans_done callback not in IRAM").**
+`esp-idf-hal 0.47.0` `TxChannelDriver` always registers its flash-resident `handle_isr` as `on_trans_done`, and ESP-IDF v5.3.3 rejects non-IRAM callbacks when the ISR is IRAM-safe.
+Source-verified 2026-11-01 (`esp-idf-hal` `src/rmt/tx_channel.rs:35-37`, `:216`; ESP-IDF `rmt_tx.c:506-508`); reproduced on the downstream rgb-clock C3 bench the same day, where the OTA image then rolled back.
+With the default (`n`), a 12-LED ring stayed clean through a 1.6 MB OTA download on that bench (one run, no analyser).
+Fix: leave the setting off until esp-idf-hal places its callback in IRAM; do not recommend it in the docs.
+
 **The new RMT API (`TxChannelDriver`) registers ISR callbacks via `rmt_tx_register_event_callbacks`, requiring a larger FreeRTOS ISR stack than the legacy API.**
 The default `CONFIG_FREERTOS_ISR_STACKSIZE=1536` overflows with the new API's callback overhead.
 Symptom: `Guru Meditation Error: Stack protection fault` immediately after `WS2812RMT::new()` succeeds.
@@ -230,6 +245,15 @@ Fix: omit `-s GITHUB_TOKEN=…` entirely when the workflow doesn't need it. If a
 **`act` never fetches `actions/checkout` — it substitutes a `docker cp` of the working tree (verified 2026-09-24).**
 The step reports `Success - Main Checkout` while the action's own code is never downloaded or executed, so a `checkout` version bump cannot be validated locally no matter which recipe runs.
 Consequence: `just act-*` proves nothing about a checkout upgrade; only a real push does.
+
+---
+
+## Test Infrastructure
+
+**The `rustyfarian-esp-hal-ws2812` `#[cfg(test)]` module cannot build on a macOS host, so its unit tests never run.**
+`esp-hal`'s `#[link_section = ".rwtext.interrupt"]` is not a valid Mach-O section specifier, and `esp-sync` cannot find the `riscv` crate (reproduced with `just test-crate rustyfarian-esp-hal-ws2812`, 2026-11-01).
+`just test` and `just verify` skip this crate, so a green run says nothing about its tests.
+Fix: put routing and timing logic in `const fn`s guarded by `const _: () = assert!(..)`, which every target build checks.
 
 ---
 
@@ -291,6 +315,14 @@ Verified 2026-10-14: adding two lines to `hal_s3_pulse_async.rs`'s header change
 **`.claude/hooks/just-enforcer.sh` blocks Bash commands whose first word matches a binary wrapped by any `justfile` recipe but allows tools no recipe wraps (e.g. `sed`, `perl`, `find`, `git`).**
 Batch text edits via `sed -i ''` and `perl -i -0pe` therefore remain available even though direct `cargo` is funnelled through `just`.
 Side effect during settings cleanup: any `Bash(cargo *)` permission entries are functionally **dead** while the enforcer is active — they look granted but the hook intercepts before the permission resolver runs.
+
+**The `block-git-mutations` hook rejects `git worktree add`, so a clean-HEAD reproduction needs `git archive` instead.**
+Checking whether a failure predates the working-tree changes is otherwise a stash or worktree, both blocked (verified 2026-11-01).
+Fix: export HEAD to a scratch directory and run the recipe there.
+
+```bash
+rm -rf /tmp/head && mkdir /tmp/head && git archive HEAD | tar -x -C /tmp/head
+```
 
 **RustRover does not use rust-analyzer as its backend and silently ignores `rust-analyzer.toml`.**
 RustRover ships its own proprietary Kotlin-based analysis engine; the `[cargo] target` key in `rust-analyzer.toml` has no effect.

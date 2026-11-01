@@ -58,15 +58,14 @@ esp_bootloader_esp_idf::esp_app_desc!();
 use embassy_executor::Spawner;
 use embassy_time::Timer;
 use esp_hal::{
-    gpio::Level,
-    rmt::{Rmt, TxChannelConfig, TxChannelCreator},
+    rmt::Rmt,
     time::{Instant, Rate},
     timer::timg::TimerGroup,
 };
 use esp_println::println;
 use ferriswheel::RainbowCometEffect;
 use rgb::RGB8;
-use rustyfarian_esp_hal_ws2812::{buffer_size, Ws2812Rmt, RMT_CLK_DIV};
+use rustyfarian_esp_hal_ws2812::{buffer_size, Ws2812Rmt};
 
 const NUM_LEDS: usize = 12;
 const N: usize = buffer_size(NUM_LEDS);
@@ -133,18 +132,7 @@ async fn main(_spawner: Spawner) -> ! {
     let rmt = Rmt::new(peripherals.RMT, Rate::from_mhz(80))
         .unwrap()
         .into_async();
-    let config = TxChannelConfig::default()
-        .with_clk_divider(RMT_CLK_DIV)
-        .with_idle_output_level(Level::Low)
-        .with_idle_output(true)
-        .with_carrier_modulation(false);
-    let channel = rmt
-        .channel0
-        .configure_tx(&config)
-        .unwrap()
-        .with_pin(peripherals.GPIO4);
-
-    let mut ws = Ws2812Rmt::<_, N>::new(channel);
+    let mut ws = Ws2812Rmt::<_, N>::from_channel_creator(rmt.channel0, peripherals.GPIO4).unwrap();
     let mut effect = RainbowCometEffect::new(NUM_LEDS)
         .unwrap()
         .with_hue(0)

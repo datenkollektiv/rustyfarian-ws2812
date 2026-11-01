@@ -140,3 +140,4 @@ The timestamp wait remains the mechanism for the critical-section and blocking p
 - [ADR 006: Async Support Strategy](006-async-support.md)
 - [ADR 008: Embassy as the Async Runtime](008-embassy-as-async-runtime.md)
 - [Feature: Deadline-free async transmit for long frames](../features/esp-hal-async-long-frame-refill-v1.md)
+- [ADR 010: Interchangeable Driver Semantics](010-interchangeable-driver-semantics.md) extends this policy to the blocking driver and adds `Poll`.

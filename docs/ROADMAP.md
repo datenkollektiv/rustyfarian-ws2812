@@ -1,6 +1,6 @@
 # Roadmap
 
-*Last updated: October 2026*
+*Last updated: November 2026*
 
 The April 2026 `esp-hal` release wave (`v0.5.0`) is shipped, the AVR bit-bang
 driver is the recommended backend (per ADR 007), the GPIO8 RMT hang is
@@ -20,7 +20,8 @@ The 2026-05-05 vision review confirmed AVR as a first-class supported MCU
 family and ruled in-workspace networking demos (e.g. ESP-NOW) out of scope.
 All three embedded targets (RISC-V, AVR, Xtensa) are now gated in CI by path-filtered
 cross-target workflows.
-The near-term priority is tightening the `cargo-deny` configuration.
+The near-term priorities are making the esp-hal and ESP-IDF drivers interchangeable
+for the unreleased 0.8 and tightening the `cargo-deny` configuration.
 Mid-term priorities are removing the `esp-idf-hal` `send_and_wait` workaround
 when the upstream fix lands, `SmartLedsWriteAsync` for the async driver, and
 scoping `MAX_LEDS` correctly.
@@ -44,7 +45,8 @@ All completed items are documented in the [CHANGELOG](../CHANGELOG.md).
 timeline
     title Fuzzy Rustyfarian WS2812 Roadmap
 
-    Near term : Deadline-free async transmit for long esp-hal frames (feature-doc)
+    Near term : Interchangeable esp-hal and ESP-IDF drivers (feature-doc)
+              : Deadline-free async transmit for long esp-hal frames (feature-doc)
               : cargo-deny — ban multiple rgb versions
               : Split esp-hal async feature from the example runtime (feature-doc)
               : pennant SimpleLed honours Polarity for active-low LEDs (feature-doc)
@@ -134,6 +136,15 @@ versions in the dep graph at the time of the change.
 ---
 
 ## Hardware Driver Improvements
+
+### Interchangeable esp-hal and ESP-IDF drivers
+
+The same call should mean the same thing on both drivers.
+Today the esp-hal long-frame policy applies only to async, so blocking long frames garble under Wi-Fi, and the ESP-IDF driver enforces no 280 µs reset interval.
+This work applies the policy to both esp-hal modes, adds a `Poll` option, bounds the blocking masked path, adds the latch to ESP-IDF, and removes the duplicated RMT channel setup.
+Requested from downstream project `rustyfarian-rgb-clock`, filed 2026-11-01.
+Decisions: [ADR 010](adr/010-interchangeable-driver-semantics.md).
+Design and progress: [`docs/features/driver-interchangeability-v1.md`](features/driver-interchangeability-v1.md).
 
 ### Deadline-free async transmit for long esp-hal frames
 

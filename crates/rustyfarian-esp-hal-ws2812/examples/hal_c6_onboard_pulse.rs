@@ -122,8 +122,9 @@ fn main() -> ! {
         // ignoring a dropped frame is reasonable in a demo, not in a guard.
         //
         // Panicking (rather than logging and continuing) also avoids a 20 Hz error spam:
-        // once a blocking transmit fails, the RMT channel is consumed and every subsequent
-        // call returns `Error::Transmit` forever. See `Ws2812Rmt` docs.
+        // a failed transmit may repeat on every frame, and once a long frame fails to end
+        // the driver loses its RMT channel and every subsequent call returns
+        // `Error::ChannelLost` forever. See `Ws2812Rmt` docs.
         effect
             .update(&mut colors)
             .expect("PulseEffect::update failed — effect state is invalid");
