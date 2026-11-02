@@ -3,7 +3,7 @@ set -euo pipefail
 # idf-build-dir.sh — resolve the persistent Cargo build-dir for IDF builds.
 #
 # Single source of truth for the v1.1 build-dir split
-# (docs/features/separate-build-environments-v1.1.md): keep IDF *final* artifacts on the
+# (docs/features/archive/separate-build-environments-v1.1.md): keep IDF *final* artifacts on the
 # RAM disk (--target-dir) while relocating the bulky esp-idf-sys CMake tree (build-script
 # OUT_DIR) to a persistent SSD cache via Cargo's build.build-dir.
 #

@@ -42,7 +42,7 @@ idf_example_features() {
 # (esp-idf-sys OUT_DIR / CMake tree) off the RAM disk.
 # Honours RUSTYFARIAN_IDF_BUILD_DIR; otherwise defaults under ~/Library/Caches using
 # Cargo's {workspace-path-hash} template so each project gets an isolated subdir.
-# See docs/features/separate-build-environments-v1.1.md.
+# See docs/features/archive/separate-build-environments-v1.1.md.
 resolve_idf_build_dir() {
     local dir
     # NB: do NOT fold this into "${VAR:-.../{workspace-path-hash}}" — the literal braces

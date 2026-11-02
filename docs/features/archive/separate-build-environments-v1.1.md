@@ -7,7 +7,9 @@
 Evaluated 2026-07-09, then **adopted** after a PoC closed three of the four must-fix gates.
 The core mechanism is sound; bootloader discovery, `clean-idf`, and the nested-quote wrapper were all fixed and verified during the PoC.
 `build.build-dir` now routes the bulky `esp-idf-sys` CMake tree to a persistent SSD cache while IDF final artifacts stay on the RAM disk.
-The one remaining verification gate is a **real hardware flash** — see the [Evaluation](#evaluation-2026-07-09) must-fix list — so treat the adopted state as *implemented and default-on, with flash confirmation still outstanding*.
+All must-fix gates are closed: a **real hardware flash on the current dependency stack** was completed on 2026-11-02 — see the [Validation Record](#validation-record-2026-11-02).
+The later `esp-idf-sys` / `embuild` bumps changed the build-script layout after the PoC, so the flash was re-run against the current stack rather than relying on earlier runs.
+Treat the adopted state as *implemented, default-on, and hardware-validated*.
 The original "capacity is already solved by the 12 GB resize" framing still holds: the value here is warm-cache survival across RAM disk remounts, not a capacity fix.
 
 ## Context
@@ -126,7 +128,7 @@ Original ordering (for the record):
 
 - [x] Update `find_idf_bootloader` to also search the build-dir, or empirically confirm where `bootloader.bin` / `partition-table.bin` actually land. *(PoC: relocated to the cache; discovery updated to search it.)*
 - [x] Rewrite `clean-idf` to target the cache, and decide between extending `clean-idf` and adding a separate `clean-idf-cache`. *(PoC: `clean-idf` now sweeps the cache; `clean-idf-cache` added.)*
-- [ ] Prove the change with a real **flash**, not `just check-idf` — the risk lives in embuild's runtime path resolution. *(PoC did `check-idf` only; hardware flash still pending.)*
+- [x] Prove the change with a real **flash**, not `just check-idf` — the risk lives in embuild's runtime path resolution. *(Validated 2026-11-02 on an ESP32-C3; see [Validation Record](#validation-record-2026-11-02).)*
 - [x] Replace the nested-quote `idf_build_config` with a small wrapper script; verify with `just --dry-run`. *(PoC: `scripts/idf-build-dir.sh`, consumed unquoted via `$(…)`.)*
 
 ### PoC results (2026-07-09, branch `build-poc`)
@@ -238,6 +240,16 @@ If Just quoting gets awkward, a small wrapper script may be clearer than a deepl
 9. Detach the RAM disk and verify the recipe still falls back to `target/idf`.
 10. Reattach the RAM disk and verify a warm persistent build-dir reduces rebuild cost without filling the RAM disk.
 
+## Validation Record (2026-11-02)
+
+Hardware flash of `idf_c3_rainbow` on an ESP32-C3 (GPIO4) at HEAD `8eb95b4`, with only this document modified.
+
+- Built ELF: `/Volumes/RustBuilds/targets/idf/rustyfarian-ws2812/riscv32imc-esp-espidf/debug/examples/idf_c3_rainbow`, SHA-256 `acbe0d4d8594a0184ebfd250827d940e682330a47a6be273f571f0ee8fa6c78d`.
+- The boot log reports the same hash (`acbe0d4d8…`), so the board ran exactly the binary built from this tree.
+- The bootloader was resolved from the persistent cache: `~/Library/Caches/rustyfarian-cargo-build/10/fa8c3bedaaa338/riscv32imc-esp-espidf/debug/build/esp-idf-sys-2fefcacf30157b8e/out/build/bootloader/bootloader.bin`.
+- The board booted to `app_main()` with ESP-IDF v5.3.3 and configured GPIO4; no MMU page-offset error appeared.
+- The app descriptor reports `Compile time: Sep 21 2026`, because the persistent CMake tree keeps its configure-time timestamp; the ELF hash, not the timestamp, identifies the running binary.
+
 ## Risks
 
 - `build.build-dir` is stable as of Cargo 1.91.0 and needs no `-Z` flag on the pinned `+esp` toolchain (verified 2026-07-09).
@@ -246,23 +258,27 @@ If Just quoting gets awkward, a small wrapper script may be clearer than a deepl
 - `just clean-idf` semantics become less complete if intermediates are intentionally outside `idf_dir`.
 - RustRover or rust-analyzer invocations that do not use the justfile will not automatically pick up this split.
 
-## Open Questions
+## Resolved Questions
 
-- Should `RUSTYFARIAN_IDF_BUILD_DIR` be supported as a shared override across all rustyfarian repos?
-- Should `just doctor` report the resolved IDF build-dir and its disk usage?
-- Should `just clean-idf` leave the persistent build-dir alone by default, or should a separate `just clean-idf-cache` remove it?
-- Should this be macOS-only initially, or should Linux use `${XDG_CACHE_HOME:-$HOME/.cache}` from the first implementation?
-- Is `ESP_IDF_COMPONENTS` worth adopting after `build.build-dir`, or should it remain a manual optimization for IDF-heavy examples?
+Decisions recorded from the shipped implementation (reviewed 2026-11-02):
+
+- [x] `RUSTYFARIAN_IDF_BUILD_DIR` is supported as an opt-in override in every recipe (`resolve_idf_build_dir` in `scripts/lib.sh`).
+  A shared parent cache across repos works only when each caller appends its own project subpath, and that multi-project case is still unexercised.
+- [x] `just doctor` reports the resolved build-dir and whether this workspace's sharded cache is materialised; `just idf-build-dir-info` prints the same plumbing.
+  Neither reports `du`-style disk usage, which is available ad hoc.
+- [x] `just clean-idf` sweeps the relocated `esp-idf-sys` tree, `just clean-idf-cache` removes the whole persistent cache, and `just clean-idf-stale` keeps the newest directory per target (fixes the multiple-bootloader error).
+- [x] The default remains macOS (`~/Library/Caches`), matching the macOS-only RAM disk tooling; Linux callers set `RUSTYFARIAN_IDF_BUILD_DIR`, for example under `${XDG_CACHE_HOME:-$HOME/.cache}`.
+- [x] `ESP_IDF_COMPONENTS` is not adopted; it stays a manual optimisation (see [Secondary Option](#secondary-option-trim-esp-idf-components)).
 
 ## Acceptance Criteria
 
 - [x] IDF recipes keep `--target-dir {{ idf_dir }}` and preserve v1 HAL/IDF isolation. *(All IDF recipes pass both `--target-dir {{ idf_dir }}` and the `--config` build-dir flag.)*
 - [x] Warm IDF builds no longer require the full `esp-idf-sys` CMake build tree to live on `/Volumes/RustBuilds`. *(PoC: the CMake tree relocates to `~/Library/Caches/rustyfarian-cargo-build/<hash>`.)*
-- [~] Four projects can keep a warm IDF state without requiring a large RAM disk. *(Mechanism in place; not exercised across a shared parent cache in this single-repo PoC.)*
+- [x] Four projects can keep a warm IDF state without requiring a large RAM disk. *(Each project's intermediates land in its own template-hashed cache directory, so the CMake trees no longer occupy the RAM disk. The shared-parent, multi-project case remains unexercised; the 12 GB resize still ships.)*
 - [x] `ESP_IDF_TOOLS_INSTALL_DIR = "global"` remains unchanged.
 - [x] `just check-idf` passes with the new configuration. *(PoC, branch `build-poc`.)*
 - [x] `just clean-idf` behavior is documented after the persistent build-dir decision is made. *(PoC: `clean-idf` sweeps the cache; `clean-idf-cache` added.)*
-- [ ] Confirmed with a real hardware flash. *(Still outstanding — the one remaining gate.)*
+- [x] Confirmed with a real hardware flash. *(ESP32-C3, 2026-11-02; see [Validation Record](#validation-record-2026-11-02).)*
 
 ## Session Log
 
@@ -274,3 +290,6 @@ If Just quoting gets awkward, a small wrapper script may be clearer than a deepl
 - 2026-07-09 - Incorporated PR review feedback: added an explicit document-type label, a "Not yet validated" split between confirmed facts and inferences, flagged the Implementation Sketch as exploratory, and added flash-artifact-location and real-flash steps to the Validation Plan. Cross-linked v1 (adopted) ↔ v1.1 (deferred). Declined the file rename to preserve the v1/v1.1 convention and inbound links. Also updated `scripts/ramdisk.sh` to name `RUSTBUILDS_RAMDISK_SIZE_GB` in its size-validation error.
 - 2026-07-09 - Built a PoC on branch `build-poc` (wrapper `scripts/idf-build-dir.sh`; `--config` + `{workspace-path-hash}`; IDF recipes + example scripts threaded; `find_idf_bootloader`, `clean-idf`, `doctor` updated; `clean-idf-cache` added). Live `just check-idf` confirmed the CMake tree relocates to the persistent cache with `sdkconfig` still applied, final artifacts stay on `idf_dir`, and clean/rebuild cycles work. Uncovered that `{workspace-path-hash}` expands to a two-level sharded path (needs `*/*`, not `*`) — fixed. Hardware flash remains the one unproven gate.
 - 2026-07-09 - **Adopted.** Decision recorded to enable `build.build-dir` by default in all IDF recipes; Status/verdict/acceptance-criteria updated from "deferred" to accepted, with hardware flash flagged as the sole remaining gate. Incorporated PR-review hardening: `doctor` now reports build-dir *materialisation* via the sharded glob (not the always-present cache root, which overstated readiness); added `just idf-build-dir-info` for self-check; documented the shared-cache multi-match caveat on `find_idf_bootloader`.
+- 2026-08-12 - Consolidated the build-dir clean/info logic into `scripts/idf-cache.sh`; added `just clean-idf-stale` (keeps the newest `esp-idf-sys` directory per target) and `just clean-idf-cache`.
+- 2026-11-02 - Reviewed for archival. Recorded the resolved open questions and re-checked the hardware-flash gate against the current stack (`esp-idf-sys 0.38.1`, `embuild 0.33.5`).
+- 2026-11-02 - Hardware-flash gate closed: `idf_c3_rainbow` booted on an ESP32-C3 with the built ELF's SHA-256 matching the boot log and the bootloader resolved from the persistent cache. All gates closed; document archived.

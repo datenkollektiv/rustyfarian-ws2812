@@ -34,6 +34,11 @@ The workspace root sets `build-std = ["std", "panic_abort"]` for ESP-IDF; a chil
 Fix: keep `build-std` out of child configs and pass `-Z build-std=core` on the command line, as every `*-avr-*` recipe does — `examples/avr-nano-rainbow/.cargo/config.toml` carries a comment explaining exactly this.
 Verified 2026-08-13: `just check-avr-target` runs clean from the workspace root with the root config's array in place.
 
+**A freshly linked ESP-IDF binary can still report an old `Compile time:` in its boot log when the persistent `build.build-dir` cache is warm.**
+The likely cause is the cached ESP-IDF CMake tree keeping its configure-time app-descriptor timestamp; the ELF itself is current.
+Do not read that line as a stale flash — compare the boot log's `ELF file SHA256:` against `shasum -a 256` of the just-built binary.
+Verified 2026-11-02: `idf_c3_rainbow` printed `Compile time: Sep 21 2026` while the Nov 2 ELF (`acbe0d4d8…`) matched the boot log; the timestamp's cause is inferred, not source-verified.
+
 ---
 
 ## Toolchain & Dependencies
