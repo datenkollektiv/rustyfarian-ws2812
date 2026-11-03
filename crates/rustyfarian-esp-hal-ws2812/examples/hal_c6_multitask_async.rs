@@ -45,8 +45,8 @@ use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::signal::Signal;
 use embassy_time::Timer;
 use esp_hal::{
-    gpio::{Input, InputConfig, Level, Pull},
-    rmt::{Rmt, TxChannelConfig, TxChannelCreator},
+    gpio::{Input, InputConfig, Pull},
+    rmt::Rmt,
     time::Rate,
     timer::timg::TimerGroup,
     Async,
@@ -54,7 +54,7 @@ use esp_hal::{
 use esp_println::println;
 use ferriswheel::{BreatheEffect, EffectError, MeteorEffect, RainbowCometEffect, SpinnerEffect};
 use rgb::RGB8;
-use rustyfarian_esp_hal_ws2812::{buffer_size, Ws2812Rmt, RMT_CLK_DIV};
+use rustyfarian_esp_hal_ws2812::{buffer_size, Ws2812Rmt};
 
 const NUM_LEDS: usize = 12;
 const N: usize = buffer_size(NUM_LEDS);
@@ -190,22 +190,12 @@ async fn main(spawner: Spawner) -> ! {
     let rmt = Rmt::new(peripherals.RMT, Rate::from_mhz(80))
         .unwrap()
         .into_async();
-    let config = TxChannelConfig::default()
-        .with_clk_divider(RMT_CLK_DIV)
-        .with_idle_output_level(Level::Low)
-        .with_idle_output(true)
-        .with_carrier_modulation(false);
-    let channel = rmt
-        .channel0
-        .configure_tx(&config)
-        .unwrap()
-        .with_pin(peripherals.GPIO18);
-
     // Configure button on GPIO9 (BOOT button on most C6 dev boards).
     let button_config = InputConfig::default().with_pull(Pull::Up);
     let button = Input::new(peripherals.GPIO9, button_config);
 
-    let ws: Ws2812Rmt<'_, Async, N> = Ws2812Rmt::new(channel);
+    let ws: Ws2812Rmt<'_, Async, N> =
+        Ws2812Rmt::from_channel_creator(rmt.channel0, peripherals.GPIO18).unwrap();
 
     println!("Peripherals configured, spawning tasks");
 

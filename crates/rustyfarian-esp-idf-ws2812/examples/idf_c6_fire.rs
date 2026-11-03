@@ -57,9 +57,7 @@ fn main() -> anyhow::Result<()> {
     let mut colors = [RGB8::default(); NUM_LEDS];
 
     loop {
-        effect
-            .update(&mut colors)
-            .map_err(|e| anyhow::anyhow!("{e:?}"))?;
+        effect.update(&mut colors)?;
         ws.set_pixels_slice(&colors)?;
         thread::sleep(Duration::from_millis(50));
     }

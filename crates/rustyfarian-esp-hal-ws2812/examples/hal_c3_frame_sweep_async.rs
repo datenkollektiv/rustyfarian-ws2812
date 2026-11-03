@@ -87,17 +87,14 @@ esp_bootloader_esp_idf::esp_app_desc!();
 use embassy_executor::Spawner;
 use embassy_time::{with_timeout, Duration, Timer};
 use esp_hal::{
-    gpio::Level,
-    rmt::{Rmt, TxChannelConfig, TxChannelCreator},
+    rmt::Rmt,
     time::{Instant, Rate},
     timer::timg::TimerGroup,
     Async,
 };
 use esp_println::println;
 use rgb::RGB8;
-use rustyfarian_esp_hal_ws2812::{
-    buffer_size, Error, LongFramePolicy, Ws2812Rmt, RMT_CLK_DIV, WS2812_RESET_US,
-};
+use rustyfarian_esp_hal_ws2812::{buffer_size, Error, LongFramePolicy, Ws2812Rmt, WS2812_RESET_US};
 
 const NUM_LEDS: usize = 64;
 const N: usize = buffer_size(NUM_LEDS);
@@ -211,18 +208,9 @@ async fn main(_spawner: Spawner) -> ! {
     let rmt = Rmt::new(peripherals.RMT, Rate::from_mhz(80))
         .unwrap()
         .into_async();
-    let config = TxChannelConfig::default()
-        .with_clk_divider(RMT_CLK_DIV)
-        .with_idle_output_level(Level::Low)
-        .with_idle_output(true)
-        .with_carrier_modulation(false);
-    let channel = rmt
-        .channel0
-        .configure_tx(&config)
+    let mut ws = Driver::from_channel_creator(rmt.channel0, peripherals.GPIO4)
         .unwrap()
-        .with_pin(peripherals.GPIO4);
-
-    let mut ws = Driver::new(channel).with_max_nominal_masked_us(None);
+        .with_max_nominal_masked_us(None);
     let mut frame = [RGB8::new(0, 0, 0); NUM_LEDS];
     let mut cycle: u32 = 0;
 

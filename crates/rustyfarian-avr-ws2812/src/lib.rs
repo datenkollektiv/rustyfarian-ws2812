@@ -147,6 +147,9 @@ pub enum SpiError<E> {
     Spi(E),
 }
 
+// `Display` already includes the encode error, so `source()` stays `None` to avoid printing it twice in error chains.
+impl<E: fmt::Debug> core::error::Error for SpiError<E> {}
+
 impl<E: fmt::Debug> fmt::Display for SpiError<E> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -295,6 +298,13 @@ mod tests {
     use super::*;
     use bunting::SpiEncodeError;
     use std::string::ToString;
+
+    #[test]
+    fn spi_error_is_core_error_without_source() {
+        let err: SpiError<()> = SpiError::Encode(SpiEncodeError::BufferTooSmall);
+        let err: &dyn core::error::Error = &err;
+        assert!(err.source().is_none());
+    }
 
     // --- spi_buffer_size tests -----------------------------------------------
 

@@ -72,6 +72,8 @@ pub enum SpiEncodeError {
     BufferTooSmall,
 }
 
+impl core::error::Error for SpiEncodeError {}
+
 impl core::fmt::Display for SpiEncodeError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
@@ -152,6 +154,12 @@ pub fn prerender_spi(colors: &[RGB8], buf: &mut [u8]) -> Result<(), SpiEncodeErr
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn spi_encode_error_is_core_error() {
+        let err: &dyn core::error::Error = &SpiEncodeError::BufferTooSmall;
+        assert!(err.source().is_none());
+    }
 
     #[test]
     fn test_rgb_to_grb_red() {

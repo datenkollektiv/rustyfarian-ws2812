@@ -137,12 +137,6 @@ const _: () = {
     assert!(latch_wait_us(Duration::from_secs(5)) == WS2812_RESET_US);
 };
 
-#[deprecated(
-    since = "0.6.0",
-    note = "use `Ws2812Rmt` for consistency with the esp-hal driver; planned removal in 0.7.0"
-)]
-pub type WS2812RMT<'a> = Ws2812Rmt<'a>;
-
 /// Transmits bytes using the C-side `BytesEncoder` directly, bypassing
 /// `send_and_wait` which wraps the encoder in a Rust `EncoderWrapper`.
 ///
