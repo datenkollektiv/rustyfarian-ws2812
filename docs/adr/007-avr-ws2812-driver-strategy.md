@@ -100,7 +100,7 @@ pub struct Ws2812BitBang { /* runtime port pointer + pin mask */ }
 Both backends share `ws2812-pure::rgb_to_grb` for color conversion.
 The bit-bang backend does not use `ws2812-pure::prerender_spi` (which is SPI-specific); it streams 24 bits per LED directly to a port pin via inline assembly.
 
-The `Ws2812BitBang::write` method wraps the asm in `avr_device::interrupt::free(..)` so global interrupts are disabled for the entire frame — the standard tradeoff used by `Adafruit_NeoPixel` and `FastLED`.
+The `Ws2812BitBang::set_pixels_slice` method wraps the asm in `avr_device::interrupt::free(..)` so global interrupts are disabled for the entire frame — the standard tradeoff used by `Adafruit_NeoPixel` and `FastLED`.
 
 ### Constraints (initial release)
 

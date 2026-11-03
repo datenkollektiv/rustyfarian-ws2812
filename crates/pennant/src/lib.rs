@@ -207,12 +207,15 @@ pub fn channel_on(value: u8, threshold: u8) -> bool {
 ///
 /// ```
 /// use pennant::PulseEffect;
+/// use rgb::RGB8;
 ///
 /// let mut pulse = PulseEffect::new();
-/// let base_color = (255, 0, 0); // Red
+/// let base_color = RGB8::new(255, 0, 0); // Red
 ///
 /// // Call update() in your main loop to get the next animation frame
 /// let current_color = pulse.update(base_color);
+/// // A (u8, u8, u8) tuple converts the same way
+/// let next_color = pulse.update((255, 0, 0));
 /// ```
 #[derive(Debug)]
 pub struct PulseEffect {
@@ -286,16 +289,17 @@ impl PulseEffect {
     ///
     /// # Arguments
     ///
-    /// * `rgb` - Base color as (red, green, blue) tuple
+    /// * `rgb` - Base colour, an [`RGB8`] or anything that converts into one, such as a `(u8, u8, u8)` tuple
     ///
     /// # Returns
     ///
     /// The color is scaled by the current brightness level
-    pub fn update(&mut self, rgb: (u8, u8, u8)) -> RGB8 {
+    pub fn update(&mut self, rgb: impl Into<RGB8>) -> RGB8 {
+        let rgb: RGB8 = rgb.into();
         let color = RGB8::new(
-            ((rgb.0 as u16 * self.brightness as u16) / 255) as u8,
-            ((rgb.1 as u16 * self.brightness as u16) / 255) as u8,
-            ((rgb.2 as u16 * self.brightness as u16) / 255) as u8,
+            ((rgb.r as u16 * self.brightness as u16) / 255) as u8,
+            ((rgb.g as u16 * self.brightness as u16) / 255) as u8,
+            ((rgb.b as u16 * self.brightness as u16) / 255) as u8,
         );
 
         if self.increasing {
@@ -543,6 +547,26 @@ mod tests {
             assert!(pulse.brightness() >= prev_brightness);
             prev_brightness = pulse.brightness();
         }
+    }
+
+    #[test]
+    fn test_update_accepts_rgb8_and_tuple_alike() {
+        // Full brightness so the scaling is the identity and the two inputs must match exactly.
+        let mut from_rgb8 = PulseEffect::with_range(0, 255, 1).unwrap();
+        let mut from_tuple = PulseEffect::with_range(0, 255, 1).unwrap();
+        for _ in 0..255 {
+            from_rgb8.update(RGB8::new(0, 0, 0));
+            from_tuple.update((0, 0, 0));
+        }
+        assert_eq!(from_rgb8.brightness(), 255);
+        assert_eq!(
+            from_rgb8.update(RGB8::new(12, 34, 56)),
+            from_tuple.update((12, 34, 56))
+        );
+        assert_eq!(
+            from_rgb8.update(RGB8::new(12, 34, 56)),
+            RGB8::new(12, 34, 56)
+        );
     }
 
     #[test]

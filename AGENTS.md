@@ -39,7 +39,7 @@ The `justfile` is the canonical interface — it handles target overrides, since
 | `just check-avr` / `just check-avr-target` | AVR driver on host / on real `avr-none` (nightly + `avr-gcc`) |
 | `just test` | Unit and doc tests on host target |
 | `just run <example>` | Flash an example to a connected ESP32 board |
-| `just build-example <crate> <name>` | Build an example without flashing |
+| `just build-example <name>` | Build an example without flashing |
 
 For ad-hoc cargo invocations on platform-independent crates, always pass `--target` (e.g. `--target aarch64-apple-darwin`) — the workspace default points at an embedded RISC-V target.
 

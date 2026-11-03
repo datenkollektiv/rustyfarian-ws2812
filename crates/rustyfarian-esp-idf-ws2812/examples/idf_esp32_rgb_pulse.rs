@@ -32,7 +32,7 @@
 //! ## Build
 //!
 //! ```sh
-//! just build-example idf-ws2812 idf_esp32_rgb_pulse
+//! just build-example idf_esp32_rgb_pulse
 //! ```
 //!
 //! ## Run (flash + serial monitor)

@@ -27,6 +27,13 @@ let mut buffer = [RGB8::default(); 12];
 rainbow.update(&mut buffer).unwrap();
 ```
 
+## Features
+
+| Feature             | Default | Description                                                           |
+|:--------------------|:--------|:----------------------------------------------------------------------|
+| `smart-leds-trait`  | no      | optional dependency; compile-time check that `rgb` versions match     |
+| `smart-leds-compat` | no      | alias of `smart-leds-trait`, kept for the 0.8 cycle; use the new name |
+
 ## Documentation
 
 Full API docs at [docs.rs/ferriswheel](https://docs.rs/ferriswheel).

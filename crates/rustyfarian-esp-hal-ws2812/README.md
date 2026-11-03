@@ -73,11 +73,11 @@ That block is 48 codes on ESP32-C3, ESP32-C6 and ESP32-S3, and 64 codes on ESP32
 Longer frames, which is two or more LEDs on the first three and three or more on ESP32, follow the `LongFramePolicy` set with `with_long_frame_policy`.
 The policy applies to both `Ws2812Rmt<'d, Blocking, N>` and `Ws2812Rmt<'d, Async, N>`.
 
-| Policy                      | Long frame behaviour                                                  | Interrupts                     | Use when                                          |
-|:----------------------------|:----------------------------------------------------------------------|:-------------------------------|:--------------------------------------------------|
-| `CriticalSection` (default) | Refill runs with interrupts masked; capped by the masked-time ceiling | Masked, about 1.25 µs per code | Radio firmware that accepts a short masked window |
-| `Poll`                      | Refill busy-polls with interrupts live, bounded by the same timeout   | Live                           | Long strips on firmware without a radio           |
-| `Reject`                    | Returns `Error::FrameTooLong` and sends nothing                       | Never masked                   | Firmware that must never mask or corrupt output   |
+| Policy                      | Long frame behaviour                                                  | Interrupts                        | Use when                                          |
+|:----------------------------|:----------------------------------------------------------------------|:----------------------------------|:--------------------------------------------------|
+| `CriticalSection` (default) | Refill runs with interrupts masked; capped by the masked-time ceiling | Masked, about 1.1–1.3 µs per code | Radio firmware that accepts a short masked window |
+| `Poll`                      | Refill busy-polls with interrupts live, bounded by the same timeout   | Live                              | Long strips on firmware without a radio           |
+| `Reject`                    | Returns `Error::FrameTooLong` and sends nothing                       | Never masked                      | Firmware that must never mask or corrupt output   |
 
 `CriticalSection` costs about 0.36 ms for 12 LEDs and 1.9 ms for 64 LEDs with interrupts masked.
 The ceiling caps the estimated nominal masked time, 1.3 µs per code, at a default of 1000 µs (32 LEDs); a longer frame returns `Error::FrameTooLong` and sends nothing.

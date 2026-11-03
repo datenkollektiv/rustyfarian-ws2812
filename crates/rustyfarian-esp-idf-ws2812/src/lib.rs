@@ -21,6 +21,11 @@
 //! led.set_pixels_slice(&colors)?;
 //! ```
 //!
+//! # Pulse timing
+//!
+//! The driver emits the shared `bunting` timings at the 10 MHz RMT resolution: T0H 300 ns, T0L 800 ns, T1H 700 ns and T1L 600 ns.
+//! Each is a whole 100 ns tick, so the RMT driver does not round any of them.
+//!
 //! # Frame spacing (latch)
 //!
 //! The LEDs latch a frame after the data line has been low for at least [`WS2812_RESET_US`] (280 µs).
@@ -33,7 +38,7 @@
 //!
 //! # Long frames and radios
 //!
-//! A frame that fits in one RMT memory block (48 symbols, so 2 LEDs with the default configuration) is loaded before the transmit starts.
+//! A frame that fits in one RMT memory block (48 symbols on ESP32-C3, C6, S3 and H2, 64 on ESP32 and S2, so 2 LEDs with the default configuration) is loaded before the transmit starts.
 //! Longer frames are refilled from the RMT interrupt service routine while the frame is on the wire.
 //! This tolerates task latency, for example while the Wi-Fi or Bluetooth tasks run, but it is not hard real time.
 //! The RMT ISR is not IRAM-safe by default (`CONFIG_RMT_ISR_IRAM_SAFE` is `n` in ESP-IDF v5.3.3), so a flash-cache disable during a frame, as caused by an NVS or flash write or an OTA update, could in principle delay a refill.
@@ -63,8 +68,7 @@
 // Built against esp-idf-hal 0.47 (TxChannelDriver and BytesEncoder arrived in 0.46).
 // Uses a workaround for a send_and_wait bug present in 0.46.2 and still
 // unfixed in 0.47.0 (see transmit_bytes and ROADMAP.md).
-use anyhow::Result;
-use bunting::rgb_to_grb;
+use bunting::rgb_to_grb_bytes;
 use core::time::Duration;
 use esp_idf_hal::{
     delay::Ets,
@@ -106,12 +110,89 @@ pub struct Ws2812Rmt<'a> {
 
 /// Minimum low time in microseconds between two frames, so the LEDs latch the previous one.
 ///
-/// The WS2812B datasheet asks for at least 280 µs; older WS2812 parts need only 50 µs.
+/// Re-exported from `bunting`, which owns the value and the datasheet reasoning.
 /// The driver waits for the remainder of this interval before it starts a frame
-/// that follows the previous one too closely.
-/// This mirrors the constant of the same name in `rustyfarian-esp-hal-ws2812`;
+/// that follows the previous one too closely;
 /// see [Frame spacing (latch)](crate#frame-spacing-latch).
-pub const WS2812_RESET_US: u32 = 280;
+#[doc(inline)]
+pub use bunting::WS2812_RESET_US;
+
+/// Re-exported so callers can name the cause carried by [`Error`] without a direct `esp-idf-sys` dependency.
+pub use esp_idf_hal::sys::EspError;
+
+/// Lowest RMT resolution that times the WS2812 pulses, 100 ns per tick.
+///
+/// [`Ws2812Rmt::new`] uses it, and [`Ws2812Rmt::new_with_channel_config`] rejects anything below it with [`Error::ResolutionTooLow`].
+pub const MIN_RESOLUTION_HZ: u32 = 10_000_000;
+
+/// Error returned by the WS2812 RMT driver.
+///
+/// Every variant leaves the driver in a usable state.
+/// `Channel` and `Timing` occur only in the constructors, which then return no driver, so the caller can retry with another pin or configuration.
+/// `Encoder` and `Transmit` occur during a send: that frame was not sent, and the driver stays usable.
+/// `Transmit` means this frame failed; the driver stays usable and the next call sends a fresh frame.
+///
+/// `Display` names the failed stage only, apart from the `CONFIG_RMT_ISR_IRAM_SAFE` hint on `Channel`.
+/// Print the error with `{:?}` or walk [`core::error::Error::source`] to see the ESP-IDF code; `anyhow`'s `Debug` output does the latter.
+/// The ESP-IDF cause is available through [`core::error::Error::source`], so error reporters that walk the source chain print it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum Error {
+    /// The channel resolution is below 10 MHz, so the WS2812 pulses cannot be timed.
+    ResolutionTooLow {
+        /// The rejected resolution in hertz.
+        hz: u32,
+    },
+    /// The RMT TX channel could not be created, for example because no TX channel is free.
+    ///
+    /// With `CONFIG_RMT_ISR_IRAM_SAFE` enabled this fails with `ESP_ERR_INVALID_ARG`, and `Display` names the setting as the likely cause.
+    /// See [Long frames and radios](crate#long-frames-and-radios).
+    Channel(EspError),
+    /// The RMT driver rejected one of the WS2812 pulse timings.
+    Timing(EspError),
+    /// The RMT bytes encoder, created for each send, could not be created; the frame was not sent.
+    Encoder(EspError),
+    /// Starting or completing a transmission failed; this frame was not sent completely.
+    Transmit(EspError),
+}
+
+impl core::fmt::Display for Error {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::ResolutionTooLow { hz } => write!(
+                f,
+                "RMT resolution must be at least {} MHz for WS2812 timing (got {hz} Hz)",
+                MIN_RESOLUTION_HZ / 1_000_000
+            ),
+            // esp-idf-hal 0.47 registers a flash-resident transmit-done callback, which ESP-IDF rejects
+            // with ESP_ERR_INVALID_ARG when the RMT ISR is IRAM-safe. Other invalid configurations return
+            // the same code, so the text names the setting as the likely cause, not the certain one.
+            #[cfg(esp_idf_rmt_isr_iram_safe)]
+            Self::Channel(e)
+                if e.code() == esp_idf_hal::sys::ESP_ERR_INVALID_ARG as esp_idf_hal::sys::esp_err_t =>
+            {
+                f.write_str(
+                    "RMT TX channel creation failed with ESP_ERR_INVALID_ARG; CONFIG_RMT_ISR_IRAM_SAFE is enabled, \
+                     which esp-idf-hal 0.47 does not support (its transmit-done callback is not in IRAM), \
+                     so check that setting first",
+                )
+            }
+            Self::Channel(_) => f.write_str("RMT TX channel creation failed"),
+            Self::Timing(_) => f.write_str("WS2812 pulse timing rejected by the RMT driver"),
+            Self::Encoder(_) => f.write_str("RMT bytes encoder creation failed"),
+            Self::Transmit(_) => f.write_str("RMT transmission failed"),
+        }
+    }
+}
+
+impl core::error::Error for Error {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+        match self {
+            Self::ResolutionTooLow { .. } => None,
+            Self::Channel(e) | Self::Timing(e) | Self::Encoder(e) | Self::Transmit(e) => Some(e),
+        }
+    }
+}
 
 /// Whole microseconds to busy-wait for `remaining` of the latch interval, rounded up and capped at [`WS2812_RESET_US`].
 ///
@@ -157,7 +238,7 @@ fn transmit_bytes(
     encoder_config: &BytesEncoderConfig,
     next_frame_at: &mut Option<Instant>,
     bytes: &[u8],
-) -> Result<()> {
+) -> Result<(), Error> {
     if let Some(deadline) = *next_frame_at {
         let wait_us = latch_wait_us(deadline.saturating_duration_since(Instant::now()));
         if wait_us > 0 {
@@ -173,26 +254,27 @@ fn send_and_wait_done(
     tx: &mut TxChannelDriver<'_>,
     encoder_config: &BytesEncoderConfig,
     bytes: &[u8],
-) -> Result<()> {
-    let mut encoder = BytesEncoder::with_config(encoder_config)?;
+) -> Result<(), Error> {
+    let mut encoder = BytesEncoder::with_config(encoder_config).map_err(Error::Encoder)?;
     // SAFETY: `encoder` and `bytes` live until `wait_all_done` returns.
     unsafe {
-        tx.start_send(&mut encoder, bytes, &TransmitConfig::default())?;
+        tx.start_send(&mut encoder, bytes, &TransmitConfig::default())
+            .map_err(Error::Transmit)?;
     }
-    tx.wait_all_done(None)?;
+    tx.wait_all_done(None).map_err(Error::Transmit)?;
     Ok(())
 }
 
 impl<'d> Ws2812Rmt<'d> {
     /// Creates a new WS2812 driver with default channel configuration.
     ///
-    /// The default uses one RMT memory block of 48 symbols, which is the block
-    /// size on ESP32-C3, ESP32-C6 and ESP32-S3. The C3 and C6 have only two TX
-    /// channels, so the ESP-IDF default of 64 symbols would round up to two blocks
-    /// and exhaust all available TX candidates.
+    /// The default uses one RMT memory block, whose size is
+    /// `SOC_RMT_MEM_WORDS_PER_CHANNEL`: 48 symbols on ESP32-C3, C6, S3 and H2, and 64 on ESP32 and S2.
+    /// ESP-IDF rejects a smaller value, so a fixed 48 could not create a channel on ESP32 or S2.
+    /// The C3 and C6 have only two TX channels, so one block per driver matters:
+    /// the ESP-IDF default of 64 symbols would round up to two blocks there and exhaust all available TX candidates.
     ///
-    /// For the classic ESP32 and the S2, where each block holds 64 symbols, use [`new_with_channel_config`] to pass an appropriate
-    /// `TxChannelConfig`.
+    /// Use [`new_with_channel_config`] to tune the memory block size, DMA usage or other channel parameters.
     ///
     /// # Arguments
     ///
@@ -205,13 +287,14 @@ impl<'d> Ws2812Rmt<'d> {
     /// ```
     ///
     /// [`new_with_channel_config`]: Ws2812Rmt::new_with_channel_config
-    pub fn new(led: impl OutputPin + 'd) -> Result<Self> {
-        // 48 symbols = one RMT memory block on ESP32-C3/C6 (default 64 would round
-        // up to 2 blocks, exhausting all TX channels on chips with only 2).
+    pub fn new(led: impl OutputPin + 'd) -> Result<Self, Error> {
+        // One RMT memory block for this chip: 48 symbols on ESP32-C3/C6/S3/H2, 64 on ESP32/S2.
+        // The ESP-IDF default of 64 would round up to 2 blocks on chips with 48-symbol blocks,
+        // exhausting their two TX channels.
         let channel_config = TxChannelConfig {
-            resolution: Hertz(10_000_000), // 100 ns/tick
+            resolution: Hertz(MIN_RESOLUTION_HZ), // 100 ns/tick
             memory_access: MemoryAccess::Indirect {
-                memory_block_symbols: 48,
+                memory_block_symbols: esp_idf_hal::sys::SOC_RMT_MEM_WORDS_PER_CHANNEL as usize,
             },
             ..Default::default()
         };
@@ -220,8 +303,7 @@ impl<'d> Ws2812Rmt<'d> {
 
     /// Creates a new WS2812 driver with a custom `TxChannelConfig`.
     ///
-    /// Use this when targeting ESP32 variants other than C3/C6, or when you
-    /// need to tune memory block size, DMA usage, or other channel parameters.
+    /// Use this when you need to tune memory block size, DMA usage, or other channel parameters.
     ///
     /// The RMT channel resolution (`channel_config.resolution`) is used to derive
     /// WS2812 pulse durations and must be at least `Hertz(10_000_000)` (100 ns/tick)
@@ -230,10 +312,11 @@ impl<'d> Ws2812Rmt<'d> {
     ///
     /// # Errors
     ///
-    /// - The resolution is below 10 MHz.
-    /// - The RMT channel cannot be created, for example when no TX channel is free.
+    /// - [`Error::ResolutionTooLow`]: the resolution is below 10 MHz.
+    /// - [`Error::Channel`]: the RMT channel cannot be created, for example when no TX channel is free.
     ///   With `CONFIG_RMT_ISR_IRAM_SAFE` enabled it fails with `ESP_ERR_INVALID_ARG`, and the error names the setting as the likely cause.
     ///   See [Long frames and radios](crate#long-frames-and-radios).
+    /// - [`Error::Timing`] and [`Error::Encoder`]: the RMT driver rejected a pulse timing or the bytes encoder.
     ///
     /// # Arguments
     ///
@@ -257,38 +340,21 @@ impl<'d> Ws2812Rmt<'d> {
     pub fn new_with_channel_config(
         led: impl OutputPin + 'd,
         channel_config: TxChannelConfig,
-    ) -> Result<Self> {
+    ) -> Result<Self, Error> {
         let resolution = channel_config.resolution;
-        anyhow::ensure!(
-            resolution.0 >= 10_000_000,
-            "RMT resolution must be >= 10 MHz for WS2812 timing (got {} Hz)",
-            resolution.0
-        );
-        let tx = TxChannelDriver::new(led, &channel_config);
-        // esp-idf-hal 0.47 registers a flash-resident transmit-done callback, which ESP-IDF rejects
-        // with ESP_ERR_INVALID_ARG when the RMT ISR is IRAM-safe. Other invalid configurations return
-        // the same code, so the context names the setting as the likely cause, not the certain one.
-        #[cfg(esp_idf_rmt_isr_iram_safe)]
-        let tx = tx.map_err(|e| {
-            let iram_rejection =
-                e.code() == esp_idf_hal::sys::ESP_ERR_INVALID_ARG as esp_idf_hal::sys::esp_err_t;
-            let err = anyhow::Error::from(e);
-            if iram_rejection {
-                err.context(
-                    "RMT TX channel rejected with ESP_ERR_INVALID_ARG; CONFIG_RMT_ISR_IRAM_SAFE is enabled, \
-                     which esp-idf-hal 0.47 does not support (its transmit-done callback is not in IRAM), \
-                     so check that setting first",
-                )
-            } else {
-                err
-            }
-        });
-        let tx = tx?;
+        if resolution.0 < MIN_RESOLUTION_HZ {
+            return Err(Error::ResolutionTooLow { hz: resolution.0 });
+        }
+        let tx = TxChannelDriver::new(led, &channel_config).map_err(Error::Channel)?;
 
-        let t0h = Pulse::new_with_duration(resolution, PinState::High, Duration::from_nanos(350))?;
-        let t0l = Pulse::new_with_duration(resolution, PinState::Low, Duration::from_nanos(800))?;
-        let t1h = Pulse::new_with_duration(resolution, PinState::High, Duration::from_nanos(700))?;
-        let t1l = Pulse::new_with_duration(resolution, PinState::Low, Duration::from_nanos(600))?;
+        let pulse = |state, ns: u32| {
+            Pulse::new_with_duration(resolution, state, Duration::from_nanos(ns as u64))
+                .map_err(Error::Timing)
+        };
+        let t0h = pulse(PinState::High, bunting::WS2812_T0H_NS)?;
+        let t0l = pulse(PinState::Low, bunting::WS2812_T0L_NS)?;
+        let t1h = pulse(PinState::High, bunting::WS2812_T1H_NS)?;
+        let t1l = pulse(PinState::Low, bunting::WS2812_T1L_NS)?;
 
         let encoder_config = BytesEncoderConfig {
             bit0: Symbol::new(t0h, t0l),
@@ -307,9 +373,8 @@ impl<'d> Ws2812Rmt<'d> {
     /// Sets a single pixel color.
     ///
     /// Use this for single-LED indicators or when updating one pixel at a time.
-    pub fn set_pixel(&mut self, rgb: RGB8) -> Result<()> {
-        let grb = rgb_to_grb(rgb);
-        let bytes = [(grb >> 16) as u8, (grb >> 8) as u8, grb as u8];
+    pub fn set_pixel(&mut self, rgb: RGB8) -> Result<(), Error> {
+        let bytes = rgb_to_grb_bytes(rgb);
         transmit_bytes(
             &mut self.tx,
             &self.encoder_config,
@@ -326,13 +391,10 @@ impl<'d> Ws2812Rmt<'d> {
     /// # Arguments
     ///
     /// * `rgbs` - Slice of colors, one per pixel in order
-    pub fn set_pixels_slice(&mut self, rgbs: &[RGB8]) -> Result<()> {
+    pub fn set_pixels_slice(&mut self, rgbs: &[RGB8]) -> Result<(), Error> {
         let mut bytes = Vec::with_capacity(rgbs.len() * 3);
         for rgb in rgbs {
-            let grb = rgb_to_grb(*rgb);
-            bytes.push((grb >> 16) as u8);
-            bytes.push((grb >> 8) as u8);
-            bytes.push(grb as u8);
+            bytes.extend_from_slice(&rgb_to_grb_bytes(*rgb));
         }
         if bytes.is_empty() {
             return Ok(());
@@ -348,7 +410,7 @@ impl<'d> Ws2812Rmt<'d> {
 
 #[cfg(feature = "pennant")]
 impl pennant::StatusLed for Ws2812Rmt<'_> {
-    type Error = anyhow::Error;
+    type Error = Error;
 
     fn set_color(&mut self, color: RGB8) -> Result<(), Self::Error> {
         self.set_pixel(color)
@@ -356,7 +418,7 @@ impl pennant::StatusLed for Ws2812Rmt<'_> {
 }
 
 impl smart_leds_trait::SmartLedsWrite for Ws2812Rmt<'_> {
-    type Error = anyhow::Error;
+    type Error = Error;
     type Color = smart_leds_trait::RGB8;
 
     /// Writes a sequence of colors to the LED strip.
@@ -383,10 +445,7 @@ impl smart_leds_trait::SmartLedsWrite for Ws2812Rmt<'_> {
         let mut bytes = Vec::new();
         for item in iterator {
             let rgb: RGB8 = item.into();
-            let grb = rgb_to_grb(rgb);
-            bytes.push((grb >> 16) as u8);
-            bytes.push((grb >> 8) as u8);
-            bytes.push(grb as u8);
+            bytes.extend_from_slice(&rgb_to_grb_bytes(rgb));
         }
         if bytes.is_empty() {
             return Ok(());
@@ -421,5 +480,36 @@ mod tests {
         assert_eq!(rgb_color.r, 10);
         assert_eq!(rgb_color.g, 20);
         assert_eq!(rgb_color.b, 30);
+    }
+
+    // --- Error tests ---------------------------------------------------------
+
+    #[test]
+    fn wrapping_variants_expose_their_source() {
+        use core::error::Error as _;
+        let cause = EspError::from_infallible::<
+            { esp_idf_hal::sys::ESP_ERR_INVALID_ARG as esp_idf_hal::sys::esp_err_t },
+        >();
+        for err in [
+            Error::Channel(cause),
+            Error::Timing(cause),
+            Error::Encoder(cause),
+            Error::Transmit(cause),
+        ] {
+            assert!(err.source().is_some(), "{err:?} must carry its cause");
+        }
+    }
+
+    #[test]
+    fn resolution_too_low_has_no_source() {
+        use core::error::Error as _;
+        assert!(Error::ResolutionTooLow { hz: 1_000_000 }.source().is_none());
+    }
+
+    #[test]
+    fn resolution_too_low_display_names_the_minimum() {
+        let text = Error::ResolutionTooLow { hz: 1_000_000 }.to_string();
+        assert!(text.contains("10 MHz"), "{text}");
+        assert!(text.contains("1000000"), "{text}");
     }
 }

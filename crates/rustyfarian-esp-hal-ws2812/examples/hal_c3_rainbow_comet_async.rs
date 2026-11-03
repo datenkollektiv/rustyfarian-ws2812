@@ -41,7 +41,7 @@
 //! ## Build
 //!
 //! ```sh
-//! just build-example hal-ws2812 hal_c3_rainbow_comet_async
+//! just build-example hal_c3_rainbow_comet_async
 //! ```
 //!
 //! ## Run (flash and monitor)

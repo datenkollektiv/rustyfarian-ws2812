@@ -95,10 +95,11 @@ pub use spinner::SpinnerEffect;
 pub use twinkle::TwinkleEffect;
 pub use util::{fill_solid, lerp_color, scale_brightness, sine_full, sine_wave};
 
-// When `smart-leds-compat` is enabled, this forces `smart-leds-trait` into the
+// When `smart-leds-trait` is enabled, this forces `smart-leds-trait` into the
 // dependency graph and makes compilation fail if its `rgb::RGB8` differs from
 // ours — i.e. if the two crates resolve to incompatible `rgb` versions.
-#[cfg(feature = "smart-leds-compat")]
+// `smart-leds-compat` enables the same check through its alias.
+#[cfg(feature = "smart-leds-trait")]
 fn _assert_rgb8_same(c: rgb::RGB8) -> smart_leds_trait::RGB8 {
     c
 }

@@ -15,7 +15,7 @@
 //! - **Pin:** any pin on PORTB / PORTC / PORTD. All three ports lie in the
 //!   `sbi`/`cbi` low I/O-address range (0x00–0x1F) on the ATmega328P.
 //!   See [`ports`] for the constants.
-//! - **Interrupts:** disabled internally for the duration of each `write` call,
+//! - **Interrupts:** disabled internally for the duration of each `set_pixels_slice` call,
 //!   via `avr_device::interrupt::free`. Timing is mandatory, not opportunistic.
 //!
 //! # Example
@@ -32,7 +32,7 @@
 //! let mut driver: Ws2812BitBang<_, { ports::PORTB }, 3> = Ws2812BitBang::new(pin);
 //!
 //! let colors = [RGB8::new(8, 0, 0); 10]; // dim red across 10 LEDs
-//! driver.write(&colors).ok();
+//! driver.set_pixels_slice(&colors).ok();
 //! ```
 
 use core::fmt;
@@ -53,14 +53,14 @@ pub mod ports {
     pub const PORTD: u8 = 0x0B;
 }
 
-/// Errors returned by [`Ws2812BitBang::write`].
+/// Errors returned by [`Ws2812BitBang::set_pixels_slice`].
 ///
 /// The current implementation is infallible — the variant is reserved so adding
 /// recoverable error cases later (e.g. timeout on a future async variant) does
 /// not break the public API.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BitBangError {
-    /// Reserved. The current bit-bang `write` cannot fail.
+    /// Reserved. The current bit-bang `set_pixels_slice` cannot fail.
     #[doc(hidden)]
     Infallible,
 }
@@ -86,7 +86,7 @@ impl fmt::Display for BitBangError {
 ///
 /// This driver only emits real WS2812 timing on AVR.
 /// On non-AVR builds (e.g. `cargo test` on the host) the type is still defined
-/// and [`write`](Self::write) is a no-op that returns `Ok(())` — see that method's
+/// and [`set_pixels_slice`](Self::set_pixels_slice) is a no-op that returns `Ok(())` — see that method's
 /// docs for the rationale and the "compiled for the wrong target" caveat.
 ///
 /// # Compile-time validation
@@ -144,6 +144,8 @@ impl<P, const PORT_ADDR: u8, const PIN_BIT: u8> Ws2812BitBang<P, PORT_ADDR, PIN_
     pub const fn new(pin: P) -> Self {
         // Force monomorphisation-time evaluation of `VALIDATE`. The `let _` keeps
         // the reference live in `const fn` context.
+        // Newer clippy flags the unit binding, but it is what forces the evaluation.
+        #[allow(clippy::let_unit_value)]
         let _ = Self::VALIDATE;
         Self { _pin: pin }
     }
@@ -165,12 +167,12 @@ impl<P, const PORT_ADDR: u8, const PIN_BIT: u8> Ws2812BitBang<P, PORT_ADDR, PIN_
     ///
     /// **Caveat:** if you accidentally build for a non-AVR target (e.g. you forget
     /// `--target avr-none` or omit `[build] target = "avr-none"` in `.cargo/config.toml`),
-    /// `write` will silently succeed and *no LEDs will light*. Always double-check the
+    /// `set_pixels_slice` will silently succeed and *no LEDs will light*. Always double-check the
     /// build target when LEDs unexpectedly stay dark — `cargo build --release` from a
     /// host shell with no AVR target configured produces a host-architecture binary that
     /// cannot drive real hardware.
     #[allow(unused_variables)] // `colors` is consumed by the AVR cfg branch only.
-    pub fn write(&mut self, colors: &[RGB8]) -> Result<(), BitBangError> {
+    pub fn set_pixels_slice(&mut self, colors: &[RGB8]) -> Result<(), BitBangError> {
         #[cfg(target_arch = "avr")]
         {
             with_interrupts_disabled(|| {
@@ -190,6 +192,24 @@ impl<P, const PORT_ADDR: u8, const PIN_BIT: u8> Ws2812BitBang<P, PORT_ADDR, PIN_
         Ok(())
     }
 
+    /// Sends a one-LED frame with `rgb`.
+    ///
+    /// Only the first LED of the chain is addressed.
+    /// The rest of the chain keeps the colour it last latched, the same contract as `set_pixel` on the ESP drivers.
+    ///
+    /// Interrupts are disabled internally for the frame, exactly as in
+    /// [`set_pixels_slice`](Self::set_pixels_slice).
+    pub fn set_pixel(&mut self, rgb: RGB8) -> Result<(), BitBangError> {
+        self.set_pixels_slice(&[rgb])
+    }
+
+    /// Deprecated alias of [`set_pixels_slice`](Self::set_pixels_slice).
+    #[deprecated(since = "0.8.0", note = "renamed to `set_pixels_slice`")]
+    #[inline]
+    pub fn write(&mut self, colors: &[RGB8]) -> Result<(), BitBangError> {
+        self.set_pixels_slice(colors)
+    }
+
     /// Consume the driver and return the wrapped pin so the caller can repurpose it.
     pub fn release(self) -> P {
         self._pin
@@ -200,7 +220,7 @@ impl<P, const PORT_ADDR: u8, const PIN_BIT: u8> Ws2812BitBang<P, PORT_ADDR, PIN_
 ///
 /// Provides ecosystem parity with [`smart-leds`] consumers (sister ESP drivers
 /// implement the same trait). Internally, the iterator is collected into a
-/// stack-allocated `[RGB8; 256]` and forwarded to [`Ws2812BitBang::write`].
+/// stack-allocated `[RGB8; 256]` and forwarded to [`Ws2812BitBang::set_pixels_slice`].
 ///
 /// # Stack cost
 ///
@@ -210,7 +230,7 @@ impl<P, const PORT_ADDR: u8, const PIN_BIT: u8> Ws2812BitBang<P, PORT_ADDR, PIN_
 /// headroom for arrays, `core::fmt` machinery, or interrupt-context frames.
 ///
 /// If you don't need the iterator-based ergonomics, prefer the inherent
-/// [`Ws2812BitBang::write`] which takes a `&[RGB8]` directly and **allocates no
+/// [`Ws2812BitBang::set_pixels_slice`] which takes a `&[RGB8]` directly and **allocates no
 /// adapter buffer**: pass a `[RGB8; NUM_LEDS]` you already own (e.g. the one a
 /// `ferriswheel::Effect` writes into).
 ///
@@ -219,7 +239,13 @@ impl<P, const PORT_ADDR: u8, const PIN_BIT: u8> Ws2812BitBang<P, PORT_ADDR, PIN_
 /// Iterators with more than `256` items are silently truncated to the first
 /// 256 colors — the cap matches [`ferriswheel::effect::MAX_LEDS`]. This avoids
 /// dynamic allocation while staying within the workspace's pure-logic contract.
-/// If you need longer chains, use the inherent `write` with a slice of any length.
+/// If you need longer chains, use the inherent `set_pixels_slice` with a slice of any length.
+///
+/// # Method resolution
+///
+/// The trait method is also called `write`, and the deprecated inherent alias `write` shadows it
+/// for plain method-call syntax.
+/// Call the trait explicitly with `SmartLedsWrite::write(&mut driver, iter)`.
 ///
 /// [`smart-leds`]: https://crates.io/crates/smart-leds
 /// [`ferriswheel::effect::MAX_LEDS`]: https://docs.rs/ferriswheel/latest/ferriswheel/effect/constant.MAX_LEDS.html
@@ -245,6 +271,21 @@ impl<P, const PORT_ADDR: u8, const PIN_BIT: u8> smart_leds_trait::SmartLedsWrite
             buf[count] = color.into();
             count += 1;
         }
-        Self::write(self, &buf[..count])
+        self.set_pixels_slice(&buf[..count])
+    }
+}
+
+/// `pennant::StatusLed` adapter for [`Ws2812BitBang`].
+///
+/// Drives one LED: `set_color` sends a one-LED frame through [`Ws2812BitBang::set_pixel`].
+/// Interrupts are disabled internally for the frame, so the caller adds no critical section.
+#[cfg(feature = "pennant")]
+impl<P, const PORT_ADDR: u8, const PIN_BIT: u8> pennant::StatusLed
+    for Ws2812BitBang<P, PORT_ADDR, PIN_BIT>
+{
+    type Error = BitBangError;
+
+    fn set_color(&mut self, color: RGB8) -> Result<(), Self::Error> {
+        self.set_pixel(color)
     }
 }

@@ -16,7 +16,7 @@ idf_dir="${3:-target/idf}"
 
 prefix=$(printf '%s' "$example" | cut -d_ -f1)
 case "$prefix" in
-    hal) "$SCRIPT_DIR/run-example.sh" hal-ws2812 "$example" "$hal_dir" "$idf_dir" ;;
-    idf) "$SCRIPT_DIR/run-example.sh" idf-ws2812 "$example" "$hal_dir" "$idf_dir" ;;
+    hal|idf) ;;
     *) printf 'Unknown driver prefix "%s". Expected hal or idf (e.g., hal_c6_rainbow)\n' "$prefix" >&2; exit 1 ;;
 esac
+"$SCRIPT_DIR/run-example.sh" "$example" "$hal_dir" "$idf_dir"

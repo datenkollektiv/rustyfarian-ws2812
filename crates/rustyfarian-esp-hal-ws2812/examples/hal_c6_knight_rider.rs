@@ -28,7 +28,7 @@
 //! ## Build
 //!
 //! ```sh
-//! just build-example hal-ws2812 hal_c6_knight_rider
+//! just build-example hal_c6_knight_rider
 //! ```
 //!
 //! ## Flash

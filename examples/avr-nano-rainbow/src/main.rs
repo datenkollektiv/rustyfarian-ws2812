@@ -72,7 +72,7 @@ fn main() -> ! {
         effect.update(&mut colors).ok();
         // Bit-bang driver wraps the asm in `interrupt::free` internally —
         // no critical-section boilerplate needed at the call site.
-        driver.write(&colors).ok();
+        driver.set_pixels_slice(&colors).ok();
         arduino_hal::delay_ms(50);
     }
 }

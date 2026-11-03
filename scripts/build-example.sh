@@ -1,38 +1,31 @@
 #!/usr/bin/env bash
 set -euo pipefail
 # build-example.sh — build a driver example for a given chip
-# Usage: scripts/build-example.sh <crate_alias> <example> [hal_dir [idf_dir]]
-#   crate_alias: hal-ws2812 | idf-ws2812
-#   example:     {driver}_{chip}_{name}  e.g. hal_c6_rainbow, idf_c3_rainbow
+# Usage: scripts/build-example.sh <example> [hal_dir [idf_dir]]
+#   example: {driver}_{chip}_{name}  e.g. hal_c6_rainbow, idf_c3_rainbow
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=./lib.sh
 . "$SCRIPT_DIR/lib.sh"
 
-if [ $# -lt 2 ]; then
-    printf 'Usage: %s <crate_alias> <example>\n  crate_alias: hal-ws2812 | idf-ws2812\n  example:     {driver}_{chip}_{name}  e.g. hal_c6_pulse, idf_c3_rainbow\n' "$0" >&2
+if [ $# -lt 1 ]; then
+    printf 'Usage: %s <example> [hal_dir [idf_dir]]\n  example: {driver}_{chip}_{name}  e.g. hal_c6_pulse, idf_c3_rainbow\n' "$0" >&2
     exit 2
 fi
 
-crate_alias="$1"
-example="$2"
-hal_dir="${3:-target/hal}"
-idf_dir="${4:-target/idf}"
+example="$1"
+hal_dir="${2:-target/hal}"
+idf_dir="${3:-target/idf}"
 
 prefix=$(printf '%s' "$example" | cut -d_ -f1)
 chip=$(printf '%s' "$example" | cut -d_ -f2)
 
-# Derive package from example prefix and validate the caller-provided crate_alias matches.
-# Accepting crate_alias separately was redundant: prefix already identifies the crate unambiguously.
+# Derive the package from the example prefix; the prefix alone identifies the crate.
 case "$prefix" in
-    hal) pkg="rustyfarian-esp-hal-ws2812" ; expected_alias="hal-ws2812" ;;
-    idf) pkg="rustyfarian-esp-idf-ws2812" ; expected_alias="idf-ws2812" ;;
+    hal) pkg="rustyfarian-esp-hal-ws2812" ;;
+    idf) pkg="rustyfarian-esp-idf-ws2812" ;;
     *) printf 'Unknown driver prefix "%s" in example "%s". Supported: hal, idf\n' "$prefix" "$example" >&2; exit 1 ;;
 esac
-if [ "$crate_alias" != "$expected_alias" ]; then
-    printf 'Crate alias "%s" does not match example prefix "%s" (expected "%s")\n' "$crate_alias" "$prefix" "$expected_alias" >&2
-    exit 1
-fi
 
 case "$prefix" in
     hal)

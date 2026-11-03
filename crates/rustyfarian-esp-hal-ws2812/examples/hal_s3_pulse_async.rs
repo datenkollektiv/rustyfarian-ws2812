@@ -2,6 +2,7 @@
 //!
 //! Pulses the first LED of the Elecrow CrowPanel 1.28" knob's WS2812 ring in blue via the
 //! async RMT driver; [`AsyncStatusLed`] drives one status LED (`hal_s3_pulse` pulses all five).
+//! The ring is cleared once at start, so the other four LEDs stay dark.
 //! The animation loop uses [`embassy_time::Timer`] to yield between frames.
 //!
 //! See also `hal_esp32_pulse_async.rs`, `hal_c3_pulse_async.rs`, and `hal_c6_pulse_async.rs`.
@@ -21,7 +22,7 @@
 //! ## Build
 //!
 //! ```sh
-//! just build-example hal-ws2812 hal_s3_pulse_async
+//! just build-example hal_s3_pulse_async
 //! ```
 //!
 //! ## Flash
@@ -69,6 +70,12 @@ async fn main(_spawner: Spawner) -> ! {
         .unwrap()
         .into_async();
     let mut ws = Ws2812Rmt::<_, N>::from_channel_creator(rmt.channel0, peripherals.GPIO48).unwrap();
+
+    // Clear the whole ring once. `AsyncStatusLed` below drives only the first LED, and the
+    // others would keep whatever the previous firmware latched.
+    ws.set_pixels_slice(&[RGB8::default(); NUM_LEDS])
+        .await
+        .unwrap();
 
     let base_color = RGB8::new(0, 0, 255);
     let mut brightness: u8 = 0;

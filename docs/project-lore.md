@@ -192,6 +192,15 @@ Fix: `peripherals.GPIO4` for C3, `peripherals.GPIO18` for C6.
 
 ## ESP-IDF Runtime
 
+**ESP-IDF rejects an RMT `mem_block_symbols` below the chip's block size; it rounds up only values above it.**
+`rmt_tx.c` (v5.3.3) returns `ESP_ERR_INVALID_ARG` with `mem_block_symbols must be even and at least 64` on classic ESP32 and S2, whose blocks hold 64 words, while C3, C6, S3 and H2 hold 48.
+A fixed 48 therefore could never create a channel on ESP32 or S2, and `idf_esp32_rainbow` had only ever been compile-verified; esp-idf-hal's own doc ("should be at least 64") is wrong in the other direction for the 48-word chips.
+Fix: size the block from `esp_idf_hal::sys::SOC_RMT_MEM_WORDS_PER_CHANNEL` (a `u32` const in the bindgen output), as `Ws2812Rmt::new()` does since 2026-11-03.
+
+**`esp_idf_hal::rmt::Pulse::new_with_duration` truncates to whole ticks, so a requested 350 ns at 10 MHz is emitted as 300 ns.**
+`duration_to_ticks` is `nanos * hz / 1e9` in integer arithmetic with no rounding and no error (`src/rmt/pulse.rs`, 0.47.0, verified 2026-11-03).
+Fix: request only widths that are whole multiples of the tick, which `bunting::ns_to_ticks` enforces at compile time, and never document the requested value as the emitted one.
+
 **`esp-idf-hal 0.46.2` `send_and_wait` panics in ISR context: `EncoderWrapper::From<rmt_encode_state_t>` only matches single values (`0x00`, `0x01`, `0x02`) and hits the `_` arm on bitwise-OR'd flags like `COMPLETE | MEM_FULL = 0x03` that the C encoder legitimately returns.**
 `send_and_wait` wraps even C-native encoders (`BytesEncoder`) in a Rust `EncoderWrapper`, inserting a Rust callback in the ISR path. The panic handler then calls `usb_serial_jtag_write` → `_lock_acquire_recursive`, which aborts (recursive mutexes are illegal in ISRs).
 Symptom: `abort() was called at PC 0x...` with trace through `lock_acquire_generic` → `usb_serial_jtag_write`.
@@ -215,8 +224,8 @@ Debug builds retain larger temporaries and do not optimise stack usage, so 12 LE
 The symptom is a `Guru Meditation Error: Core 0 panic'ed (Stack protection fault)` immediately after `WS2812RMT init OK`.
 Fix: add `sdkconfig.defaults` at the workspace root with `CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192`.
 
-**A 12-LED frame is 331–374 µs of WS2812 wire time, so neither driver's logged send time measures the wire.**
-`BytesEncoderConfig` uses 1.15 µs per zero bit (350 + 800 ns) and 1.30 µs per one bit (700 + 600 ns), so 288 pulse codes span 331–374 µs depending on the data.
+**A 12-LED frame is 317–374 µs of WS2812 wire time, so neither driver's logged send time measures the wire.**
+`BytesEncoderConfig` uses 1.1 µs per zero bit (300 + 800 ns; esp-idf-hal 0.47 truncates the requested 350 ns to 3 ticks at 10 MHz, verified 2026-11-03) and 1.30 µs per one bit (700 + 600 ns), so 288 pulse codes span 317–374 µs depending on the data.
 The esp-hal driver logs ~392 µs for that frame, which is the wire time plus encoding overhead.
 The ESP-IDF driver logs ~4.3 ms, which is the fixed overhead in the third entry below, not a longer frame.
 Arithmetic verified against the code 2026-11-03.
@@ -244,6 +253,10 @@ Fix: append `|| true` to the pipeline: `var=$(ls glob 2>/dev/null | head -1 || t
 ---
 
 ## Rust Syntax Gotchas
+
+**Widening a parameter from `(u8, u8, u8)` to `impl Into<RGB8>` keeps literal tuples such as `(0, 0, 255)` compiling.**
+`rgb 0.8` implements `From<(R, R, R)> for RGB<S> where R: Into<S>`, and `u8` is the only integer type with `Into<u8>`, so the literals infer to `u8` instead of falling back to `i32`.
+Verified in a scratch crate on 2026-11-03 for literals, a `u8` variable and a `const (u8, u8, u8)`; this is why `pennant::PulseEffect::update` could take `RGB8` without breaking the six downstream tuple call sites.
 
 **`rustfmt` refuses to parse a file that contains `(expr) as u8 < rhs` — it misreads `u8 < rhs` as the start of a generic argument list.**
 The error is: `` `<` is interpreted as a start of generic arguments for `u8`, not a comparison ``.
@@ -280,6 +293,10 @@ Fix: put routing and timing logic in `const fn`s guarded by `const _: () = asser
 ---
 
 ## CI Coverage
+
+**A feature that only a host recipe enables is never compiled for the real target, however often CI is green.**
+The AVR crate's `smart-leds-trait` feature (and its 768-byte stack adapter) was checked with `--features bitbang,smart-leds-trait` on the host only; the two `avr-none` recipes built `bitbang` alone, so no run ever compiled the trait impls for AVR until 2026-11-03.
+Fix: when adding a feature to a target-specific crate, add it to the recipe that builds for that target, not only to the host `*-all-features` one.
 
 **A `cargo check` or `cargo build` of a library-only crate never links, so neither can catch linker, ABI, or `-C target-cpu` breakage.**
 `rustyfarian-avr-ws2812` declares no `[[bin]]` and emits an rlib, so `cargo build --target avr-none` passes while the AVR linker goes entirely unexercised — `build` buys nothing over `check` here, despite the usual advice that it does.
@@ -365,6 +382,6 @@ Fix: use `{"decision": "approve"}` or simply exit 0 with no output to allow the 
 ## AVR WS2812 Driver: SPI Prerendered Encoding Limitation
 
 **`rustyfarian-avr-ws2812` SPI-prerendered output can latch as stable white-ish (proportional brightness but indistinguishable channels) on the *same physical strip* that the ESP-IDF and esp-hal drivers handle correctly.**
-The 2 MHz SPI / 4-bits-per-WS2812-bit encoding emits `T0H = 0.5 µs` (right at the chip's 0/1 decision threshold) and `T1H = 1.5 µs` (well outside the WS2812B nominal `T1H ≈ 0.7 µs`); correctness then depends on per-chip tolerance which varies between WS2812 / WS2812B / clone variants. ESP RMT synthesises native timing (`T0H ≈ 400 ns`, `T1H ≈ 700 ns`) and does not hit this.
+The 2 MHz SPI / 4-bits-per-WS2812-bit encoding emits `T0H = 0.5 µs` (right at the chip's 0/1 decision threshold) and `T1H = 1.5 µs` (well outside the WS2812B nominal `T1H ≈ 0.7 µs`); correctness then depends on per-chip tolerance which varies between WS2812 / WS2812B / clone variants. ESP RMT synthesises native timing (`T0H ≈ 300 ns` (300 ns since 2026-11-03; 400 ns before), `T1H ≈ 700 ns`) and does not hit this.
 Smoking-gun diagnostic: with `NUM_LEDS = 1`, downstream LEDs in the chain still flicker — proof that LED 1 is not consuming exactly 24 bits, so partial/extra bits leak via the pass-through. This confirms encoding-level bit-counting unreliability as the cause and rules out colour-only theories (GRB order, PulseEffect math, brightness scaling). Crystal mismatch, power supply, cable length, and clone-vs-genuine board were also ruled out (2026-05-04).
 **Lesson: a working ESP setup is *not* sufficient validation for the AVR driver — AVR hardware against the target strip type is required.** Resolution (cycle-counted inline-`asm!` bit-bang as the recommended backend) is documented in [`docs/adr/007-avr-ws2812-driver-strategy.md`](adr/007-avr-ws2812-driver-strategy.md).

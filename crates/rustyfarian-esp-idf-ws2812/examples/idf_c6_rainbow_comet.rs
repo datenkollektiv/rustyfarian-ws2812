@@ -27,7 +27,7 @@
 //! ## Build
 //!
 //! ```sh
-//! just build-example idf-ws2812 idf_c6_rainbow_comet
+//! just build-example idf_c6_rainbow_comet
 //! ```
 //!
 //! ## Flash

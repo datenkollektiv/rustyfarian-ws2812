@@ -30,7 +30,7 @@
 //! ## Build
 //!
 //! ```sh
-//! just build-example idf-ws2812 idf_esp32_rainbow
+//! just build-example idf_esp32_rainbow
 //! ```
 //!
 //! ## Flash

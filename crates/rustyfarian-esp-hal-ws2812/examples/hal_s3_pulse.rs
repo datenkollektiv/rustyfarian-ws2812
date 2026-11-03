@@ -20,7 +20,7 @@
 //! ## Build
 //!
 //! ```sh
-//! just build-example hal-ws2812 hal_s3_pulse
+//! just build-example hal_s3_pulse
 //! ```
 //!
 //! ## Flash

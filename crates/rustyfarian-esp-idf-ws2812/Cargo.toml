@@ -39,8 +39,11 @@ bunting.workspace = true
 # script from running — and hard-failing — when IDE tooling uses the default
 # riscv32imac-unknown-none-elf target.
 [target.'cfg(target_os = "espidf")'.dependencies]
-anyhow.workspace = true
 esp-idf-hal.workspace = true
+
+# The examples return `anyhow::Result<()>`; the driver itself uses its own `Error`.
+[target.'cfg(target_os = "espidf")'.dev-dependencies]
+anyhow.workspace = true
 
 [features]
 default = ["pennant"]

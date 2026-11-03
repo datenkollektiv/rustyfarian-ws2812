@@ -334,11 +334,11 @@ let (spi, _cs) = arduino_hal::Spi::new(
 ## Interrupt Safety
 
 WS2812 requires an uninterrupted data stream for the entire frame.
-On AVR, wrap the `write` call in a critical section:
+On AVR, wrap the `set_pixels_slice` call in a critical section:
 
 ```rust
 avr_device::interrupt::free(|_| {
-    ws.write(&colors).unwrap();
+    ws.set_pixels_slice(&colors).unwrap();
 });
 ```
 
@@ -498,7 +498,7 @@ If in doubt, flash Optiboot and use `nano-new` / 115200 baud going forward.
 |:------------------------------------------------------------------|:---------------------------------------------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | LEDs don't light up                                               | Wiring issue: DIN not connected to D11                                     | Check MOSI pin (PB3/D11)                                                                                                                                             |
 | First LED lights, rest are wrong colors                           | Missing series resistor causing signal ringing                             | Add 330 ohm resistor on DIN                                                                                                                                          |
-| LEDs flicker or show random colors                                | Interrupts corrupting the data stream                                      | Wrap `write()` in `avr_device::interrupt::free`                                                                                                                      |
+| LEDs flicker or show random colors                                | Interrupts corrupting the data stream                                      | Wrap `set_pixels_slice()` in `avr_device::interrupt::free`                                                                                                           |
 | `cargo build` fails with "can't find crate for core"              | Wrong toolchain or missing `build-std`                                     | Ensure `rust-toolchain.toml` is in place and pass `-Z build-std=core` (or use `just build-avr-example`)                                                              |
 | `error: can't find crate for 'std'` (or build-std mentions `std`) | Workspace root config merged `build-std = ["std", ...]` into the AVR build | Pass `-Z build-std=core` explicitly via `just build-avr-example` / `just flash-avr-example`; do not set `[unstable] build-std` in the example's `.cargo/config.toml` |
 | `avrdude: stk500_recv(): programmer is not responding`            | Wrong serial port, baud rate, or missing bootloader                        | Check port, try both 57600 and 115200; if neither works, flash the bootloader via ISP (see above)                                                                    |

@@ -26,7 +26,7 @@
 //! ## Build
 //!
 //! ```sh
-//! just build-example hal-ws2812 hal_c6_multitask_async
+//! just build-example hal_c6_multitask_async
 //! ```
 //!
 //! ## Flash

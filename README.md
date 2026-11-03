@@ -92,7 +92,7 @@ Each example name encodes the driver, chip, and effect: `{driver}_{chip}_{effect
 | `idf_c3_rainbow`             | ESP-IDF (std)    | ESP32-C3                   | Rainbow                | GPIO4      |                                                                                     |
 | `idf_c3_pulse`               | ESP-IDF (std)    | ESP32-C3                   | Pulse                  | GPIO4      | Counterpart of `hal_c3_pulse`                                                       |
 | `idf_c6_rainbow`             | ESP-IDF (std)    | ESP32-C6                   | Rainbow                | GPIO18     |                                                                                     |
-| `idf_esp32_rainbow`          | ESP-IDF (std)    | Adafruit Feather ESP32 V2  | Rainbow                | GPIO0      | GPIO2 = power enable                                                                |
+| `idf_esp32_rainbow`          | ESP-IDF (std)    | ESP32-WROOM-32             | Rainbow                | GPIO4      |                                                                                     |
 | `idf_s3_rainbow`             | ESP-IDF (std)    | ESP32-S3 (CrowPanel 1.28") | Rainbow                | GPIO48     | Provides the S3 bootloader for HAL flashing                                         |
 | `idf_c6_breathe_color`       | ESP-IDF (std)    | ESP32-C6                   | Breathe (hue cycling)  | GPIO18     |                                                                                     |
 | `idf_c6_effects`             | ESP-IDF (std)    | ESP32-C6                   | Multi-effect sequence  | GPIO18     |                                                                                     |
@@ -114,8 +114,8 @@ just run hal_c6_pulse
 Build only (no board required):
 
 ```sh
-just build-example hal-ws2812 hal_c6_pulse
-just build-example idf-ws2812 idf_c3_rainbow
+just build-example hal_c6_pulse
+just build-example idf_c3_rainbow
 ```
 
 HAL examples (`hal_*`) require the bare-metal target:
@@ -125,7 +125,7 @@ rustup target add riscv32imac-unknown-none-elf
 ```
 
 IDF examples (`idf_*`) require `cargo +esp` (install via `espup`).
-The Feather ESP32 V2 examples additionally use the Xtensa toolchain (`+esp`) with target `xtensa-esp32-espidf`.
+The ESP32-WROOM-32 and ESP32-S3 examples additionally use the Xtensa toolchain (`+esp`), with targets `xtensa-esp32-espidf` / `xtensa-esp32s3-espidf` for ESP-IDF and `xtensa-esp32-none-elf` / `xtensa-esp32s3-none-elf` for esp-hal.
 
 ## Usage
 
@@ -192,7 +192,7 @@ driver.set_pixel(RGB8::new(255, 0, 0))?;
 // Use pulse animation
 let mut pulse = PulseEffect::new();
 loop {
-    let color = pulse.update((0, 0, 255));
+    let color = pulse.update(RGB8::new(0, 0, 255));
     driver.set_pixel(color)?;
     // delay...
 }

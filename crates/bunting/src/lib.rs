@@ -13,12 +13,20 @@
 //! The encoding is byte-for-byte compatible with
 //! [`ws2812-spi`](https://crates.io/crates/ws2812-spi) v0.5.1's prerendered module.
 //!
+//! ## Pulse timings
+//!
+//! [`WS2812_T0H_NS`] and its siblings hold the WS2812 pulse widths, and [`WS2812_RESET_US`] the latch interval.
+//! [`ns_to_ticks`] converts them to whole timer ticks and refuses a value that would round, so each driver derives its tick counts from one source.
+//!
 //! ## Grid primitives
 //!
 //! The [`grid`] module provides `GridLayout`, `GridBuffer`, and gamma/brightness
 //! helpers for addressing WS2812 LEDs wired as a rectangular matrix.
 
 pub mod grid;
+mod timing;
+
+pub use timing::*;
 
 use rgb::RGB8;
 
@@ -41,6 +49,22 @@ use rgb::RGB8;
 /// ```
 pub fn rgb_to_grb(rgb: RGB8) -> u32 {
     ((rgb.g as u32) << 16) | ((rgb.r as u32) << 8) | rgb.b as u32
+}
+
+/// Converts RGB to the three bytes WS2812 LEDs expect on the wire, in order.
+///
+/// The order is green, red, blue, each sent most significant bit first.
+///
+/// # Example
+///
+/// ```
+/// use bunting::rgb_to_grb_bytes;
+/// use rgb::RGB8;
+///
+/// assert_eq!(rgb_to_grb_bytes(RGB8::new(1, 2, 3)), [2, 1, 3]);
+/// ```
+pub fn rgb_to_grb_bytes(rgb: RGB8) -> [u8; 3] {
+    [rgb.g, rgb.r, rgb.b]
 }
 
 /// Extracts bit values from a 24-bit color for WS2812 transmission.
@@ -200,6 +224,17 @@ mod tests {
         let color = RGB8::new(0x12, 0x34, 0x56);
         // GRB format: G=0x34, R=0x12, B=0x56 -> 0x341256
         assert_eq!(rgb_to_grb(color), 0x341256);
+    }
+
+    #[test]
+    fn rgb_to_grb_bytes_matches_rgb_to_grb() {
+        let color = RGB8::new(0x12, 0x34, 0x56);
+        assert_eq!(rgb_to_grb_bytes(color), [0x34, 0x12, 0x56]);
+        let [g, r, b] = rgb_to_grb_bytes(color);
+        assert_eq!(
+            ((g as u32) << 16) | ((r as u32) << 8) | b as u32,
+            rgb_to_grb(color)
+        );
     }
 
     #[test]

@@ -19,7 +19,7 @@
 //! | Hardware           | any AVR with SPI peripheral     | ATmega328P @ 16 MHz                   |
 //! | Pin                | the SPI MOSI pin                | any pin on PORTB / PORTC / PORTD      |
 //! | WS2812 timing      | `T0H = 500 ns`, `T1H = 1500 ns` (relies on chip tolerance) | `T0H = 250 ns`, `T1H = 812 ns` (in WS2812B spec) |
-//! | Interrupts         | caller wraps `write` in `avr_device::interrupt::free` | wrapped internally — timing is mandatory |
+//! | Interrupts         | caller wraps `set_pixels_slice` in `avr_device::interrupt::free` | wrapped internally — timing is mandatory |
 //! | Other peripherals  | SPI bus is owned by the driver  | only the chosen GPIO pin is owned     |
 //!
 //! [ADR 007](https://github.com/datenkollektiv/rustyfarian-ws2812/blob/main/docs/adr/007-avr-ws2812-driver-strategy.md)
@@ -52,16 +52,16 @@
 //! ## SPI clock configuration
 //!
 //! The SPI peripheral **must** be configured at 2 MHz before the first call to
-//! [`Ws2812Spi::write`]. On a 16 MHz ATmega328P, use a clock prescaler of ÷8.
+//! [`Ws2812Spi::set_pixels_slice`]. On a 16 MHz ATmega328P, use a clock prescaler of ÷8.
 //!
 //! ## Interrupt safety
 //!
 //! The SPI backend is **not** interrupt-safe by itself; the caller wraps each
-//! `write` in a critical section:
+//! `set_pixels_slice` in a critical section:
 //!
 //! ```ignore
 //! avr_device::interrupt::free(|_| {
-//!     ws.write(&colors).unwrap();
+//!     ws.set_pixels_slice(&colors).unwrap();
 //! });
 //! ```
 //!
@@ -77,7 +77,7 @@
 //! let mut ws: Ws2812Spi<_, N> = Ws2812Spi::new(spi_bus);
 //! let colors = [RGB8::new(255, 0, 0); NUM_LEDS];
 //! avr_device::interrupt::free(|_| {
-//!     ws.write(&colors).unwrap();
+//!     ws.set_pixels_slice(&colors).unwrap();
 //! });
 //! ```
 //!
@@ -85,7 +85,7 @@
 //!
 //! [`Ws2812BitBang`] uses cycle-counted inline `asm!` to drive any GPIO pin in low
 //! I/O space (PORTB / PORTC / PORTD on ATmega328P) at WS2812-spec timing.
-//! The `write` method wraps the asm loop in `avr_device::interrupt::free` internally —
+//! The `set_pixels_slice` method wraps the asm loop in `avr_device::interrupt::free` internally —
 //! the caller does **not** need to add a critical section.
 //!
 //! Enable the `bitbang` feature in `Cargo.toml`:
@@ -117,8 +117,19 @@
 //! let mut driver: Ws2812BitBang<_, { ports::PORTB }, 3> = Ws2812BitBang::new(pin);
 //!
 //! let colors = [RGB8::new(8, 0, 0); 10];
-//! driver.write(&colors).ok(); // no `interrupt::free` needed — handled inside
+//! driver.set_pixels_slice(&colors).ok(); // no `interrupt::free` needed — handled inside
 //! ```
+//!
+//! # Vocabulary
+//!
+//! Both backends share the method names of the ESP driver crates:
+//! `set_pixels_slice(&[RGB8])` sends a whole frame and `set_pixel(RGB8)` sends a one-LED frame.
+//! The 0.7 method `write` stays as a deprecated alias of `set_pixels_slice` for the 0.8 cycle.
+//!
+//! # Optional features
+//!
+//! - `smart-leds-trait` implements `SmartLedsWrite` for both backends.
+//! - `pennant` implements `pennant::StatusLed` for both backends, addressing the first LED.
 //!
 //! # Runnable Examples
 //!
@@ -185,8 +196,8 @@ pub const fn spi_buffer_size(num_leds: usize) -> usize {
 ///
 /// The struct is generic over any [`SpiBus`] implementation — no AVR-specific
 /// dependencies are introduced here. The caller is responsible for:
-/// - Configuring SPI at 2 MHz before calling [`write`](Ws2812Spi::write).
-/// - Wrapping the `write` call in a critical section on interrupt-driven systems.
+/// - Configuring SPI at 2 MHz before calling [`set_pixels_slice`](Ws2812Spi::set_pixels_slice).
+/// - Wrapping the `set_pixels_slice` call in a critical section on interrupt-driven systems.
 ///
 /// # Type Parameters
 ///
@@ -201,7 +212,7 @@ impl<SPI: SpiBus, const N: usize> Ws2812Spi<SPI, N> {
     /// Creates a new WS2812 SPI driver wrapping the given SPI bus.
     ///
     /// The internal buffer is zero-initialised. The SPI bus **must** already be
-    /// configured at 2 MHz before the first call to [`write`](Self::write).
+    /// configured at 2 MHz before the first call to [`set_pixels_slice`](Self::set_pixels_slice).
     pub fn new(spi: SPI) -> Self {
         Self { spi, buf: [0u8; N] }
     }
@@ -213,18 +224,52 @@ impl<SPI: SpiBus, const N: usize> Ws2812Spi<SPI, N> {
     /// The remaining bytes are zeroed to provide the WS2812 reset pulse
     /// (`SPI_RESET_BYTES_2MHZ` = 80 bytes at 2 MHz).
     ///
+    /// An empty slice sends nothing and returns `Ok(())`, matching the ESP drivers.
+    ///
     /// # Errors
     ///
-    /// - [`SpiError::Encode`] if `colors.len() > (N - SPI_RESET_BYTES_2MHZ) / 12`
-    ///   (the color slice is too large for the buffer).
+    /// - [`SpiError::Encode`] if `N < spi_buffer_size(colors.len())`, that is `colors.len() > (N - SPI_RESET_BYTES_2MHZ) / 12`
+    ///   or `N` below the 80 reset bytes (the buffer cannot hold the frame and its reset tail).
     /// - [`SpiError::Spi`] if the underlying SPI bus returns an error.
-    pub fn write(&mut self, colors: &[RGB8]) -> Result<(), SpiError<SPI::Error>> {
-        let data_len = spi_data_len(colors.len());
+    pub fn set_pixels_slice(&mut self, colors: &[RGB8]) -> Result<(), SpiError<SPI::Error>> {
+        if colors.is_empty() {
+            return Ok(());
+        }
+        // `spi_data_len` multiplies unchecked; on a 16-bit `usize` an absurd slice could wrap past the check.
+        let Some(data_len) = colors.len().checked_mul(spi_data_len(1)) else {
+            return Err(SpiError::Encode(SpiEncodeError::BufferTooSmall));
+        };
+        if data_len.saturating_add(SPI_RESET_BYTES_2MHZ) > N {
+            return Err(SpiError::Encode(SpiEncodeError::BufferTooSmall));
+        }
         prerender_spi(colors, &mut self.buf[..data_len])?;
         // Zero the reset tail so the WS2812 latches the frame.
         self.buf[data_len..].fill(0);
         self.spi.write(&self.buf).map_err(SpiError::Spi)?;
         Ok(())
+    }
+
+    /// Sends a one-LED frame with `rgb`.
+    ///
+    /// Only the first LED of the chain is addressed.
+    /// The rest of the chain keeps the colour it last latched, the same contract as `set_pixel` on the ESP drivers.
+    ///
+    /// `N` must be at least [`spi_buffer_size(1)`](spi_buffer_size) (92 bytes), otherwise
+    /// [`SpiError::Encode`] is returned.
+    /// On interrupt-driven systems the caller wraps the call in a critical section.
+    ///
+    /// # Errors
+    ///
+    /// Same as [`set_pixels_slice`](Self::set_pixels_slice).
+    pub fn set_pixel(&mut self, rgb: RGB8) -> Result<(), SpiError<SPI::Error>> {
+        self.set_pixels_slice(&[rgb])
+    }
+
+    /// Deprecated alias of [`set_pixels_slice`](Self::set_pixels_slice).
+    #[deprecated(since = "0.8.0", note = "renamed to `set_pixels_slice`")]
+    #[inline]
+    pub fn write(&mut self, colors: &[RGB8]) -> Result<(), SpiError<SPI::Error>> {
+        self.set_pixels_slice(colors)
     }
 
     /// Releases the inner SPI bus, consuming the driver.
@@ -237,7 +282,7 @@ impl<SPI: SpiBus, const N: usize> Ws2812Spi<SPI, N> {
 ///
 /// Provides ecosystem parity with [`smart-leds`] consumers (sister ESP drivers
 /// implement the same trait). Internally, the iterator is collected into a
-/// stack-allocated `[RGB8; 256]` and forwarded to [`Ws2812Spi::write`].
+/// stack-allocated `[RGB8; 256]` and forwarded to [`Ws2812Spi::set_pixels_slice`].
 ///
 /// # Stack cost
 ///
@@ -247,7 +292,7 @@ impl<SPI: SpiBus, const N: usize> Ws2812Spi<SPI, N> {
 /// headroom for arrays, `core::fmt` machinery, or interrupt-context frames.
 ///
 /// If you don't need the iterator-based ergonomics, prefer the inherent
-/// [`Ws2812Spi::write`] which takes a `&[RGB8]` directly and **allocates no
+/// [`Ws2812Spi::set_pixels_slice`] which takes a `&[RGB8]` directly and **allocates no
 /// adapter buffer**: pass a `[RGB8; NUM_LEDS]` you already own.
 ///
 /// # Truncation
@@ -255,7 +300,13 @@ impl<SPI: SpiBus, const N: usize> Ws2812Spi<SPI, N> {
 /// Iterators with more than `256` items are silently truncated to the first
 /// 256 colors — the cap matches [`ferriswheel::effect::MAX_LEDS`]. This avoids
 /// dynamic allocation while staying within the workspace's pure-logic contract.
-/// If you need longer chains, use the inherent `write` with a slice of any length.
+/// If you need longer chains, use the inherent `set_pixels_slice` with a slice of any length.
+///
+/// # Method resolution
+///
+/// The trait method is also called `write`, and the deprecated inherent alias `write` shadows it
+/// for plain method-call syntax.
+/// Call the trait explicitly with `SmartLedsWrite::write(&mut ws, iter)`.
 ///
 /// [`smart-leds`]: https://crates.io/crates/smart-leds
 /// [`ferriswheel::effect::MAX_LEDS`]: https://docs.rs/ferriswheel/latest/ferriswheel/effect/constant.MAX_LEDS.html
@@ -279,7 +330,20 @@ impl<SPI: SpiBus, const N: usize> smart_leds_trait::SmartLedsWrite for Ws2812Spi
             buf[count] = color.into();
             count += 1;
         }
-        Self::write(self, &buf[..count])
+        self.set_pixels_slice(&buf[..count])
+    }
+}
+
+/// `pennant::StatusLed` adapter for [`Ws2812Spi`].
+///
+/// Drives one LED: `set_color` sends a one-LED frame through [`Ws2812Spi::set_pixel`].
+/// The caller still wraps the call in a critical section on interrupt-driven systems.
+#[cfg(feature = "pennant")]
+impl<SPI: SpiBus, const N: usize> pennant::StatusLed for Ws2812Spi<SPI, N> {
+    type Error = SpiError<SPI::Error>;
+
+    fn set_color(&mut self, color: RGB8) -> Result<(), Self::Error> {
+        self.set_pixel(color)
     }
 }
 
@@ -304,6 +368,88 @@ mod tests {
         let err: SpiError<()> = SpiError::Encode(SpiEncodeError::BufferTooSmall);
         let err: &dyn core::error::Error = &err;
         assert!(err.source().is_none());
+    }
+
+    // --- set_pixel tests -----------------------------------------------------
+
+    use embedded_hal::spi::{ErrorKind, ErrorType};
+
+    /// Minimal `SpiBus` that records the length of every `write`.
+    #[derive(Default)]
+    struct RecordingSpi {
+        writes: std::vec::Vec<usize>,
+    }
+
+    impl ErrorType for RecordingSpi {
+        type Error = ErrorKind;
+    }
+
+    impl SpiBus for RecordingSpi {
+        fn read(&mut self, _words: &mut [u8]) -> Result<(), Self::Error> {
+            Ok(())
+        }
+
+        fn write(&mut self, words: &[u8]) -> Result<(), Self::Error> {
+            self.writes.push(words.len());
+            Ok(())
+        }
+
+        fn transfer(&mut self, _read: &mut [u8], _write: &[u8]) -> Result<(), Self::Error> {
+            Ok(())
+        }
+
+        fn transfer_in_place(&mut self, _words: &mut [u8]) -> Result<(), Self::Error> {
+            Ok(())
+        }
+
+        fn flush(&mut self) -> Result<(), Self::Error> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn set_pixel_writes_one_led_frame() {
+        const N: usize = spi_buffer_size(1);
+        let mut ws: Ws2812Spi<RecordingSpi, N> = Ws2812Spi::new(RecordingSpi::default());
+        ws.set_pixel(RGB8::new(1, 2, 3)).unwrap();
+        let spi = ws.release();
+        assert_eq!(spi.writes, std::vec![92]);
+    }
+
+    #[test]
+    fn set_pixel_with_buffer_below_one_led_is_encode_error() {
+        const N: usize = spi_buffer_size(1) - 1;
+        let mut ws: Ws2812Spi<RecordingSpi, N> = Ws2812Spi::new(RecordingSpi::default());
+        let err = ws.set_pixel(RGB8::new(1, 2, 3)).unwrap_err();
+        assert!(matches!(err, SpiError::Encode(_)));
+        assert!(ws.release().writes.is_empty());
+    }
+
+    #[test]
+    fn empty_slice_sends_nothing_even_with_a_tiny_buffer() {
+        const N: usize = 1;
+        let mut ws: Ws2812Spi<RecordingSpi, N> = Ws2812Spi::new(RecordingSpi::default());
+        ws.set_pixels_slice(&[]).unwrap();
+        assert!(ws.release().writes.is_empty());
+    }
+
+    #[test]
+    #[allow(deprecated)]
+    fn write_alias_matches_set_pixels_slice() {
+        const N: usize = spi_buffer_size(2);
+        let mut ws: Ws2812Spi<RecordingSpi, N> = Ws2812Spi::new(RecordingSpi::default());
+        ws.write(&[RGB8::new(1, 2, 3); 2]).unwrap();
+        ws.set_pixels_slice(&[RGB8::new(1, 2, 3); 2]).unwrap();
+        assert_eq!(ws.release().writes, std::vec![N, N]);
+    }
+
+    #[cfg(feature = "pennant")]
+    #[test]
+    fn status_led_set_color_writes_one_led_frame() {
+        const N: usize = spi_buffer_size(1);
+        let mut ws: Ws2812Spi<RecordingSpi, N> = Ws2812Spi::new(RecordingSpi::default());
+        pennant::StatusLed::set_color(&mut ws, RGB8::new(0, 0, 255)).unwrap();
+        assert_eq!(ws.release().writes, std::vec![N]);
     }
 
     // --- spi_buffer_size tests -----------------------------------------------

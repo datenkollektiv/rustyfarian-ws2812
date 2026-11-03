@@ -76,7 +76,7 @@ fn main() -> ! {
 
         // SPI backend requires the caller to wrap `write` in a critical section.
         avr_device::interrupt::free(|_| {
-            ws.write(&colors).unwrap();
+            ws.set_pixels_slice(&colors).unwrap();
         });
 
         arduino_hal::delay_ms(50);

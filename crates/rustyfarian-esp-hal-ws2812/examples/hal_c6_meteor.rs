@@ -31,7 +31,7 @@
 //! ## Build
 //!
 //! ```sh
-//! just build-example hal-ws2812 hal_c6_meteor
+//! just build-example hal_c6_meteor
 //! ```
 //!
 //! ## Flash
