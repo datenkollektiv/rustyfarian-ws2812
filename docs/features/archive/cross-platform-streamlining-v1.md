@@ -85,18 +85,6 @@ All eight were settled on 2026-11-03; the answers are the last eight Decisions r
 
 ## Session Log
 
-- 2026-11-03 — Feature doc created from the cross-platform streamlining investigation- 2026-11-03 — Mechanical batch done: error impls, example sweep, `map_err` cleanup, alias removal; flash spot checks pending
-- 2026-11-03 — Review of `a5f6b72`: no blocker; C3 module doc fixed (binary unchanged), C6 spot checks waived
-- 2026-11-03 — `hal_c6_fire` flashed at `a5f6b72` on ESP32-C6: clean; `hal_c6_pulse_async` flashed too: clean; all planned spot checks done, plus `hal_c6_rainbow_comet_async`
-- 2026-11-03 — Whole-ring wording fixed in the C6 and ESP32 async pulse docs
-- 2026-11-03 — AVR bit-bang rainbow (`80f89fdb…`) confirmed on the Nano; the SPI build shows the ADR 007 white-ish output as documented
-- 2026-11-03 — AVR runs on a genuine Nano: ravedude does not auto-detect the FTDI port, so `RAVEDUDE_PORT=/dev/cu.usbserial-AQ01L7M0` is needed; macOS creates the node only after its accessory prompt is accepted
-- 2026-11-03 — `idf_esp32_rainbow` (`f65cafac…`) ran for the first time on a classic ESP32 rev v3.1 and renders the rainbow: the 64-word block path of the block-size fix is now hardware-verified
-- 2026-11-03 — Clearing frame confirmed on the S3 (`e5367a3f…`): after the rainbow, only the first LED pulses and the other four are dark
-- 2026-11-03 — The four `hal_*_pulse_async` examples gained a clearing frame at start; this changes those example binaries only (the library is untouched), so the earlier async pulse hashes `ce3078cb…` (C3), `f4db6164…`/`f9fe0744…` (C6/C3 at a5f6b72) and `76780bc1…` (S3) describe the pre-clear examples; the S3 one is re-flashed below
-- 2026-11-03 — S3 CrowPanel runs confirmed visually: `hal_s3_pulse` (`527e2894…`), `hal_s3_pulse_async` (`76780bc1…`) and `idf_s3_rainbow` (`48ee9cc3…`); the async pulse examples leave stale colours on the other LEDs because they never send a clearing frame
-- 2026-11-03 — All three hardware runs confirmed visually: `hal_c6_fire` (`26b9f05d…`) on the C6, `hal_c3_pulse_async` (`ce3078cb…`) and `idf_c3_pulse` (`766ff7c0…`) on the C3; the feature is complete pending commit
-- 2026-11-03 — Review pass (code-reviewer, rust-reviewer, justfile-reviewer, dependency-manager): esp-hal tick constants now all derive from `RMT_TICK_NS`, the frame-sweep floor follows the 1.1 µs zero code, `Error` docs corrected, SPI empty slice is a no-op; `hal_c6_fire` flashed on the C6 at `26b9f05d…`
-- 2026-11-03 — Implementation of the accepted decisions landed uncommitted in five groups (bunting + ESP drivers, AVR, ferriswheel, pennant, tooling + docs); verification and hardware re-run pending
-- 2026-11-03 — Eight open questions settled from code inspection, datasheet research and the downstream repos; ADR 011 drafted. Two findings changed the premises: ESP-IDF v5.3.3 rejects a 48-symbol block on ESP32 and S2 (`rmt_tx.c:247`), and esp-idf-hal 0.47 truncates 350 ns to 3 ticks at 10 MHz
-- 2026-11-03 — Classic ESP32 esp-hal pulses (`29d5b7f3…`, `48aa38d9…`) confirmed visually at `a530c4b`; last State box ticked, feature done and archived
+- 2026-11-03 — Two findings changed the premises: ESP-IDF v5.3.3 rejects a 48-symbol block on ESP32 and S2 (`rmt_tx.c:247`), and esp-idf-hal 0.47 truncates 350 ns to 3 ticks at 10 MHz
+- 2026-11-03 — AVR on a genuine Nano: ravedude does not auto-detect the FTDI port, so `RAVEDUDE_PORT=/dev/cu.usbserial-AQ01L7M0` is needed; macOS creates the node only after its accessory prompt is accepted
+- 2026-11-03 — The async pulse hashes `ce3078cb…` (C3), `f4db6164…`/`f9fe0744…` (C6/C3 at `a5f6b72`) and `76780bc1…` (S3) describe the examples before the clearing frame was added

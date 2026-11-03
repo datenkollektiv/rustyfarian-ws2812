@@ -35,7 +35,3 @@ The SuperMini's blue LED on GPIO8 is active-low, so `SimpleLed` lights when it s
 - [x] Core implementation
 - [x] Tests passing (`just test-pennant-hal`, `just clippy-pennant-hal`, `just check-hal`, `just check-hal-c3`, `just verify`)
 - [x] Documentation updated (`simple_led.rs` docs, pennant README, root README, CHANGELOG)
-
-## Session Log
-- 2026-10-15 — Feature doc created via /feature dialog
-- 2026-10-15 — Implemented test-first via workflow (test-automator, rust-engineer, documentation-engineer, code-reviewer, rust-reviewer); five new tests; not yet committed

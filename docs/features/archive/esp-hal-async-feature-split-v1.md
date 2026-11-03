@@ -37,7 +37,3 @@ A consumer enabling `async` for `Ws2812Rmt<'_, Async, N>` is forced to take `esp
 - [x] Core implementation
 - [x] Checks passing (`just check-hal`, `just check-hal-c3`, `just check-hal-xtensa`, all six `*_async` example builds, `just verify`)
 - [x] Documentation updated (crate README, root README, AGENTS.md, lib.rs docs, ADR 008, CHANGELOG)
-
-## Session Log
-- 2026-10-15 — Feature doc created via /feature dialog
-- 2026-10-15 — Implemented via workflow (build-engineer, documentation-engineer, code-reviewer, dependency-manager); `cargo deny` clean; not yet committed

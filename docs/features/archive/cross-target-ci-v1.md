@@ -108,32 +108,5 @@ Measured locally (Apple Silicon, warm cargo registry):
 
 ## Session Log
 
-- 2026-08-13 — Planned via a three-agent analysis pass (`build-engineer` for repo ground truth, two
-  `research-analyst` agents for Xtensa and AVR CI patterns). The audit corrected the roadmap, which
-  had proposed inlining a `cargo build …` command: `check-avr-target`,
-  `check-avr-target-bitbang` and `build-avr-example-all-bins` already existed, so only
-  `check-hal-c3` was new. Independently corrected the AVR research's core recommendation — it
-  argued for `cargo build` over `cargo check` to gain link coverage, which is right in principle but
-  wrong applied to a lib-only crate; the link coverage lives in the example package. Also found the
-  unpinned `avr-hal` git dependency, recorded above as an open question.
-- 2026-08-13 — Review pass. `justfile-reviewer` found that `check-hal-xtensa` omitted `pennant`
-  from both invocations, so it no longer mirrored the crate's default feature set and never
-  compiled the `pennant` `StatusLed` / `AsyncStatusLed` impls for Xtensa — pre-existing drift, but
-  it mattered the moment the recipe became a gate. Verified the fix compiles on
-  `xtensa-esp32-none-elf` before applying it. Separately, the workflow review declared path-filter
-  coverage complete; it was not — `ferriswheel` is a **dev-dependency** of the esp-hal driver and is
-  used by 14 of its 17 examples, which the `--examples` invocations build, so a `ferriswheel` change
-  could have broken the ESP jobs without triggering them. Added `crates/ferriswheel/**` to both ESP
-  path filters.
-- 2026-08-13 — **Green on CI, first run.** All 10 PR checks pass, including `riscv` (59s), `avr`
-  (1m) and `xtensa` (2m). Two things this run does *not* prove, recorded so they are not assumed:
-  path filters are shown to fire but not to exclude (the PR touched no `crates/**`, so every job
-  triggered through its own self-gating entry), and the Xtensa cache was cold by definition on a
-  first run. Separately, the green `xtensa` job is the first evidence that **Xtensa 1.97.0.0**
-  compiles this driver — compile-only, not hardware validation, and still two releases ahead of the
-  1.95.0.0 that the August esp-hal bump was hardware-validated against. The green `avr` job also
-  confirms the current `avr-hal` default branch builds, which the open question below notes is not
-  a guarantee for future runs.
-- 2026-11-02 — Archived. The two State items left unticked (path-filter exclusion, Xtensa cache
-  restore) were never separately proven and are carried as watch items, not blockers; no local CI
-  evidence was available at archive time.
+- 2026-08-13 — Path filters missed `ferriswheel`: it is a dev-dependency of the esp-hal driver, used by 14 of its 17 examples, so `crates/ferriswheel/**` joined both ESP filters
+- 2026-08-13 — The first green `xtensa` job is the first evidence that Xtensa 1.97.0.0 compiles the driver (compile-only; hardware validation ran on 1.95.0.0)

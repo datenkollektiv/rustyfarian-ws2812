@@ -154,6 +154,4 @@ Check 5 is the notable one: the bare-metal `esp-hal` path on C3 had been deferre
 
 ## Session Log
 
-- 2026-08-12 — Bump landed and compile-verified: `esp-hal` `=1.1.0` → `=1.1.2`, `embuild` `=0.33.1` → `=0.33.3`. Patch-level only; no companion-crate or Embassy realignment needed (runbook step 4 was a no-op).
-- 2026-08-12 — Hardware validation completed on an ESP32-C6 (checks 1–4, 7) and an ESP32-C3 (check 5), the latter closing a gap open since 2026-04-29. Check 6 (WROOM-32 / Xtensa) recorded **N/A — board unavailable**, compile-verified only. Added `hal_c6_onboard_pulse` as a permanent GPIO8 regression guard, resolving open question 1. Re-validated check 7 after the `.ok()` → `.expect()` code-review follow-up, per the rule that a hardware sign-off is only valid for the binary that was actually run.
-- 2026-08-12 — Closed open question 2 during a roadmap-hygiene pass: `check-hal-xtensa` joins CI as a path-filtered job, not the local `verify` / `pre-commit` gate. Investigating it surfaced that **no** cross-compilation is gated today — not even RISC-V `check-hal` — so the work was folded into the roadmap's existing CI item as a single `cross-targets.yml` (RISC-V → AVR → Xtensa) rather than a one-off Xtensa job. Doc archived; check 6 stays N/A permanently, so it is not treated as outstanding work.
+- 2026-08-12 — Check 7 re-run after the `.ok()` → `.expect()` review follow-up, because a hardware sign-off is valid only for the binary that ran

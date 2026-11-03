@@ -100,8 +100,3 @@ Residual risk: none. Xtensa confirmed 2026-05-20 — see the closed open questio
 - [x] Core implementation
 - [x] Tests passing
 - [x] Documentation updated
-
-## Session Log
-
-- 2026-04-29 — Feature doc created from roadmap content; supersedes the inline upgrade entry in `docs/ROADMAP.md`. Triggered by the GPIO8 RMT hang investigation, which surfaced that `esp-hal 1.0.0` is no longer the latest stable release.
-- 2026-04-29 — Upgrade implemented and reviewed. Follow-up tightened the workspace from caret constraints to exact pins.

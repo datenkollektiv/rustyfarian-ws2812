@@ -50,8 +50,3 @@ All `maintenance-plan.md` criteria met: 60 s without flicker, 3 repeatable runs,
 | `hal_s3_pulse`       | All five LEDs pulse blue                            | **PASS** | `b508fdda…`   |
 | `hal_s3_pulse_async` | First LED pulses blue (`AsyncStatusLed`, by design) | **PASS** | `1626170a…`   |
 | `idf_s3_rainbow`     | Rainbow spread over all five LEDs                   | **PASS** | —             |
-
-## Session Log
-- 2026-10-13 — Feature doc created from upstream request U1; upstream facts verified against registry sources.
-- 2026-10-14 — Implemented; full check chain green, S3 examples link, IDF S3 bootloader built; hardware run pending.
-- 2026-10-14 — Hardware-validated on the CrowPanel; async header corrected without changing the flashed binary.

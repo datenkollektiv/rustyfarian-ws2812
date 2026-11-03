@@ -76,21 +76,10 @@ Reproduced independently by a second downstream project (64 LEDs, ESP32-C3, ESP-
 - [crates.io esp-hal versions](https://crates.io/api/v1/crates/esp-hal/versions) — 1.2.2 is latest as of 2026-10-31
 
 ## Session Log
-- 2026-10-31 — Feature doc created from the downstream request; root cause verified against esp-hal 1.2.2 source
-- 2026-10-31 — Independent debugger + embedded-systems review: root cause confirmed, no blocker; added bounded spin and doc constraints
-- 2026-10-31 — Implemented on branch `fix/esp-hal-async-long-frame-refill`; new `check-hal-async` CI gate; all checks green; hardware run pending
-- 2026-10-31 — Review follow-up: drop after critical section, `LongFramePolicy`, latch enforcement, ADR 009; hardware gate pending
-- 2026-10-31 — Review follow-up implemented: P1 drop-after-CS, `LongFramePolicy`, latch with stalled-timer detection, `doc-hal`; all checks green; waveform gate pending
-- 2026-10-31 — Partial gate on ESP32-C3 (CH340 board), sweep ELF sha256 a1b9903ad77e67d4…: 2 cycles PASS in the serial log; no analyser, radio load or RAM-placement runs yet
-- 2026-10-31 — Review follow-up 2: blocking fallback for long frames retracted; encoded latch on the async await path, busy-wait latch on the CS and blocking paths; cancellation guard (`NextFrameStamp`); interrupt-state and timer-start precision; hardware gate still open
-- 2026-10-31 — C3 (CH340) sweep ELF sha256 495cbee68b1d47dc…: 3 cycles PASS; encoded latch held (1-LED back-to-back 342–345 µs ≥ 308), cancellation guard forced the gap (619–633 µs); analyser, radio, RAM-placement, other chips open
-- 2026-11-01 — Hardening pass (stalled clock in CS loop, named transmit local, ceil + path-aware minimums); C3 ELF sha256 6ab25cf1857fb460…: 5 cycles PASS, captured via espflash monitor
-- 2026-11-01 — C3 12-LED ring, `hal_c3_rainbow_comet_async` ELF sha256 3f8c3ec7c2f83ad6…: ~600 frames, 0 errors, send 390–428 µs, loop max 30–31 ms; visually smooth (freezes traced to resets)
-- 2026-11-01 — C3 load test `hal_c3_comet_under_load_async` ELF sha256 e4942a103c963b93…: 2 passes of 4 modes, 0 errors, visually clean; 12-LED frames raise worst interrupt gap from ~118 µs to ~455–478 µs
-- 2026-11-01 — Maintainer visual check: no issues in hal_c3_pulse, frame sweep, rainbow comet or comet under load on the C3 12-LED ring; only freezes were resets (RST, monitor connect)
-- 2026-11-01 — rgb-clock reports CriticalSection garbles with Wi-Fi (b2b2022). Cold-cache test here (32 KB flash sweep before each frame, ELF fe55e33dc03db3d4…): send 440→865 µs, 0 errors, visually clean — cache alone ruled out
-- 2026-11-01 — Review follow-up 3: radio finding recorded (downstream bench: garbles with Wi-Fi active, clean with `ESP_HAL_CONFIG_PLACE_RMT_DRIVER_IN_RAM=true`; masked blocking clean; radio contention is a hypothesis); blocking masked option documented; `long-frame-diagnostics` added; poll-gap margin not yet measured; hardware gate open
-- 2026-11-01 — Downstream Wi-Fi bench on 3a1d3f8 (C3, 12 LEDs): CriticalSection clean with only our loop in RAM (F1) and with esp-hal RMT in RAM (F2); set_pixels_slice_masked clean (F3); margin and waveform unmeasured
-- 2026-11-01 — T8 on 735b506 (downstream Wi-Fi bench): all runs clean; longest loop pass 8–9 µs (no radio), 27–47 µs (radio, RMT in RAM), 76–77 µs (radio, RMT in flash); max_poll_gap_us cannot bound the refill deadline (refill happens inside a poll)
-- 2026-11-01 — `long-frame-diagnostics` removed before release (gaps between polls cannot bound the refill); margin evidence is downstream visual validation with Wi-Fi on `3a1d3f8` (F1–F3) plus the open analyser capture
-- 2026-11-03 — Closed and archived: the waveform gate moved to long-frame hardware validation v1, the esp-hal ISR-refill issue to the roadmap
+
+- 2026-10-31 — C3 (CH340) sweep ELF sha256 495cbee68b1d47dc…: 3 cycles PASS; encoded latch held (1-LED back-to-back 342–345 µs ≥ 308), cancellation guard forced the gap (619–633 µs)
+- 2026-11-01 — C3 sweep ELF sha256 6ab25cf1857fb460… after the hardening pass: 5 cycles PASS
+- 2026-11-01 — C3 12-LED `hal_c3_rainbow_comet_async` ELF sha256 3f8c3ec7c2f83ad6…: ~600 frames, 0 errors, send 390–428 µs
+- 2026-11-01 — C3 load test `hal_c3_comet_under_load_async` ELF sha256 e4942a103c963b93…: 0 errors; 12-LED frames raise the worst interrupt gap from ~118 µs to ~455–478 µs
+- 2026-11-01 — Cold-cache test (32 KB flash sweep before each frame, ELF fe55e33dc03db3d4…): send 440→865 µs, 0 errors, visually clean; cache misses alone do not explain the Wi-Fi garbling
+- 2026-11-01 — Downstream Wi-Fi bench on `3a1d3f8` (C3, 12 LEDs): `CriticalSection` clean with only our loop in RAM (F1) and with esp-hal RMT in RAM (F2); `set_pixels_slice_masked` clean (F3)

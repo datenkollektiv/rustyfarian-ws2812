@@ -107,14 +107,4 @@ Results apply to the named commit only; any later code change is a new binary an
 
 ## Session Log
 
-- 2026-11-01 — Downstream request filed; the esp-hal and ESP-IDF semantics were compared and the decisions recorded in ADR 010
-- 2026-11-01 — Feature doc created; hardware re-bench requested from the downstream project
-- 2026-11-01 — Review of `2931479`: blocking timeout changed to drain-then-drop; masked-time ceiling added; recorded as an ADR 010 amendment
-- 2026-11-01 — PR review: renamed the ceiling API to `*_nominal_*`; added `tx_channel_config_for(source)`; ESP-IDF constructor hint now names the setting as a likely cause (ADR 010 PR review note)
-- 2026-11-01 — IDF `CONFIG_RMT_ISR_IRAM_SAFE=y` makes `Ws2812Rmt::new` fail under esp-idf-hal 0.47.0; the earlier recommendation is withdrawn (ADR 010 correction); crate docs and constructor error updated
-- 2026-11-01 — Downstream re-bench of `c85a61a` (C3, Wi-Fi, no RAM placement): R1′ and R6 clean, R3′ `Poll` keeps its channel (0 `ChannelLost`); drain assumption holds on this bench
-- 2026-11-01 — Downstream re-bench of `f53c5e8` (C3, Wi-Fi active): R1, R2, R5 clean; R3 `Poll` garbled with ambiguous `Transmit`; R4 `FrameTooLong` only; `Error::ChannelLost` added to separate the two R3 cases; results recorded in ADR 010
-- 2026-11-02 — `set_pixels_slice_masked` deprecated (`since = "0.8.0"`); the re-benches confirmed the default `CriticalSection` policy covers its use case; downstream still calls it, so removal is deferred past 0.8
-- 2026-11-02 — Empty-slice semantics aligned: `set_pixels_slice(&[])` (blocking and async) and `set_pixels_slice_masked(&[])` are no-ops returning `Ok(())` in both drivers; matches `SmartLedsWrite::write` with an empty iterator
-- 2026-11-02 — State checklist brought up to date: implementation, docs and check boxes ticked; landed in ea0cf39, checks re-run (`verify`, `test`, `check-hal-xtensa`, all PASS)
-- 2026-11-03 — Closed and archived: remaining hardware gates moved to [long-frame hardware validation v1](../long-frame-hardware-validation-v1.md), upstream and host-test items to the roadmap, `check-ide` filed as a bug
+- 2026-11-01 — Review of `2931479`: blocking timeout changed to drain-then-drop and the masked-time ceiling added (ADR 010 amendment)

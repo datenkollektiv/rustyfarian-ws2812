@@ -175,11 +175,4 @@ To bring a new repo into this scheme, mirror from `rustyfarian-ws2812`:
 
 ## Session Log
 
-- 2026-05-27 — Feature doc created; the basic recipe provided by user
-- 2026-05-27 — Adapted for rustyfarian-ws2812: three-environment map, AVR isolation note, clean-idf adaptation required
-- 2026-05-27 — Revised the following code-review feedback: adopted Option B fallback, fixed sccache wording, added failure-mode section, acceptance criteria, open questions; RAM disk stays 6 GB default
-- 2026-05-27 — Implemented: justfile variables + recipes, scripts/doctor.sh, scripts/ramdisk.sh, lib.sh parameterised, all example/flash scripts updated; `just doctor` verified against live RAM disk
-- 2026-05-27 — Added `target-dir = "target/ide"` to `.cargo/config.toml`; IDE tooling (RustRover) and pure-crate `just` recipes now share `target/ide` instead of writing to the bare `target/`
-- 2026-05-27 — Changed workspace default `target` from `riscv32imac-esp-espidf` to `riscv32imac-unknown-none-elf`; added explicit `--target riscv32imac-esp-espidf` to the five IDF justfile recipes (`build-all`, `check-all`, `check-idf`, `clippy-all`, `clippy-idf`); IDF `idf_target` variable added to justfile; fixes RustRover esp-hal build-script panic caused by the wrong analysis target
-- 2026-05-27 — Fixed `esp-idf-sys` build-script panic for bare-metal IDE target: moved `esp-idf-hal` and `anyhow` to `[target.'cfg(target_os = "espidf")'.dependencies]` in `rustyfarian-esp-idf-ws2812/Cargo.toml`; added `#![cfg(target_os = "espidf")]` to `lib.rs` (crate compiles as empty for non-IDF targets); guarded `embuild::espidf::sysenv::output()` call in `build.rs` with the same check; `just verify` + `just check-hal` pass cleanly
-- 2026-07-09 — Adding an `xtensa-esp32-espidf` build (the `idf_esp32_rgb_cycle` example) filled the shared 8 GB RAM disk to 100%, surfacing as a cryptic `CMake Error: … Inappropriate ioctl for device`. Considered routing IDF builds on-disk (rejected — the flashable ELF and the ~1–1.5 GB `esp-idf-sys` framework share one target-dir and can't be split, and it clutters the SSD). Kept IDF on the RAM disk and grew it 8 → 12 GB via the shared `RUSTBUILDS_RAMDISK_SIZE_GB` env var. Added the sizing decision, the disk-full constraint, and a Cross-Project Adoption section. Verified: esp32 example rebuilds on the 12 GB disk in ~1 min (1.1 GB used, 11 GB free)
+- 2026-07-09 — A full 8 GB RAM disk surfaced as `CMake Error: … Inappropriate ioctl for device`; grown to 12 GB instead of routing IDF builds on-disk

@@ -154,9 +154,3 @@ It is invalidated by a change to `rustyfarian-esp-hal-ws2812`, to the example it
 
 1. ~~**Does `cargo` accept the `esp` toolchain's `1.95.0-nightly` against `rust-version = "1.95"`?**~~ **Resolved 2026-09-21 — yes.** `just check-hal-xtensa` passed with the esp-hal driver crate declaring 1.95.
 2. ~~**Do any of the new transitives reach the library's runtime graph?**~~ **Resolved 2026-09-21.** `esp-storage`, `sdio`, `static_cell`, `somni-template`, `embassy-net-driver` and the extra PACs are resolved through `esp-hal 1.2.2` / `esp-bootloader-esp-idf 0.6.0` with default features; `esp-alloc` and its allocator chain only through `async`; the off-target PACs never compile.
-
-## Session Log
-
-- 2026-09-21 — Planned in the quarterly cycle; upstream claims verified against tagged sources; MSRV decision taken (workspace 1.95, AVR 1.88); doc drafted ahead of the bump.
-- 2026-09-21 — Bump applied; five async examples migrated to `FROM_CPU_INTR0`; first MSRV layout failed `just check-avr-target` on `bunting@0.6.0 requires rustc 1.95`; corrected to workspace 1.88 with the two ESP driver crates at 1.95; full chain re-run on the final manifests, all PASS; hardware validation not run (no boards).
-- 2026-09-24 — Hardware validation run on ESP32-C6 and ESP32-C3: checks 1–6 all PASS to the full `maintenance-plan.md` criteria, including the GPIO8 onboard regression guard and the migrated `esp_rtos::start` under Embassy multitasking. Check 7 (WROOM-32) stays N/A — no board. The upgrade is no longer compile-verified only.
