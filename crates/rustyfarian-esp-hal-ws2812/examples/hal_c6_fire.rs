@@ -42,17 +42,11 @@
 
 esp_bootloader_esp_idf::esp_app_desc!();
 
-use esp_hal::{
-    delay::Delay,
-    gpio::Level,
-    main,
-    rmt::{Rmt, TxChannelConfig, TxChannelCreator},
-    time::Rate,
-};
+use esp_hal::{delay::Delay, main, rmt::Rmt, time::Rate};
 use esp_println::println;
 use ferriswheel::FireEffect;
 use rgb::RGB8;
-use rustyfarian_esp_hal_ws2812::{buffer_size, Ws2812Rmt, RMT_CLK_DIV};
+use rustyfarian_esp_hal_ws2812::{buffer_size, Ws2812Rmt};
 
 const NUM_LEDS: usize = 12;
 const N: usize = buffer_size(NUM_LEDS);
@@ -67,18 +61,7 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 fn main() -> ! {
     let peripherals = esp_hal::init(esp_hal::Config::default());
     let rmt = Rmt::new(peripherals.RMT, Rate::from_mhz(80)).unwrap();
-    let config = TxChannelConfig::default()
-        .with_clk_divider(RMT_CLK_DIV)
-        .with_idle_output_level(Level::Low)
-        .with_idle_output(true)
-        .with_carrier_modulation(false);
-    let channel = rmt
-        .channel0
-        .configure_tx(&config)
-        .unwrap()
-        .with_pin(peripherals.GPIO18);
-
-    let mut ws = Ws2812Rmt::<_, N>::new(channel);
+    let mut ws = Ws2812Rmt::<_, N>::from_channel_creator(rmt.channel0, peripherals.GPIO18).unwrap();
     let mut effect = FireEffect::new(NUM_LEDS)
         .unwrap()
         .with_cooling(55)

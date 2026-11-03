@@ -55,6 +55,8 @@ fn error_implements_traits() {
     assert_eq!(e, BitBangError::Infallible);
     let _ = format!("{e:?}");
     let _ = format!("{e}");
+    let err: &dyn core::error::Error = &e;
+    assert!(err.source().is_none());
 }
 
 #[cfg(feature = "smart-leds-trait")]

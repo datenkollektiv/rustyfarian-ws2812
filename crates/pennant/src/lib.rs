@@ -85,6 +85,8 @@ pub enum PulseEffectError {
     ZeroStep,
 }
 
+impl core::error::Error for PulseEffectError {}
+
 impl core::fmt::Display for PulseEffectError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
@@ -341,6 +343,12 @@ impl PulseEffect {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn pulse_effect_error_is_core_error() {
+        let err: &dyn core::error::Error = &PulseEffectError::ZeroStep;
+        assert!(err.source().is_none());
+    }
 
     #[cfg(feature = "hal")]
     mod simple_led_tests {

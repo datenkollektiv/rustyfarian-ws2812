@@ -37,15 +37,10 @@ esp_bootloader_esp_idf::esp_app_desc!();
 
 use embassy_executor::Spawner;
 use embassy_time::Timer;
-use esp_hal::{
-    gpio::Level,
-    rmt::{Rmt, TxChannelConfig, TxChannelCreator},
-    time::Rate,
-    timer::timg::TimerGroup,
-};
+use esp_hal::{rmt::Rmt, time::Rate, timer::timg::TimerGroup};
 use pennant::AsyncStatusLed;
 use rgb::RGB8;
-use rustyfarian_esp_hal_ws2812::{buffer_size, Ws2812Rmt, RMT_CLK_DIV};
+use rustyfarian_esp_hal_ws2812::{buffer_size, Ws2812Rmt};
 
 const NUM_LEDS: usize = 5;
 const N: usize = buffer_size(NUM_LEDS);
@@ -73,18 +68,7 @@ async fn main(_spawner: Spawner) -> ! {
     let rmt = Rmt::new(peripherals.RMT, Rate::from_mhz(80))
         .unwrap()
         .into_async();
-    let config = TxChannelConfig::default()
-        .with_clk_divider(RMT_CLK_DIV)
-        .with_idle_output_level(Level::Low)
-        .with_idle_output(true)
-        .with_carrier_modulation(false);
-    let channel = rmt
-        .channel0
-        .configure_tx(&config)
-        .unwrap()
-        .with_pin(peripherals.GPIO48);
-
-    let mut ws = Ws2812Rmt::<_, N>::new(channel);
+    let mut ws = Ws2812Rmt::<_, N>::from_channel_creator(rmt.channel0, peripherals.GPIO48).unwrap();
 
     let base_color = RGB8::new(0, 0, 255);
     let mut brightness: u8 = 0;

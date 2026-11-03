@@ -65,6 +65,8 @@ pub enum BitBangError {
     Infallible,
 }
 
+impl core::error::Error for BitBangError {}
+
 impl fmt::Display for BitBangError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

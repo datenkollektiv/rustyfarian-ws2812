@@ -44,6 +44,8 @@ pub enum EffectError {
     },
 }
 
+impl core::error::Error for EffectError {}
+
 impl core::fmt::Display for EffectError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
@@ -188,6 +190,12 @@ pub(crate) fn validate_duty(on_ticks: u8, off_ticks: u8) -> Result<(), EffectErr
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn effect_error_is_core_error() {
+        let err: &dyn core::error::Error = &EffectError::ZeroLeds;
+        assert!(err.source().is_none());
+    }
 
     #[test]
     fn test_validate_speed_zero() {
