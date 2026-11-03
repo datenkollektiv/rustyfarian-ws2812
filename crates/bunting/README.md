@@ -5,10 +5,9 @@
 
 Pure Rust WS2812 colour utilities — no hardware dependencies, fully `no_std`.
 
-Encodes RGB pixel data into the bit and byte forms WS2812 hardware expects:
-GRB packing, MSB-first bit extraction, SPI-prerendered byte buffers, and a
-`grid` module for addressing rectangular LED matrices. All hardware-
-independent, all unit-testable on any host.
+Encodes RGB pixel data into the bit and byte forms WS2812 hardware expects: GRB packing, MSB-first bit extraction and SPI-prerendered byte buffers.
+It also owns the shared WS2812 pulse timings (`WS2812_T0H_NS` and friends, `WS2812_RESET_US`) with a `const fn ns_to_ticks` converter, and a `grid` module for addressing rectangular LED matrices.
+All of it is hardware-independent and unit-testable on any host.
 
 Part of the [`rustyfarian-ws2812`](https://github.com/datenkollektiv/rustyfarian-ws2812)
 workspace alongside [`ferriswheel`](https://crates.io/crates/ferriswheel)

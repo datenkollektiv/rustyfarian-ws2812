@@ -91,13 +91,13 @@ pub(crate) fn with_interrupts_disabled<F: FnOnce()>(f: F) {
 /// # Safety
 ///
 /// - Caller MUST disable global interrupts for the duration of a frame
-///   (the public [`Ws2812BitBang::write`] wrapper does this via `interrupt::free`).
+///   (the public [`Ws2812BitBang::set_pixels_slice`] wrapper does this via `interrupt::free`).
 /// - `PORT_ADDR` MUST be a port register address in low I/O space (0x00–0x1F)
 ///   so `sbi`/`cbi` can reach it; enforced at compile time by the public type.
 /// - `PIN_BIT` MUST be 0–7; enforced at compile time by the public type.
 /// - The pin MUST already be configured as output by the caller.
 ///
-/// [`Ws2812BitBang::write`]: crate::Ws2812BitBang::write
+/// [`Ws2812BitBang::set_pixels_slice`]: crate::Ws2812BitBang::set_pixels_slice
 #[inline(always)]
 pub(crate) unsafe fn send_byte<const PORT_ADDR: u8, const PIN_BIT: u8>(byte: u8) {
     let mut b = byte;

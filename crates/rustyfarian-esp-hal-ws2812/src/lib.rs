@@ -140,7 +140,7 @@
 //!
 //! Cost of the critical-section path:
 //!
-//! - Interrupts are masked for the whole frame, 1.2–1.3 µs per pulse code: roughly 0.36 ms for 12 LEDs and 1.9 ms for 64 LEDs.
+//! - Interrupts are masked for the whole frame, 1.1–1.3 µs per pulse code: roughly 0.36 ms for 12 LEDs and 1.9 ms for 64 LEDs.
 //! - On radio firmware keep the default [`DEFAULT_MAX_NOMINAL_MASKED_US`] ceiling, or lower it, rather than lifting it.
 //!   Frames above the ceiling return [`Error::FrameTooLong`]; use `LongFramePolicy::Reject` to refuse every long frame.
 //! - Such interrupt-off windows can disturb Wi-Fi and ESP-NOW and overflow UART FIFOs, so test your radio and serial traffic with the real strip length.
@@ -197,7 +197,8 @@
 //!
 //! # Frame spacing (latch)
 //!
-//! WS2812 LEDs need a low period of at least 280 µs between frames to latch the previous one; the driver enforces this as [`WS2812_RESET_US`].
+//! WS2812 LEDs need a low period of at least 280 µs between frames to latch the previous one; the driver enforces this as [`WS2812_RESET_US`], which `bunting` owns and this crate re-exports.
+//! Async frames that fit in channel RAM carry that interval in the signal, and other frames are followed by a busy-wait.
 //! How it is enforced depends on the path:
 //!
 //! | Path | How the latch is enforced | Cost |
@@ -359,13 +360,12 @@ const _: () = {
 
 /// Minimum low time in microseconds between two frames, so the LEDs latch the previous one.
 ///
-/// The WS2812B datasheet asks for at least 280 µs; older WS2812 parts need only 50 µs.
+/// Re-exported from `bunting`, which owns the value and the datasheet reasoning.
 /// The driver waits for the remainder of this interval before it starts a frame
-/// that follows the previous one too closely.
-/// Async frames that fit in channel RAM carry this interval in the signal.
-/// Other frames are followed by a busy-wait, which needs esp-hal's `rt` feature;
-/// see [Frame spacing (latch)](crate#frame-spacing-latch).
-pub const WS2812_RESET_US: u32 = 280;
+/// that follows the previous one too closely;
+/// see [Frame spacing (latch)](crate#frame-spacing-latch) for how each path enforces it.
+#[doc(inline)]
+pub use bunting::WS2812_RESET_US;
 
 /// Default ceiling in microseconds on the estimated nominal masked time of one `LongFramePolicy::CriticalSection` frame.
 ///
@@ -389,7 +389,7 @@ const LATCH_WAIT_MAX_STALLED_READS: u32 = 1000;
 
 /// Ticks of the encoded latch: [`WS2812_RESET_US`] at the 10 MHz RMT tick (10 ticks per µs).
 #[cfg(feature = "async")]
-const LATCH_TICKS: u16 = (WS2812_RESET_US * 10) as u16;
+const LATCH_TICKS: u16 = (WS2812_RESET_US as u64 * TICKS_PER_US) as u16;
 
 /// End marker that carries the latch: a low level held for [`LATCH_TICKS`] before the end.
 ///
@@ -402,12 +402,44 @@ const LATCH_TICKS: u16 = (WS2812_RESET_US * 10) as u16;
 #[cfg(feature = "async")]
 const LATCH_END_CODE: PulseCode = PulseCode::new(Level::Low, LATCH_TICKS, Level::Low, 0);
 
-// WS2812 timing constants at 10 MHz RMT clock (100 ns per tick).
-// Based on WS2812B datasheet typical values.
-const T0H: u16 = 4; // ~400 ns  (spec: 350 ns ± 150 ns)
-const T0L: u16 = 8; // ~800 ns  (spec: 800 ns ± 150 ns)
-const T1H: u16 = 7; // ~700 ns  (spec: 700 ns ± 150 ns)
-const T1L: u16 = 6; // ~600 ns  (spec: 600 ns ± 150 ns)
+// Nanoseconds per RMT tick: the 80 MHz source divided by RMT_CLK_DIV gives 10 MHz.
+// Change the two together; the assertion after the tick constants fails when they disagree.
+const RMT_TICK_NS: u32 = 100;
+
+// WS2812 pulse widths in RMT ticks, derived from the shared `bunting` timings.
+// A width that is not a whole tick fails the build instead of rounding silently.
+const T0H: u16 = match bunting::ns_to_ticks(bunting::WS2812_T0H_NS, RMT_TICK_NS) {
+    Some(t) => t,
+    None => panic!("T0H is not a whole RMT tick"),
+};
+const T0L: u16 = match bunting::ns_to_ticks(bunting::WS2812_T0L_NS, RMT_TICK_NS) {
+    Some(t) => t,
+    None => panic!("T0L is not a whole RMT tick"),
+};
+const T1H: u16 = match bunting::ns_to_ticks(bunting::WS2812_T1H_NS, RMT_TICK_NS) {
+    Some(t) => t,
+    None => panic!("T1H is not a whole RMT tick"),
+};
+const T1L: u16 = match bunting::ns_to_ticks(bunting::WS2812_T1L_NS, RMT_TICK_NS) {
+    Some(t) => t,
+    None => panic!("T1L is not a whole RMT tick"),
+};
+
+const _: () = {
+    assert!(
+        80_000_000 / RMT_CLK_DIV as u32 == 1_000_000_000 / RMT_TICK_NS,
+        "RMT_TICK_NS must match the tick that RMT_CLK_DIV gives at the 80 MHz source"
+    );
+    assert!(
+        TIMING_CLOCK_HZ == 1_000_000_000 / RMT_TICK_NS && 1_000 % RMT_TICK_NS == 0,
+        "TIMING_CLOCK_HZ and TICKS_PER_US derive from RMT_TICK_NS, which must divide 1 µs"
+    );
+    // masked_us and the timeout take the `1` code as the slowest; keep it so.
+    assert!(
+        T1H + T1L >= T0H + T0L,
+        "the 1 code must be the slowest pulse code"
+    );
+};
 
 /// Returns the required buffer size (in [`PulseCode`]s) for `num_leds` WS2812 LEDs.
 ///
@@ -779,7 +811,7 @@ impl<'d, const N: usize> Ws2812Rmt<'d, Blocking, N> {
     ///
     /// Frames longer than one RMT channel's RAM (1 LED on ESP32-C3, ESP32-C6 and ESP32-S3, 2 LEDs on ESP32) need a refill while they transmit.
     /// The [`LongFramePolicy`] decides how it runs, as in async mode:
-    /// the default [`LongFramePolicy::CriticalSection`] polls the refill with interrupts masked, about 1.2–1.3 µs per pulse code, so a 12-LED frame holds the CPU for about 0.36 ms and a 64-LED frame for about 1.9 ms.
+    /// the default [`LongFramePolicy::CriticalSection`] polls the refill with interrupts masked, about 1.1–1.3 µs per pulse code, so a 12-LED frame holds the CPU for about 0.36 ms and a 64-LED frame for about 1.9 ms.
     /// A frame above the masked-time ceiling ([`DEFAULT_MAX_NOMINAL_MASKED_US`], see [`Ws2812Rmt::with_max_nominal_masked_us`]) returns [`Error::FrameTooLong`] instead of masking.
     /// [`LongFramePolicy::Poll`] polls with interrupts live, and [`LongFramePolicy::Reject`] returns [`Error::FrameTooLong`].
     /// Masking interrupts is not a waveform guarantee; see [Long frames](crate#long-frames).
@@ -816,7 +848,7 @@ impl<'d, const N: usize> Ws2812Rmt<'d, Blocking, N> {
     /// Calling it is an explicit request to mask, so the ceiling does not cap it.
     /// The latch wait runs first, outside the critical section.
     /// The transmit and its bounded refill polling then run inside `critical_section::with`,
-    /// so interrupts cannot delay the refill: about 1.2–1.3 µs per pulse code,
+    /// so interrupts cannot delay the refill: about 1.1–1.3 µs per pulse code,
     /// roughly 0.36 ms for 12 LEDs.
     /// Afterwards the next frame is held back by [`WS2812_RESET_US`].
     ///
@@ -1045,7 +1077,7 @@ impl<'d, const N: usize> Ws2812Rmt<'d, Async, N> {
     /// An empty slice sends nothing and returns `Ok(())`, matching `SmartLedsWrite::write` with an empty iterator.
     ///
     /// Frames longer than one RMT channel's RAM (1 LED on ESP32-C3, ESP32-C6 and ESP32-S3, 2 LEDs on ESP32) do not yield.
-    /// With the default [`LongFramePolicy::CriticalSection`] they busy-poll with interrupts masked, about 1.2–1.3 µs per pulse code, so a 12-LED frame holds the CPU for about 360 µs.
+    /// With the default [`LongFramePolicy::CriticalSection`] they busy-poll with interrupts masked, about 1.1–1.3 µs per pulse code, so a 12-LED frame holds the CPU for about 360 µs.
     /// Async firmware with a radio should build with `ESP_HAL_CONFIG_PLACE_RMT_DRIVER_IN_RAM=true` for this path, based on an earlier async bench; see [Radio firmware](crate#radio-firmware).
     /// With [`LongFramePolicy::Poll`] they busy-poll with interrupts live and still block the executor.
     /// A frame above the masked-time ceiling ([`DEFAULT_MAX_NOMINAL_MASKED_US`], see [`Ws2812Rmt::with_max_nominal_masked_us`]) returns [`Error::FrameTooLong`] instead.
@@ -1406,7 +1438,7 @@ const fn long_frame_action(
 }
 
 /// RMT ticks per microsecond at the 10 MHz timing clock set by [`RMT_CLK_DIV`].
-const TICKS_PER_US: u64 = 10;
+const TICKS_PER_US: u64 = (1_000 / RMT_TICK_NS) as u64;
 
 /// Worst-case interrupts-off time in microseconds of a masked frame of `len` pulse codes, rounded up.
 ///
@@ -1430,7 +1462,7 @@ const _: () = {
     assert!(remaining_us(1279, 1280) == 1);
     assert!(remaining_us(1280, 1280) == 0);
     assert!(remaining_us(1500, 1280) == 0);
-    assert!(WS2812_RESET_US * 10 <= PulseCode::MAX_LEN as u32);
+    assert!(WS2812_RESET_US as u64 * TICKS_PER_US <= PulseCode::MAX_LEN as u64);
 };
 
 #[cfg(feature = "async")]
@@ -1565,8 +1597,8 @@ const _: () = {
     assert!(!fits_channel_ram(289, 48));
     assert!(tx_timeout_us(289) == 1578);
     // At 100 ns per tick, 10 ticks make 1 µs: the per-code budget must exceed the longest code.
-    assert!(TIMEOUT_US_PER_CODE * 10 > (T0H + T0L) as u64);
-    assert!(TIMEOUT_US_PER_CODE * 10 > (T1H + T1L) as u64);
+    assert!(TIMEOUT_US_PER_CODE * TICKS_PER_US > (T0H + T0L) as u64);
+    assert!(TIMEOUT_US_PER_CODE * TICKS_PER_US > (T1H + T1L) as u64);
 };
 
 #[cfg(test)]
@@ -1735,7 +1767,7 @@ impl<'d, const N: usize> pennant::StatusLed for Ws2812Rmt<'d, Blocking, N> {
 /// (e.g. `smart-leds`, brightness adapters, gamma correction).
 ///
 /// The frame is sent like [`Ws2812Rmt::set_pixels_slice`]: frames longer than one channel's RAM follow the [`LongFramePolicy`].
-/// With the default [`LongFramePolicy::CriticalSection`] the transmit runs with interrupts masked, about 1.25 µs per pulse code:
+/// With the default [`LongFramePolicy::CriticalSection`] the transmit runs with interrupts masked, about 1.1–1.3 µs per pulse code:
 /// roughly 0.36 ms for 12 LEDs and 1.9 ms for 64 LEDs.
 /// The call returns [`Error::FrameTooLong`] under [`LongFramePolicy::Reject`] or above the masked-time ceiling, and [`Error::Transmit`] if a long frame times out and then ends.
 /// It returns [`Error::ChannelLost`] if the frame does not end during the drain and the channel is lost.

@@ -8,7 +8,7 @@ WS2812 (NeoPixel) LED driver using the ESP-IDF RMT peripheral.
 Drives WS2812/NeoPixel addressable LEDs on any ESP32 variant that supports
 RMT via ESP-IDF. Provides `set_pixel` and `set_pixels_slice` for direct use,
 and implements `SmartLedsWrite` for the `smart-leds` ecosystem.
-Uses `anyhow::Result` for error propagation. Blocking-only; for bare-metal
+Returns a typed `Error` that implements `core::error::Error`. Blocking-only; for bare-metal
 `async` support see `rustyfarian-esp-hal-ws2812`.
 
 Part of the [`rustyfarian-ws2812`](https://github.com/datenkollektiv/rustyfarian-ws2812)
@@ -49,10 +49,10 @@ The driver busy-waits only for the remainder of that interval.
 ## Supported Boards
 
 Any ESP32 variant with RMT support via ESP-IDF.
-`Ws2812Rmt::new()` uses a default channel configuration tuned for 48-symbol RMT blocks,
-which suits ESP32-C3, ESP32-C6 and ESP32-S3.
-For classic ESP32 or S2 (64-symbol blocks) use [`new_with_channel_config`](https://docs.rs/rustyfarian-esp-idf-ws2812)
-with `memory_block_symbols: 64`.
+`Ws2812Rmt::new()` uses one RMT memory block per driver, sized by `SOC_RMT_MEM_WORDS_PER_CHANNEL`:
+48 symbols on ESP32-C3, C6, S3 and H2, and 64 on ESP32 and S2.
+ESP-IDF rejects a smaller value, and the C3 and C6 have only two TX channels, so one block matters.
+Use [`new_with_channel_config`](https://docs.rs/rustyfarian-esp-idf-ws2812) for other tuning.
 
 | Board                    | GPIO                 |
 |:-------------------------|:---------------------|

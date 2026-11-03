@@ -49,7 +49,7 @@
 //! ## Build
 //!
 //! ```sh
-//! just build-example idf-ws2812 idf_c6_smart_leds
+//! just build-example idf_c6_smart_leds
 //! ```
 //!
 //! ## Flash

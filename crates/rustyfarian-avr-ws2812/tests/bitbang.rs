@@ -6,8 +6,10 @@
 //! - The public `ports` constants match the ATmega328P datasheet I/O addresses.
 //! - Const-generic instantiation compiles for representative `(PORT, BIT)` pairs.
 //! - Public types implement the expected traits.
-//! - `SmartLedsWrite` adapter forwards to the inner `write` (the AVR write is a
+//! - `SmartLedsWrite` adapter forwards to the inner `set_pixels_slice` (the AVR send is a
 //!   no-op on host, but the trait machinery and stack-buffer adapter are exercised).
+//! - `set_pixel`, the deprecated `write` alias and the `pennant::StatusLed` impl delegate
+//!   to the same host stub.
 //!
 //! Run via `just test-avr-all-features`.
 
@@ -34,11 +36,32 @@ fn instantiate_for_each_port() {
 }
 
 #[test]
-fn write_returns_ok_on_host_stub() {
-    // On non-AVR targets, `write` is a no-op that returns Ok.
+fn set_pixels_slice_returns_ok_on_host_stub() {
+    // On non-AVR targets, `set_pixels_slice` is a no-op that returns Ok.
+    let mut driver: Ws2812BitBang<(), { ports::PORTB }, 3> = Ws2812BitBang::new(());
+    let pixels = [RGB8::new(8, 0, 0); 10];
+    assert!(driver.set_pixels_slice(&pixels).is_ok());
+}
+
+#[test]
+fn set_pixel_forwards_on_host_stub() {
+    let mut driver: Ws2812BitBang<(), { ports::PORTB }, 3> = Ws2812BitBang::new(());
+    assert!(driver.set_pixel(RGB8::new(0, 0, 255)).is_ok());
+}
+
+#[test]
+#[allow(deprecated)]
+fn write_alias_still_compiles() {
     let mut driver: Ws2812BitBang<(), { ports::PORTB }, 3> = Ws2812BitBang::new(());
     let pixels = [RGB8::new(8, 0, 0); 10];
     assert!(driver.write(&pixels).is_ok());
+}
+
+#[cfg(feature = "pennant")]
+#[test]
+fn status_led_set_color_forwards_to_set_pixel() {
+    let mut driver: Ws2812BitBang<(), { ports::PORTB }, 3> = Ws2812BitBang::new(());
+    assert!(pennant::StatusLed::set_color(&mut driver, RGB8::new(1, 2, 3)).is_ok());
 }
 
 #[test]

@@ -3,6 +3,11 @@
 # The workspace defaults to the bare-metal ESP target (riscv32imac-unknown-none-elf)
 # via .cargo/config.toml. IDF recipes explicitly pass --target {{ idf_target }}.
 # Pure-crate recipes explicitly pass --target {{ host_target }}.
+#
+# `just --list` width guard: the name column is padded to 40, so keep each new recipe's short
+# description to about 59 characters (a row under 100 columns). A few older rows still exceed
+# that; do not add to them. Find the widest row with:
+#   just --list | awk '{ print length }' | sort -rn | head -1
 
 host_target := `scripts/host-target.sh`
 pure_crates := "-p bunting -p ferriswheel -p pennant -p rustyfarian-avr-ws2812"
@@ -111,27 +116,29 @@ check-hal-async:
 check-avr:
     cargo check -p rustyfarian-avr-ws2812 --target {{ host_target }}
 
+# check the AVR driver on host with all features (bitbang, smart-leds-trait, pennant)
 # check the AVR driver on host with all features
 [group('Build & Check')]
 check-avr-all-features:
-    cargo check -p rustyfarian-avr-ws2812 --features bitbang,smart-leds-trait --target {{ host_target }}
+    cargo check -p rustyfarian-avr-ws2812 --features bitbang,smart-leds-trait,pennant --target {{ host_target }}
 
-# check the AVR SPI driver against the real avr-none target (requires: just setup avr, avr-gcc)
-# check the AVR SPI driver on the real avr-none target
+# check the AVR SPI driver against the real avr-none target with smart-leds-trait and pennant (requires: just setup avr, avr-gcc)
+# check AVR SPI driver on avr-none (smart-leds-trait+pennant)
 [group('Build & Check')]
 check-avr-target:
-    RUSTFLAGS="-C target-cpu=atmega328p" cargo +{{ avr_nightly }} check -p rustyfarian-avr-ws2812 --target avr-none -Z build-std=core
+    RUSTFLAGS="-C target-cpu=atmega328p" cargo +{{ avr_nightly }} check -p rustyfarian-avr-ws2812 --features smart-leds-trait,pennant --target avr-none -Z build-std=core
 
-# check the AVR bit-bang driver against the real avr-none target (requires: just setup avr, avr-gcc)
-# check the AVR bit-bang driver on the avr-none target
+# check the AVR bit-bang driver against the real avr-none target with all features (bitbang, smart-leds-trait, pennant) (requires: just setup avr, avr-gcc)
+# check the AVR bit-bang driver on avr-none, all features
 [group('Build & Check')]
 check-avr-target-bitbang:
-    RUSTFLAGS="-C target-cpu=atmega328p" cargo +{{ avr_nightly }} check -p rustyfarian-avr-ws2812 --features bitbang --target avr-none -Z build-std=core
+    RUSTFLAGS="-C target-cpu=atmega328p" cargo +{{ avr_nightly }} check -p rustyfarian-avr-ws2812 --features bitbang,smart-leds-trait,pennant --target avr-none -Z build-std=core
 
-# check ferriswheel with the smart-leds-compat feature — exercises the rgb-version-divergence guard
-# check ferriswheel's smart-leds-compat feature
+# check ferriswheel with the smart-leds-trait feature — exercises the rgb-version-divergence guard; the smart-leds-compat alias is checked too
+# check ferriswheel's smart-leds-trait feature and its alias
 [group('Build & Check')]
-check-ferriswheel-smart-leds-compat:
+check-ferriswheel-smart-leds-trait:
+    cargo check -p ferriswheel --features smart-leds-trait --target {{ host_target }}
     cargo check -p ferriswheel --features smart-leds-compat --target {{ host_target }}
 
 # --- Test & Lint ----------------------------------------------------------
@@ -163,10 +170,11 @@ test-pennant-hal:
 clippy-pennant-hal:
     cargo clippy -p pennant --features hal --target {{ host_target }} -- -D warnings
 
+# test the AVR driver on the host with all features (bitbang, smart-leds-trait, pennant)
 # test the AVR driver on the host with all features
 [group('Test & Lint')]
 test-avr-all-features:
-    cargo test -p rustyfarian-avr-ws2812 --features bitbang,smart-leds-trait --target {{ host_target }}
+    cargo test -p rustyfarian-avr-ws2812 --features bitbang,smart-leds-trait,pennant --target {{ host_target }}
 
 # format all code
 [group('Test & Lint')]
@@ -266,46 +274,11 @@ flash-avr-bitbang-spike:
 
 # --- ESP Examples ---------------------------------------------------------
 
-# build a driver example; driver and chip inferred from {driver}_{chip}_{name} prefix
-# build a driver example; crate inferred from name
+# build a driver example; the crate is inferred from the hal_/idf_ prefix
+# build an example; crate inferred from the hal_/idf_ prefix
 [group('ESP Examples')]
-build-example crate_alias example:
-    scripts/build-example.sh "{{ crate_alias }}" "{{ example }}" "{{ hal_dir }}" "{{ idf_dir }}"
-
-# build the ESP32-C3 pulse example (alias for: just build-example hal-ws2812 hal_c3_pulse)
-# build the ESP32-C3 pulse example
-[group('ESP Examples')]
-build-example-c3: (build-example "hal-ws2812" "hal_c3_pulse")
-
-# build the ESP32-C6 pulse example (alias for: just build-example hal-ws2812 hal_c6_pulse)
-# build the ESP32-C6 pulse example
-[group('ESP Examples')]
-build-example-c6: (build-example "hal-ws2812" "hal_c6_pulse")
-
-# build the Adafruit Feather ESP32 V2 rainbow example (alias for: just build-example idf-ws2812 idf_esp32_rainbow)
-# build the Feather ESP32 V2 rainbow example
-[group('ESP Examples')]
-build-example-esp32: (build-example "idf-ws2812" "idf_esp32_rainbow")
-
-# build the ESP32-WROOM pulse example (alias for: just build-example hal-ws2812 hal_esp32_pulse)
-# build the ESP32-WROOM pulse example (esp-hal)
-[group('ESP Examples')]
-build-example-esp32-hal: (build-example "hal-ws2812" "hal_esp32_pulse")
-
-# build the ESP32-S3 pulse example (alias for: just build-example hal-ws2812 hal_s3_pulse)
-# build the ESP32-S3 pulse example
-[group('ESP Examples')]
-build-example-s3-hal: (build-example "hal-ws2812" "hal_s3_pulse")
-
-# build the ESP32-WROOM discrete RGB LED (pennant RgbGpioLed) example (alias for: just build-example idf-ws2812 idf_esp32_rgb_cycle)
-# build the ESP32-WROOM discrete RGB LED example
-[group('ESP Examples')]
-build-example-esp32-rgb: (build-example "idf-ws2812" "idf_esp32_rgb_cycle")
-
-# build the ESP32-WROOM discrete RGB LED smooth PWM pulse (pennant RgbPwmLed) example (alias for: just build-example idf-ws2812 idf_esp32_rgb_pulse)
-# build the ESP32-WROOM RGB PWM pulse example
-[group('ESP Examples')]
-build-example-esp32-rgb-pulse: (build-example "idf-ws2812" "idf_esp32_rgb_pulse")
+build-example example:
+    scripts/build-example.sh "{{ example }}" "{{ hal_dir }}" "{{ idf_dir }}"
 
 # ensure the IDF-built v5.3.3 bootloader is in the build cache for the given chip
 # cache the IDF-built bootloader for a chip (c3|c6|esp32|s3)
@@ -313,11 +286,11 @@ build-example-esp32-rgb-pulse: (build-example "idf-ws2812" "idf_esp32_rgb_pulse"
 ensure-bootloader chip:
     scripts/ensure-bootloader.sh "{{ chip }}" "{{ hal_dir }}" "{{ idf_dir }}"
 
-# build and flash a driver example; driver and chip inferred from {driver}_{chip}_{name} prefix
-# build and flash a driver example, then monitor
+# build and flash a driver example; the crate is inferred from the hal_/idf_ prefix
+# build and flash an example; crate inferred from prefix
 [group('ESP Examples')]
-run-example crate_alias example:
-    scripts/run-example.sh "{{ crate_alias }}" "{{ example }}" "{{ hal_dir }}" "{{ idf_dir }}"
+run-example example:
+    scripts/run-example.sh "{{ example }}" "{{ hal_dir }}" "{{ idf_dir }}"
 
 # --- Flash & Monitor ------------------------------------------------------
 

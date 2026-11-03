@@ -28,7 +28,7 @@
 //! ## Build
 //!
 //! ```sh
-//! just build-example hal-ws2812 hal_c3_pulse
+//! just build-example hal_c3_pulse
 //! ```
 //!
 //! ## Flash

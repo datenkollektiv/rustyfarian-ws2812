@@ -39,7 +39,7 @@
 //! ## Build
 //!
 //! ```sh
-//! just build-example idf-ws2812 idf_c6_effects
+//! just build-example idf_c6_effects
 //! ```
 //!
 //! ## Flash

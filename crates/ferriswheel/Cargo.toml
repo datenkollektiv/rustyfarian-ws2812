@@ -13,7 +13,9 @@ keywords = ["led", "ring", "ws2812", "neopixel", "rainbow"]
 categories = ["embedded", "no-std"]
 
 [features]
-smart-leds-compat = ["dep:smart-leds-trait"]
+smart-leds-trait = ["dep:smart-leds-trait"]
+# alias kept for the 0.8 cycle; use smart-leds-trait
+smart-leds-compat = ["smart-leds-trait"]
 
 [dependencies]
 rgb.workspace = true

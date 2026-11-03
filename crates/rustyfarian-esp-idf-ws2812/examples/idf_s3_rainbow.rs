@@ -25,7 +25,7 @@
 //! ## Build
 //!
 //! ```sh
-//! just build-example idf-ws2812 idf_s3_rainbow
+//! just build-example idf_s3_rainbow
 //! ```
 //!
 //! ## Flash

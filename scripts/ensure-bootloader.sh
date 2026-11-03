@@ -31,5 +31,5 @@ esac
 bl=$(find_idf_bootloader "$idf_target" "$idf_dir")
 if [ -z "$bl" ]; then
     printf 'IDF bootloader not cached for %s -- building IDF example to populate it (requires cargo +esp)...\n' "$mcu" >&2
-    "$SCRIPT_DIR/build-example.sh" idf-ws2812 "$idf_example" "$hal_dir" "$idf_dir"
+    "$SCRIPT_DIR/build-example.sh" "$idf_example" "$hal_dir" "$idf_dir"
 fi

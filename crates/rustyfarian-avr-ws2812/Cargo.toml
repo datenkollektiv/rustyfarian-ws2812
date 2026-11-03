@@ -21,10 +21,13 @@ targets = ["x86_64-unknown-linux-gnu"]
 # Opt-in additions:
 bitbang = []
 smart-leds-trait = ["dep:smart-leds-trait"]
+# `pennant::StatusLed` impl for both backends (first LED only).
+pennant = ["dep:pennant"]
 
 [dependencies]
 bunting.workspace = true
 embedded-hal.workspace = true
+pennant = { workspace = true, optional = true }
 rgb.workspace = true
 smart-leds-trait = { workspace = true, optional = true }
 

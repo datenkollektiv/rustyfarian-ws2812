@@ -56,7 +56,6 @@ timeline
               : Scope MAX_LEDS and fix positional effects for strips > 256 LEDs
               : Add scope guard in grid.rs (README row done)
               : Document async support status in README driver table
-              : Decide build-example-* convenience-alias coverage policy
 
     Long term : Property tests for pure crates
               : Track rgb 0.9 migration
@@ -64,28 +63,6 @@ timeline
               : Upstream contribution evaluation
               : embedded-graphics-core evaluation
               : Monitor esp-idf-hal for async RMT support
-```
-
----
-
-## Developer Tooling
-
-### Decide `build-example-*` convenience-alias coverage policy
-
-Alias coverage is arbitrary rather than wrong: 6 `build-example-*` aliases exist for
-31 examples, while `just build-example <crate> <name>` and `just flash <name>`
-(which infers the crate from the name prefix) already cover all of them.
-Decide whether aliases are curated shortcuts for a few common cases — and if so, which —
-or should cover every example.
-
-Surfaced as a follow-up while trimming `just --list` to one line per recipe (August 2026);
-deliberately left out of that change, which touched descriptions only.
-
-Guard the trimmed output against regression when adding recipes — the name column is padded
-to 40, so a description budget of ~59 characters keeps a row under 100:
-
-```sh
-just --list | awk '{ print length }' | sort -rn | head -1   # expect <= 100
 ```
 
 ---

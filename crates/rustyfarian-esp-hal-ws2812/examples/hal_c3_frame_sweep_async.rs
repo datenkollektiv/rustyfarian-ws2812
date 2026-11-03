@@ -8,7 +8,7 @@
 //! Each cycle runs five phases, separated by 1 s pauses so a logic-analyser capture is easy to segment:
 //!
 //! 1. Solid frames of 1, 2, 3, 12 and 64 LEDs; each transmit must take at least the wire time
-//!    (24 bits × 1.2 µs per LED, rounded up), otherwise the frame was cut short.
+//!    (24 bits × 1.1 µs per LED, rounded up), otherwise the frame was cut short.
 //!    Frames that fit in one channel's RAM (1 LED on the C3) must also include the 280 µs encoded latch.
 //! 2. Ten back-to-back frames at 1, 12 and 64 LEDs; the mean period must include the 280 µs latch.
 //!    The 1-LED case sends the encoded latch (await path): if the RMT did not hold the encoded low half before the end,
@@ -70,7 +70,7 @@
 //! ## Build
 //!
 //! ```sh
-//! just build-example hal-ws2812 hal_c3_frame_sweep_async
+//! just build-example hal_c3_frame_sweep_async
 //! ```
 //!
 //! ## Run (flash and monitor)
@@ -113,9 +113,9 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     loop {}
 }
 
-/// Shortest possible time on the wire for `leds` LEDs: 24 bits of at least 1.2 µs each, rounded up.
+/// Shortest possible time on the wire for `leds` LEDs: 24 bits of at least 1.1 µs each (the `0` code, T0H + T0L), rounded up.
 const fn wire_minimum_us(leds: usize) -> u64 {
-    (leds as u64 * 24 * 12).div_ceil(10)
+    (leds as u64 * 24 * 11).div_ceil(10)
 }
 
 /// Shortest possible transmit time for one frame of `leds` LEDs.

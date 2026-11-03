@@ -52,7 +52,7 @@ use rgb::RGB8;
 
 let mut ws: Ws2812BitBang<_, 0x0B, 2> = Ws2812BitBang::new(pin);
 let colors = [RGB8::new(255, 0, 0); 8];
-ws.write(&colors).unwrap();
+ws.set_pixels_slice(&colors).unwrap();
 ```
 
 ## Features
@@ -61,6 +61,7 @@ ws.write(&colors).unwrap();
 |:-------------------|:---------|:------------------------------------------------------------|
 | `bitbang`          | no       | cycle-counted inline-asm bit-bang backend (`Ws2812BitBang`) |
 | `smart-leds-trait` | no       | `SmartLedsWrite` impl for both backends                     |
+| `pennant`          | no       | `pennant::StatusLed` impl for both backends (first LED)     |
 
 ## Documentation
 

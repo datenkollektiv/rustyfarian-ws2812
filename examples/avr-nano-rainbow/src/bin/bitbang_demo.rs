@@ -63,7 +63,7 @@ fn main() -> ! {
 
     loop {
         effect.update(&mut buf).ok();
-        driver.write(&buf).ok();
+        driver.set_pixels_slice(&buf).ok();
         arduino_hal::delay_ms(20);
     }
 }

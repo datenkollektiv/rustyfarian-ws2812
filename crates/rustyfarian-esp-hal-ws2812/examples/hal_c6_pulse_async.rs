@@ -1,7 +1,7 @@
 //! ESP32-C6 Async Pulse Example (esp-hal + Embassy, bare-metal)
 //!
 //! Pulses the first LED of a 12-LED WS2812B ring in blue with the async RMT driver;
-//! [`AsyncStatusLed`] drives a single status LED, so the other LEDs stay dark.
+//! [`AsyncStatusLed`] drives a single status LED; the ring is cleared once at start, so the other LEDs stay dark.
 //! The animation loop uses [`embassy_time::Timer`] to yield between frames.
 //!
 //! This example demonstrates using `AsyncStatusLed` from `pennant` with the
@@ -30,7 +30,7 @@
 //! ## Build
 //!
 //! ```sh
-//! just build-example hal-ws2812 hal_c6_pulse_async
+//! just build-example hal_c6_pulse_async
 //! ```
 //!
 //! ## Flash
@@ -82,6 +82,12 @@ async fn main(_spawner: Spawner) -> ! {
     println!("RTOS started, RMT configured");
 
     let mut ws = Ws2812Rmt::<_, N>::from_channel_creator(rmt.channel0, peripherals.GPIO18).unwrap();
+
+    // Clear the whole ring once. `AsyncStatusLed` below drives only the first LED, and the
+    // others would keep whatever the previous firmware latched.
+    ws.set_pixels_slice(&[RGB8::default(); NUM_LEDS])
+        .await
+        .unwrap();
 
     let base_color = RGB8::new(0, 0, 255);
     let mut brightness: u8 = 0;

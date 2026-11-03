@@ -51,8 +51,8 @@ jobs:
       - name: Test pure crates
         run: just test
 
-      - name: Check ferriswheel smart-leds-compat (rgb version divergence guard)
-        run: just check-ferriswheel-smart-leds-compat
+      - name: Check ferriswheel smart-leds-trait (rgb version divergence guard)
+        run: just check-ferriswheel-smart-leds-trait
 
       - name: Test pennant hal feature (SimpleLed adapter — off by default)
         run: just test-pennant-hal

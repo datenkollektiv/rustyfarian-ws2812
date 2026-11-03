@@ -28,13 +28,13 @@ maintenance file structure.
 ### Example compile checks (when API changes are suspected)
 After any `esp-hal` minor bump, spot-check at least one example per chip family
 **and** one per feature dimension, since example code lives outside `lib.rs`:
-- `just build-example hal-ws2812 hal_c6_pulse` (blocking, C6)
-- `just build-example hal-ws2812 hal_c6_pulse_async` (async, C6)
-- `just build-example hal-ws2812 hal_c6_multitask_async` (Embassy spawn / sync — most likely to break)
-- `just build-example hal-ws2812 hal_c6_smart_leds` (smart-leds-trait integration)
-- `just build-example hal-ws2812 hal_c3_pulse` (C3)
-- `just build-example hal-ws2812 hal_esp32_pulse` (WROOM-32)
-- `just build-example hal-ws2812 hal_s3_pulse` (S3)
+- `just build-example hal_c6_pulse` (blocking, C6)
+- `just build-example hal_c6_pulse_async` (async, C6)
+- `just build-example hal_c6_multitask_async` (Embassy spawn / sync — most likely to break)
+- `just build-example hal_c6_smart_leds` (smart-leds-trait integration)
+- `just build-example hal_c3_pulse` (C3)
+- `just build-example hal_esp32_pulse` (WROOM-32)
+- `just build-example hal_s3_pulse` (S3)
 
 ### Hardware tests
 End-to-end animation validation requires real boards. Connect over USB,
@@ -160,7 +160,7 @@ a new wave appears upstream:
    workspace constraints to match. Run `just update` again.
 5. **Compile check.** Run `just check-hal` and `just clippy-hal`. Library code
    often passes immediately; example code is where API breakage surfaces.
-6. **Example fix-up.** Run `just build-example hal-ws2812 <example>` for at least
+6. **Example fix-up.** Run `just build-example <example>` for at least
    one async example (most likely to break) and one per chip family. Apply
    migration patches as needed. Common upstream change patterns observed so far:
    - **`esp-hal` RMT builder reshapes** — pin/config split; check `configure_tx` /
