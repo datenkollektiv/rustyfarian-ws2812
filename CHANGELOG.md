@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-03
+
+The long-frame async release gate (logic-analyser capture of `hal_c3_frame_sweep_async`) was waived for this release; it is tracked in [`docs/features/long-frame-hardware-validation-v1.md`](docs/features/long-frame-hardware-validation-v1.md).
+
+### Breaking changes
+
+- `rustyfarian-esp-hal-ws2812`: `Error` is `#[non_exhaustive]`; add a wildcard arm to `match` expressions.
+- `rustyfarian-esp-hal-ws2812`: the `async` feature no longer pulls in a runtime; enable `embassy` for Embassy and `esp-rtos`.
+- `rustyfarian-esp-hal-ws2812`: blocking frames longer than one channel's RAM follow `LongFramePolicy` and are masked by default.
+- `rustyfarian-esp-hal-ws2812`: `CriticalSection` frames above 1000 µs nominal (about 32 LEDs) return `FrameTooLong`; use `with_max_nominal_masked_us` or `Poll`.
+- `rustyfarian-esp-hal-ws2812`: T0H is 300 ns instead of 400 ns.
+- `rustyfarian-esp-hal-ws2812` and `rustyfarian-esp-idf-ws2812`: `set_pixels_slice(&[])` sends nothing and returns `Ok(())`.
+- `rustyfarian-esp-idf-ws2812`: returns its own `Error` instead of `anyhow::Error`.
+- `rustyfarian-esp-idf-ws2812`: the `WS2812RMT` alias is removed; use `Ws2812Rmt`.
+- `rustyfarian-avr-ws2812`: `write` is renamed to `set_pixels_slice`; `write` stays as a deprecated alias.
+
 ### Added
 
 - `bunting`: WS2812 timing constants `WS2812_T0H_NS` (300), `WS2812_T0L_NS` (800), `WS2812_T1H_NS` (700), `WS2812_T1L_NS` (600) and `WS2812_RESET_US` (280), `ns_to_ticks(ns, tick_ns) -> Option<u16>` (a `const fn` that refuses a width that is not a whole tick), and `rgb_to_grb_bytes(RGB8) -> [u8; 3]`. Both ESP drivers derive their pulse timings from these constants and re-export `WS2812_RESET_US`, so one crate owns the WS2812 numbers (see [ADR 011](docs/adr/011-cross-crate-driver-api-policy.md))
