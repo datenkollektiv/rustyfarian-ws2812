@@ -21,7 +21,8 @@ family and ruled in-workspace networking demos (e.g. ESP-NOW) out of scope.
 All three embedded targets (RISC-V, AVR, Xtensa) are now gated in CI by path-filtered
 cross-target workflows.
 The near-term priorities are making the esp-hal and ESP-IDF drivers interchangeable
-for the unreleased 0.8 and tightening the `cargo-deny` configuration.
+for the unreleased 0.8, streamlining the API across all platforms for the same release,
+and tightening the `cargo-deny` configuration.
 Mid-term priorities are removing the `esp-idf-hal` `send_and_wait` workaround
 when the upstream fix lands, `SmartLedsWriteAsync` for the async driver, and
 scoping `MAX_LEDS` correctly.
@@ -47,6 +48,7 @@ timeline
 
     Near term : Interchangeable esp-hal and ESP-IDF drivers (feature-doc)
               : Deadline-free async transmit for long esp-hal frames (feature-doc)
+              : Cross-platform API streamlining (feature-doc)
               : cargo-deny — ban multiple rgb versions
 
     Mid term  : Remove send_and_wait workaround (esp-idf-hal fix)
@@ -143,6 +145,13 @@ This work applies the policy to both esp-hal modes, adds a `Poll` option, bounds
 Requested from downstream project `rustyfarian-rgb-clock`, filed 2026-11-01.
 Decisions: [ADR 010](adr/010-interchangeable-driver-semantics.md).
 Design and progress: [`docs/features/driver-interchangeability-v1.md`](features/driver-interchangeability-v1.md).
+
+### Cross-platform API streamlining
+
+ADR 010 aligned the runtime behaviour of the two ESP drivers, but examples, error types, the AVR crate and shared constants were left out.
+Most esp-hal examples still set up the RMT channel by hand, only esp-hal's `Error` implements `core::error::Error`, and the `WS2812RMT` alias outlived its promised 0.7.0 removal.
+Breaking items ship in the unreleased 0.8.
+Design and progress: [`docs/features/cross-platform-streamlining-v1.md`](features/cross-platform-streamlining-v1.md).
 
 ### Deadline-free async transmit for long esp-hal frames
 
