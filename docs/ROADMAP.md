@@ -20,8 +20,8 @@ The 2026-05-05 vision review confirmed AVR as a first-class supported MCU
 family and ruled in-workspace networking demos (e.g. ESP-NOW) out of scope.
 All three embedded targets (RISC-V, AVR, Xtensa) are now gated in CI by path-filtered
 cross-target workflows.
-The near-term priorities are making the esp-hal and ESP-IDF drivers interchangeable
-for the unreleased 0.8, streamlining the API across all platforms for the same release,
+For the unreleased 0.8, the esp-hal and ESP-IDF drivers are interchangeable and the API is streamlined across all platforms.
+The near-term priorities are hardware validation of the long-frame paths on the current tree
 and tightening the `cargo-deny` configuration.
 Mid-term priorities are removing the `esp-idf-hal` `send_and_wait` workaround
 when the upstream fix lands, `SmartLedsWriteAsync` for the async driver, and
@@ -46,12 +46,11 @@ All completed items are documented in the [CHANGELOG](../CHANGELOG.md).
 timeline
     title Fuzzy Rustyfarian WS2812 Roadmap
 
-    Near term : Interchangeable esp-hal and ESP-IDF drivers (feature-doc)
-              : Deadline-free async transmit for long esp-hal frames (feature-doc)
-              : Cross-platform API streamlining (feature-doc)
+    Near term : Long-frame hardware validation (feature-doc)
               : cargo-deny — ban multiple rgb versions
 
     Mid term  : Remove send_and_wait workaround (esp-idf-hal fix)
+              : Host tests for long-frame PollBudget and latch
               : SmartLedsWriteAsync for esp-hal async driver
               : Scope MAX_LEDS and fix positional effects for strips > 256 LEDs
               : Add scope guard in grid.rs (README row done)
@@ -63,6 +62,7 @@ timeline
               : Upstream contribution evaluation
               : embedded-graphics-core evaluation
               : Monitor esp-idf-hal for async RMT support
+              : Upstream issues — esp-hal ISR refill, esp-idf-hal IRAM handle_isr
 ```
 
 ---
@@ -114,28 +114,16 @@ versions in the dep graph at the time of the change.
 
 ## Hardware Driver Improvements
 
-### Interchangeable esp-hal and ESP-IDF drivers
+### Long-frame hardware validation
 
-The same call should mean the same thing on both drivers.
-Today the esp-hal long-frame policy applies only to async, so blocking long frames garble under Wi-Fi, and the ESP-IDF driver enforces no 280 µs reset interval.
-This work applies the policy to both esp-hal modes, adds a `Poll` option, bounds the blocking masked path, adds the latch to ESP-IDF, and removes the duplicated RMT channel setup.
-Requested from downstream project `rustyfarian-rgb-clock`, filed 2026-11-01.
-Decisions: [ADR 010](adr/010-interchangeable-driver-semantics.md).
-Design and progress: [`docs/features/driver-interchangeability-v1.md`](features/driver-interchangeability-v1.md).
+The long-frame policy ([ADR 009](adr/009-long-frame-policy-and-latch.md), [ADR 010](adr/010-interchangeable-driver-semantics.md)) is implemented for both esp-hal modes, but its downstream Wi-Fi benches pin binaries from before the 300 ns T0H change.
+Re-bench on the current tree, run R4 with the ceiling lifted, cover the async path, and capture the `hal_c3_frame_sweep_async` waveform.
+Design and progress: [`docs/features/long-frame-hardware-validation-v1.md`](features/long-frame-hardware-validation-v1.md).
 
-### Cross-platform API streamlining
+### Host tests for the long-frame `PollBudget` and latch logic
 
-ADR 010 aligned the runtime behaviour of the two ESP drivers, but examples, error types, the AVR crate and shared constants were left out.
-Most esp-hal examples still set up the RMT channel by hand, only esp-hal's `Error` implements `core::error::Error`, and the `WS2812RMT` alias outlived its promised 0.7.0 removal.
-Breaking items ship in the unreleased 0.8.
-Design and progress: [`docs/features/cross-platform-streamlining-v1.md`](features/cross-platform-streamlining-v1.md).
-
-### Deadline-free async transmit for long esp-hal frames
-
-`Ws2812Rmt<'d, Async, N>` garbles frames longer than one RMT channel's RAM, because esp-hal 1.2.2 refills TX RAM from the executor, not the ISR.
-Busy-poll such frames inside a critical section until esp-hal refills in the ISR.
-Reported by two downstream projects (12 and 64 LEDs on ESP32-C3).
-Design and progress: [`docs/features/esp-hal-async-long-frame-refill-v1.md`](features/esp-hal-async-long-frame-refill-v1.md).
+No runtime test covers them: esp-hal host tests cannot build on macOS (Mach-O `link_section` error), and the ESP-IDF crate is `espidf`-only.
+Evaluate an injectable clock so the logic runs on the host.
 
 ### Document async support status in README driver table
 
@@ -217,12 +205,6 @@ Not blocking, but tracked here to avoid being lost.
   The `* (decay + 1) >> 8` fixed-point variant is marginally faster on bare metal but changes
   the semantics of `decay=0` (near-zero, not instant black), requiring test updates.
   Revisit only if a performance need or a `with_decay_pct(f32)` builder is added.
-
-- **`pennant::PulseEffect::update` takes `(u8, u8, u8)` instead of `RGB8`** — inconsistent with
-  the rest of the workspace, which standardises on `rgb::RGB8` (ADR 001).
-  Breaking change; align the signature in the next minor bump (0.7.0 candidate).
-  At the same time, decide whether `new()` starting at `brightness: 0` (below `min_brightness: 2`)
-  is intended fade-in behaviour or should start at `min_brightness` — now documented as fade-in.
 
 - **`#[must_use]` audit for builder and getter methods in the pure crates** — `with_*` builders
   and `Result`-returning constructors silently discard work if the return value is dropped.
@@ -310,6 +292,13 @@ If a future `esp-idf-hal` release adds async RMT (likely using `esp-idf-svc`'s e
 This would be a different runtime from the HAL driver's Embassy-based async (see [ADR 008](adr/008-embassy-as-async-runtime.md))
 — the two drivers already diverge on error handling (ADR 005), so runtime divergence is expected.
 Track: [esp-idf-hal releases](https://github.com/esp-rs/esp-idf-hal/releases).
+
+### File upstream RMT issues
+
+- **esp-hal: refill TX RAM in the RMT ISR** — esp-hal 1.2.2 refills from the executor, which is why long frames need the critical-section policy ([ADR 009](adr/009-long-frame-policy-and-latch.md)); an ISR refill would let the policy go.
+- **esp-idf-hal: place `handle_isr` in IRAM**, or skip registering it as `on_trans_done` when no async wait is used; until then `CONFIG_RMT_ISR_IRAM_SAFE` breaks `Ws2812Rmt::new` ([ADR 010](adr/010-interchangeable-driver-semantics.md)).
+
+Draft both for the maintainer to post.
 
 ### Evaluate `embedded-graphics-core` integration for matrix displays
 

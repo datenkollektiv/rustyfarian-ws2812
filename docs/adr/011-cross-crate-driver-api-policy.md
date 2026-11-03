@@ -8,7 +8,7 @@ Accepted (2026-11-03)
 
 [ADR 010](010-interchangeable-driver-semantics.md) aligned the runtime behaviour of the two ESP drivers.
 It left out the third driver crate, the error types, the Cargo feature names, the shared WS2812 constants and the build tooling.
-The [cross-platform streamlining feature](../features/cross-platform-streamlining-v1.md) collected eight open questions about those, and this ADR records the answers as policy, so the next driver crate does not reopen them.
+The [cross-platform streamlining feature](../features/archive/cross-platform-streamlining-v1.md) collected eight open questions about those, and this ADR records the answers as policy, so the next driver crate does not reopen them.
 
 Findings from the 2026-11-03 investigation that changed the premises:
 
@@ -117,4 +117,4 @@ This closes the roadmap item on alias coverage.
 - [ADR 005: Dual-HAL Strategy](005-dual-hal-strategy.md)
 - [ADR 007: AVR WS2812 Driver Strategy](007-avr-ws2812-driver-strategy.md)
 - [ADR 010: Interchangeable Driver Semantics](010-interchangeable-driver-semantics.md)
-- [Feature: Cross-platform API streamlining v1](../features/cross-platform-streamlining-v1.md)
+- [Feature: Cross-platform API streamlining v1](../features/archive/cross-platform-streamlining-v1.md)

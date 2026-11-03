@@ -13,7 +13,7 @@ ADR 010 aligned the runtime behaviour of the two ESP drivers; examples, error ty
 | Decision                                                                                                              | Reason                                                                                                                                                        | Rejected Alternative                                |
 |:----------------------------------------------------------------------------------------------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------|:----------------------------------------------------|
 | Breaking changes ship in the unreleased 0.8                                                                           | 0.8 already breaks; consumers take one migration                                                                                                              | Spread over 0.8 and 0.9                             |
-| No shared `Ws2812` trait across crates                                                                                | `SmartLedsWrite` is the common seam ([ADR 010](../adr/010-interchangeable-driver-semantics.md))                                                               | New cross-crate trait                               |
+| No shared `Ws2812` trait across crates                                                                                | `SmartLedsWrite` is the common seam ([ADR 010](../../adr/010-interchangeable-driver-semantics.md))                                                               | New cross-crate trait                               |
 | Mechanical items first (examples sweep, error impls, alias)                                                           | No hardware behaviour change; most of the visible friction                                                                                                    | API design items first                              |
 | Examples use `from_channel_creator`; `hal_c6_rainbow_comet` keeps the two-step form                                   | One call; one example still shows `tx_channel_config()`                                                                                                       | Two-step form everywhere                            |
 | `SpiError` keeps `source()` as `None`                                                                                 | Its `Display` already embeds the encode error                                                                                                                 | Return the encode error as source                   |
@@ -35,7 +35,7 @@ ADR 010 aligned the runtime behaviour of the two ESP drivers; examples, error ty
 
 ## Open Questions
 
-All eight were settled on 2026-11-03; the answers are the last eight Decisions rows and [ADR 011](../adr/011-cross-crate-driver-api-policy.md).
+All eight were settled on 2026-11-03; the answers are the last eight Decisions rows and [ADR 011](../../adr/011-cross-crate-driver-api-policy.md).
 
 - [x] Should the ESP-IDF driver return a typed `Error` instead of `anyhow::Error`, matching esp-hal? Yes.
 - [x] Should the AVR drivers gain `set_pixel` / `set_pixels_slice`, or keep `write` as their only send method? Rename, with `write` deprecated.
@@ -69,8 +69,8 @@ All eight were settled on 2026-11-03; the answers are the last eight Decisions r
 - [x] `bunting`: WS2812 pulse and reset constants with a tick helper; both ESP drivers consume them (T0H 300 ns)
 - [x] AVR: `set_pixel` / `set_pixels_slice`, deprecated `write`, `pennant` feature with `StatusLed` impls, `smart-leds-trait` in the avr-none checks; `Ws2812Spi::set_pixels_slice` now rejects a buffer below `spi_buffer_size` instead of truncating the reset tail
 - [x] `ferriswheel`: `smart-leds-trait` feature with `smart-leds-compat` as alias; justfile and CI call sites moved
-- [x] Hardware re-run after the T0H change (binaries built from the final tree, 2026-11-03); the classic ESP32 esp-hal pulses are still open below
-  - [ ] `hal_esp32_pulse` (ELF `29d5b7f3…`) and `hal_esp32_pulse_async` (ELF `48aa38d9…`) on the classic ESP32, GPIO4: built from the final tree, not yet run; `just run <example>` with the strip on D4
+- [x] Hardware re-run after the T0H change (binaries built from the final tree, 2026-11-03), on all four ESP chips and the AVR Nano
+  - [x] `hal_esp32_pulse` (ELF `29d5b7f3…`) and `hal_esp32_pulse_async` (ELF `48aa38d9…`) on classic ESP32-WROOM-32 rev v3.1, GPIO4: flashed 2026-11-03 by the user; the whole ring pulses blue, and the async example pulses only the first LED, confirmed visually; the flashed ELFs in the ramdisk target dir hash to the values above (built 18:46, unchanged since), so the first esp-hal sign-off on the classic ESP32 at 300 ns T0H
   - [x] AVR `spi_rainbow` (SPI prerendered, `set_pixels_slice`) on a genuine Arduino Nano (FT232R, `/dev/cu.usbserial-AQ01L7M0`), D11: flashed 2026-11-03, ELF SHA-256 `1693c0bb…`; strip renders white-ish, the ADR 007 limitation of that backend on this strip, unchanged by the rename
   - [x] AVR `avr-nano-rainbow` (bit-bang `set_pixels_slice`, the recommended backend) on the same Nano, D11: flashed 2026-11-03, ELF SHA-256 `80f89fdb…`; clean turning rainbow on the 12-LED strip, confirmed visually; the AVR rename is hardware-verified on the recommended backend
   - [x] `hal_c6_fire` on ESP32-C6 rev v0.1, GPIO18: flashed 2026-11-03 14:24 UTC, ELF SHA-256 `26b9f05d…`; flame renders cleanly at 300 ns T0H, confirmed visually
@@ -85,8 +85,7 @@ All eight were settled on 2026-11-03; the answers are the last eight Decisions r
 
 ## Session Log
 
-- 2026-11-03 — Feature doc created from the cross-platform streamlining investigation
-- 2026-11-03 — Mechanical batch done: error impls, example sweep, `map_err` cleanup, alias removal; flash spot checks pending
+- 2026-11-03 — Feature doc created from the cross-platform streamlining investigation- 2026-11-03 — Mechanical batch done: error impls, example sweep, `map_err` cleanup, alias removal; flash spot checks pending
 - 2026-11-03 — Review of `a5f6b72`: no blocker; C3 module doc fixed (binary unchanged), C6 spot checks waived
 - 2026-11-03 — `hal_c6_fire` flashed at `a5f6b72` on ESP32-C6: clean; `hal_c6_pulse_async` flashed too: clean; all planned spot checks done, plus `hal_c6_rainbow_comet_async`
 - 2026-11-03 — Whole-ring wording fixed in the C6 and ESP32 async pulse docs
@@ -100,3 +99,4 @@ All eight were settled on 2026-11-03; the answers are the last eight Decisions r
 - 2026-11-03 — Review pass (code-reviewer, rust-reviewer, justfile-reviewer, dependency-manager): esp-hal tick constants now all derive from `RMT_TICK_NS`, the frame-sweep floor follows the 1.1 µs zero code, `Error` docs corrected, SPI empty slice is a no-op; `hal_c6_fire` flashed on the C6 at `26b9f05d…`
 - 2026-11-03 — Implementation of the accepted decisions landed uncommitted in five groups (bunting + ESP drivers, AVR, ferriswheel, pennant, tooling + docs); verification and hardware re-run pending
 - 2026-11-03 — Eight open questions settled from code inspection, datasheet research and the downstream repos; ADR 011 drafted. Two findings changed the premises: ESP-IDF v5.3.3 rejects a 48-symbol block on ESP32 and S2 (`rmt_tx.c:247`), and esp-idf-hal 0.47 truncates 350 ns to 3 ticks at 10 MHz
+- 2026-11-03 — Classic ESP32 esp-hal pulses (`29d5b7f3…`, `48aa38d9…`) confirmed visually at `a530c4b`; last State box ticked, feature done and archived

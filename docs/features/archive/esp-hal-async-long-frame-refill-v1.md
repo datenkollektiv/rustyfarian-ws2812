@@ -1,6 +1,5 @@
 ---
-gate: hardware
-gate-note: Waveform capture per the maintenance-plan long-frame release gate on ESP32-C3
+gate: none
 desk-work: available
 ---
 
@@ -24,7 +23,7 @@ Reproduced independently by a second downstream project (64 LEDs, ESP32-C3, ESP-
 | Frames > `CHANNEL_RAM_SIZE` codes: busy-poll the future in a critical section                       | Same deadline-free loop as blocking `wait()`                                                    | Await and hope the executor is fast                           |
 | Frames that fit stay truly async                                                                    | No refill, so no deadline                                                                       | Critical section for every frame                              |
 | `LongFramePolicy`: `CriticalSection` (default) or `Reject`                                          | Radio firmware can refuse masked interrupts                                                     | Always on, no opt-in                                          |
-| No `Await` policy variant ([ADR 009](../adr/009-long-frame-policy-and-latch.md))                    | It garbles and bounds nothing                                                                   | `Await` variant                                               |
+| No `Await` policy variant ([ADR 009](../../adr/009-long-frame-policy-and-latch.md))                    | It garbles and bounds nothing                                                                   | `Await` variant                                               |
 | Threshold `esp_hal::rmt::CHANNEL_RAM_SIZE` (one block)                                              | Driver cannot read the configured `memsize`                                                     | Constructor `memsize` argument                                |
 | `Error` is `#[non_exhaustive]`; `Error::FrameTooLong` for `Reject`                                  | Refused frames must be reported, not dropped                                                    | Reuse `Error::Transmit`                                       |
 | Remove the policy branch once esp-hal refills in the ISR                                            | No policy needed when the refill is deadline-free                                               | New `set_pixels_slice_cs` method                              |
@@ -57,14 +56,14 @@ Reproduced independently by a second downstream project (64 LEDs, ESP32-C3, ESP-
 
 ## Open Questions
 - [x] Pending RMT interrupt after the critical section is harmless: the ISR only unlistens and wakes; raw status stays for polling (source), and C3 phase 3 ran await frames right after CS frames, 2 cycles PASS (2026-10-31).
-- [ ] File the esp-hal issue asking for ISR refill (draft for the maintainer to post)?
+- [x] File the esp-hal issue asking for ISR refill (draft for the maintainer to post)? Moved to the roadmap (Long term) on 2026-11-03.
 
 ## State
 - [x] Design approved
 - [x] Core implementation
 - [x] Checks passing (`just check-hal`, `check-hal-c3`, `check-hal-xtensa`, new `check-hal-async`, `clippy-hal-async`, `verify`, `deny`)
 - [x] Review follow-up implemented
-- [ ] Hardware-validated per the maintenance-plan long-frame release gate (`hal_c3_frame_sweep_async`)
+- [x] Hardware-validated per the maintenance-plan long-frame release gate (`hal_c3_frame_sweep_async`): moved to [long-frame hardware validation v1](../long-frame-hardware-validation-v1.md) on 2026-11-03; the serial-log runs below pin older binaries
 - [x] Documentation updated (lib.rs, crate README, CHANGELOG, lore, ADR 008)
 
 ## Sources
@@ -94,3 +93,4 @@ Reproduced independently by a second downstream project (64 LEDs, ESP32-C3, ESP-
 - 2026-11-01 — Downstream Wi-Fi bench on 3a1d3f8 (C3, 12 LEDs): CriticalSection clean with only our loop in RAM (F1) and with esp-hal RMT in RAM (F2); set_pixels_slice_masked clean (F3); margin and waveform unmeasured
 - 2026-11-01 — T8 on 735b506 (downstream Wi-Fi bench): all runs clean; longest loop pass 8–9 µs (no radio), 27–47 µs (radio, RMT in RAM), 76–77 µs (radio, RMT in flash); max_poll_gap_us cannot bound the refill deadline (refill happens inside a poll)
 - 2026-11-01 — `long-frame-diagnostics` removed before release (gaps between polls cannot bound the refill); margin evidence is downstream visual validation with Wi-Fi on `3a1d3f8` (F1–F3) plus the open analyser capture
+- 2026-11-03 — Closed and archived: the waveform gate moved to long-frame hardware validation v1, the esp-hal ISR-refill issue to the roadmap

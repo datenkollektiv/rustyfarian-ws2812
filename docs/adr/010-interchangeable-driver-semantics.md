@@ -263,7 +263,7 @@ Changes that follow:
 - When the setting is on, the constructor's `anyhow` error names it as a likely cause (see the PR review note below).
   The crate detects the setting at build time through the `esp_idf_rmt_isr_iram_safe` cfg, declared with check-cfg in `build.rs`.
 - Upstream follow-up: esp-idf-hal should place `handle_isr` in IRAM, or skip registering it when no async wait is used.
-  Tracked in the [feature doc](../features/driver-interchangeability-v1.md).
+  Tracked on the [roadmap](../ROADMAP.md).
 
 ## PR review (2026-11-01)
 
@@ -285,4 +285,4 @@ A PR review changed three things; the decisions above still hold.
 - [ADR 006: Async Support Strategy](006-async-support.md)
 - [ADR 008: Embassy as the Async Runtime](008-embassy-as-async-runtime.md)
 - [ADR 009: Long-Frame Policy and Latch Enforcement](009-long-frame-policy-and-latch.md)
-- [Feature: Interchangeable esp-hal and ESP-IDF drivers v1](../features/driver-interchangeability-v1.md)
+- [Feature: Interchangeable esp-hal and ESP-IDF drivers v1](../features/archive/driver-interchangeability-v1.md)
