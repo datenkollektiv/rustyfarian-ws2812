@@ -215,6 +215,23 @@ Debug builds retain larger temporaries and do not optimise stack usage, so 12 LE
 The symptom is a `Guru Meditation Error: Core 0 panic'ed (Stack protection fault)` immediately after `WS2812RMT init OK`.
 Fix: add `sdkconfig.defaults` at the workspace root with `CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192`.
 
+**A 12-LED frame is 331–374 µs of WS2812 wire time, so neither driver's logged send time measures the wire.**
+`BytesEncoderConfig` uses 1.15 µs per zero bit (350 + 800 ns) and 1.30 µs per one bit (700 + 600 ns), so 288 pulse codes span 331–374 µs depending on the data.
+The esp-hal driver logs ~392 µs for that frame, which is the wire time plus encoding overhead.
+The ESP-IDF driver logs ~4.3 ms, which is the fixed overhead in the third entry below, not a longer frame.
+Arithmetic verified against the code 2026-11-03.
+
+**ESP-IDF RMT refill stalls never reach the error count: `wait_all_done(None)` returns `Ok` for a garbled frame and blocks indefinitely when the refill never recovers.**
+The refill runs from ESP-IDF's RMT ISR, which is not IRAM-safe and runs at low or medium priority, so flash-cache or task activity can delay it.
+Diagnostic signal: log the per-frame send time and compare `max` with `mean`; a statistics line that stops appearing is a total stall, not a quiet ring.
+Observed 2026-11-02/03 on the C3 bench: `idf_c3_rainbow` flickered on one LED of twelve, while the same ring stayed clean under `hal_c3_pulse` and `hal_c3_rainbow_comet_async`; the cause is not confirmed.
+
+**`Ws2812Rmt::set_pixels_slice` costs a fixed ~3.6 ms on ESP-IDF regardless of frame length, so its send time cannot be read as wire time.**
+Measured on the C3 bench 2026-11-03: 2 LEDs 3.92 ms and 12 LEDs 4.33 ms, against ~0.39 ms for the same 12-LED frame on the esp-hal driver; only the ~0.4 ms difference tracks the wire time.
+A 2-LED frame is 48 symbols and needs no refill, yet still pays the overhead, so the overhead itself is not per-refill work.
+Hypothesis, not measured: the fixed part is task wake-up latency in `wait_all_done`; refill starvation is neither observed nor ruled out, because a brief underrun can corrupt symbols without changing how long the frame takes.
+`std::thread::sleep(Duration::from_millis(50))` also returns after ~46.5 ms on the same build, which is why the loop period still comes out at 50 ms.
+
 ---
 
 ## Scripts & Shell

@@ -90,6 +90,7 @@ Each example name encodes the driver, chip, and effect: `{driver}_{chip}_{effect
 | `hal_s3_pulse_async`         | esp-hal (no_std) | ESP32-S3 (CrowPanel 1.28") | Pulse (async)          | GPIO48     | `--features embassy`; first LED only (`AsyncStatusLed`)                             |
 | `hal_c6_smart_leds`          | esp-hal (no_std) | ESP32-C6                   | smart-leds interop     | GPIO18     | `--features smart-leds`                                                             |
 | `idf_c3_rainbow`             | ESP-IDF (std)    | ESP32-C3                   | Rainbow                | GPIO4      |                                                                                     |
+| `idf_c3_pulse`               | ESP-IDF (std)    | ESP32-C3                   | Pulse                  | GPIO4      | Counterpart of `hal_c3_pulse`                                                       |
 | `idf_c6_rainbow`             | ESP-IDF (std)    | ESP32-C6                   | Rainbow                | GPIO18     |                                                                                     |
 | `idf_esp32_rainbow`          | ESP-IDF (std)    | Adafruit Feather ESP32 V2  | Rainbow                | GPIO0      | GPIO2 = power enable                                                                |
 | `idf_s3_rainbow`             | ESP-IDF (std)    | ESP32-S3 (CrowPanel 1.28") | Rainbow                | GPIO48     | Provides the S3 bootloader for HAL flashing                                         |

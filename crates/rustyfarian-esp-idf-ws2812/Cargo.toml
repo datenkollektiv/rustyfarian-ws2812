@@ -58,6 +58,9 @@ smart-leds = ["dep:smart-leds"]
 name = "idf_c3_rainbow"
 
 [[example]]
+name = "idf_c3_pulse"
+
+[[example]]
 name = "idf_c6_rainbow"
 
 [[example]]
