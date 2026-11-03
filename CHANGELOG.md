@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- `rustyfarian-esp-idf-ws2812`: example `idf_c3_pulse` (ESP32-C3, GPIO4, 12 LEDs), the ESP-IDF counterpart of `hal_c3_pulse`: same `PulseEffect` and 50 ms frame period, so the two differ only in the driver and its runtime
 - `rustyfarian-esp-hal-ws2812`: example `hal_c3_comet_under_load_async` (`--features embassy,esp-println`): the 12-LED async comet under a 10 kHz timer interrupt and a CPU-hogging task, cycling four load modes and logging frame errors, send time, frame interval and the worst interrupt gap per second — quantifies what critical-section frames cost other interrupts (radio tests stay downstream)
 - `rustyfarian-esp-hal-ws2812`: example `hal_c3_rainbow_comet_async` (`--features embassy,esp-println`): a continuous 12-LED async animation on an ESP32-C3 (GPIO4) that logs transmit errors, send-time min/mean/max and the longest frame interval once per second — the workload of an async LED clock, where every frame takes the critical-section path
 - `rustyfarian-esp-hal-ws2812`: `esp32s3` chip feature (forwarded to esp-hal, `esp-bootloader-esp-idf`, optional `esp-rtos` and `esp-println`) mirroring the existing `esp32` feature. Compile-verified on `xtensa-esp32s3-none-elf` and hardware-validated on the CrowPanel 1.28" (2026-10-14); library code unchanged (no chip-specific configuration)
