@@ -45,6 +45,8 @@
 //! The ISR also runs at a low or medium priority that it shares with other peripherals.
 //! On a downstream ESP32-C3 bench (12 LEDs, 2026-11-01) the default kept the ring clean through a 1.6 MB OTA download; that is one run, not a guarantee.
 //!
+//! Every send waits for the transmit to complete without a timeout (`wait_all_done(None)`), so a stalled RMT peripheral blocks the call.
+//!
 //! **Do not enable `CONFIG_RMT_ISR_IRAM_SAFE`.**
 //! esp-idf-hal 0.47 registers a transmit-done callback that lives in flash, and ESP-IDF rejects it when the ISR is IRAM-safe.
 //! [`Ws2812Rmt::new`] then fails with `ESP_ERR_INVALID_ARG` ("on_trans_done callback not in IRAM").
@@ -194,29 +196,7 @@ impl core::error::Error for Error {
     }
 }
 
-/// Whole microseconds to busy-wait for `remaining` of the latch interval, rounded up and capped at [`WS2812_RESET_US`].
-///
-/// The cap keeps a misbehaving clock from turning the latch wait into a long stall.
-const fn latch_wait_us(remaining: Duration) -> u32 {
-    let mut us = remaining.as_micros();
-    if !remaining.subsec_nanos().is_multiple_of(1000) {
-        us += 1;
-    }
-    if us > WS2812_RESET_US as u128 {
-        WS2812_RESET_US
-    } else {
-        us as u32
-    }
-}
-
-const _: () = {
-    assert!(latch_wait_us(Duration::ZERO) == 0);
-    assert!(latch_wait_us(Duration::from_nanos(1)) == 1);
-    assert!(latch_wait_us(Duration::from_micros(100)) == 100);
-    assert!(latch_wait_us(Duration::from_nanos(100_001)) == 101);
-    assert!(latch_wait_us(Duration::from_micros(WS2812_RESET_US as u64)) == WS2812_RESET_US);
-    assert!(latch_wait_us(Duration::from_secs(5)) == WS2812_RESET_US);
-};
+const _: () = assert!(bunting::latch_wait_us_from_ns(1) == 1);
 
 /// Transmits bytes using the C-side `BytesEncoder` directly, bypassing
 /// `send_and_wait` which wraps the encoder in a Rust `EncoderWrapper`.
@@ -240,7 +220,9 @@ fn transmit_bytes(
     bytes: &[u8],
 ) -> Result<(), Error> {
     if let Some(deadline) = *next_frame_at {
-        let wait_us = latch_wait_us(deadline.saturating_duration_since(Instant::now()));
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        let wait_us =
+            bunting::latch_wait_us_from_ns(remaining.as_nanos().min(u64::MAX as u128) as u64);
         if wait_us > 0 {
             Ets::delay_us(wait_us);
         }

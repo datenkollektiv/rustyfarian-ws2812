@@ -21,8 +21,8 @@ family and ruled in-workspace networking demos (e.g. ESP-NOW) out of scope.
 All three embedded targets (RISC-V, AVR, Xtensa) are now gated in CI by path-filtered
 cross-target workflows.
 For the unreleased 0.8, the esp-hal and ESP-IDF drivers are interchangeable and the API is streamlined across all platforms.
-The near-term priorities are hardware validation of the long-frame paths on the current tree
-and tightening the `cargo-deny` configuration.
+The near-term priorities are hardware validation of the long-frame paths on the current tree,
+tightening the `cargo-deny` configuration, and the hardware run for the shared-logic ladder retrofit (ADR 012).
 Mid-term priorities are removing the `esp-idf-hal` `send_and_wait` workaround
 when the upstream fix lands, `SmartLedsWriteAsync` for the async driver, and
 scoping `MAX_LEDS` correctly.
@@ -48,9 +48,9 @@ timeline
 
     Near term : Long-frame hardware validation (feature-doc)
               : cargo-deny — ban multiple rgb versions
+              : Shared-logic ladder retrofit — hardware run (ADR 012)
 
     Mid term  : Remove send_and_wait workaround (esp-idf-hal fix)
-              : Host tests for long-frame PollBudget and latch
               : SmartLedsWriteAsync for esp-hal async driver
               : Scope MAX_LEDS and fix positional effects for strips > 256 LEDs
               : Add scope guard in grid.rs (README row done)
@@ -120,10 +120,11 @@ The long-frame policy ([ADR 009](adr/009-long-frame-policy-and-latch.md), [ADR 0
 Re-bench on the current tree, run R4 with the ceiling lifted, cover the async path, and capture the `hal_c3_frame_sweep_async` waveform.
 Design and progress: [`docs/features/long-frame-hardware-validation-v1.md`](features/long-frame-hardware-validation-v1.md).
 
-### Host tests for the long-frame `PollBudget` and latch logic
+### Shared-logic ladder retrofit (host tests for the long-frame `PollBudget` and latch logic) — awaiting hardware run
 
-No runtime test covers them: esp-hal host tests cannot build on macOS (Mach-O `link_section` error), and the ESP-IDF crate is `espidf`-only.
-Evaluate an injectable clock so the logic runs on the host.
+Previously no runtime test covered them: esp-hal host tests cannot build on macOS (Mach-O `link_section` error), and the ESP-IDF crate is `espidf`-only.
+Code landed: [ADR 012](adr/012-shared-logic-ladder.md) moved the latch and long-frame arithmetic into `bunting` with `now` as input, and the host tests now cover it.
+Awaiting the long-frame hardware run, which is tracked with the validation item above.
 
 ### Document async support status in README driver table
 
