@@ -34,6 +34,41 @@ Before any release:
 
 Note: driver crates cannot dry-run publish until the pure crates of the same version are live on crates.io — see Publish Order below.
 
+### Final hardware pass (next release, `v0.9.0`)
+
+The [ADR 012](docs/adr/012-shared-logic-ladder.md) retrofit moves the latch and long-frame logic into `bunting`, so no earlier hardware sign-off covers the release binaries.
+Per-feature hardware gates are removed; this one pass replaces them, runs after the retrofit lands, and blocks the release.
+A sign-off is valid only for the binary that ran: record the commit and the ELF SHA-256 for every run, and re-run after any later code change.
+
+- [ ] Every bench in [`docs/features/long-frame-hardware-validation-v1.md`](docs/features/long-frame-hardware-validation-v1.md) (State section), on the release commit
+- [ ] Hardware tests in [`maintenance-plan.md`](maintenance-plan.md) (Hardware tests section), pass criteria included
+- [ ] Every cell of the chip matrix below passes the `maintenance-plan.md` pass criteria
+- [ ] Decide whether the `#[esp_hal::ram]` polling functions in the esp-hal driver (`poll_until_ended`, `start_and_poll`, `drain`) may keep calling into flash-mapped code (including the `panic_const_div_by_zero` site); this predates the retrofit, whose disassembly shows the same owner-and-callee sites as `main`
+- [ ] From the frame-sweep logic-analyser captures, compare the measured duration of a masked frame with the nominal `masked_us` estimate the ceiling admits by
+- [ ] Desk check before the bench: the RAM-placement check of the release ELF (no new flash callees in the `#[esp_hal::ram]` functions) on each chip, not only the C3 frame sweep checked during the retrofit
+- [ ] Results recorded in ADR 010 and the CHANGELOG `[Unreleased]` entries that still mark validation as pending
+
+#### Chip matrix
+
+Every ESP ring example sends a frame longer than one RMT block (12 LEDs are 288 pulse codes, 5 LEDs are 120; a block is 48 words, 64 on the ESP32).
+Each cell therefore runs the moved latch and long-frame logic on that chip, under the default `CriticalSection` policy.
+
+| Chip                 | esp-hal blocking                    | esp-hal async                                                              | ESP-IDF                               |
+|:---------------------|:------------------------------------|:---------------------------------------------------------------------------|:--------------------------------------|
+| ESP32 (WROOM-32)     | `hal_esp32_pulse`                   | `hal_esp32_pulse_async`                                                    | `idf_esp32_rainbow`                   |
+| ESP32-C3 (reference) | `hal_c3_pulse`                      | `hal_c3_pulse_async`, `hal_c3_frame_sweep_async`                           | `idf_c3_rainbow`                      |
+| ESP32-C6             | `hal_c6_pulse`, `hal_c6_smart_leds` | `hal_c6_pulse_async`, `hal_c6_multitask_async`, `hal_c6_frame_sweep_async` | `idf_c6_rainbow`, `idf_c6_smart_leds` |
+| ESP32-S3             | `hal_s3_pulse`                      | `hal_s3_pulse_async`                                                       | `idf_s3_rainbow`                      |
+
+AVR (Arduino Nano, ATmega328P), from `examples/avr-nano-rainbow/`: `bitbang_demo` (the recommended backend) and `spi_rainbow` (diagnostic only).
+Both backends changed in the retrofit (SPI frame-length check, `SmartLedsWrite` collect), so both run.
+
+Known coverage limits:
+
+- The non-default long-frame paths run on hardware only on the C3: `Reject` and the lifted ceiling in `hal_c3_frame_sweep_async` (and `hal_c6_frame_sweep_async` on the C6), `Poll` and the default ceiling in the downstream R3 and R4 benches; their arithmetic is host-tested in `bunting`.
+- No AVR example calls `SmartLedsWrite::write`; the collect path is host-tested only.
+- Radio coexistence (Wi-Fi) is a downstream bench on the C3, as listed in the long-frame feature doc.
+
 ## Version Bump
 
 Files to update when bumping to `X.Y.Z`:

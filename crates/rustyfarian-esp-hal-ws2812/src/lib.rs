@@ -135,7 +135,8 @@
 //! An async driver never loses its channel and never returns `ChannelLost`.
 //! To rebuild, create the `Rmt` from `peripherals.RMT.reborrow()` and pass the pin with `reborrow()`, so a fresh `Rmt::new` and channel are possible; otherwise only a reset recovers.
 //! Rebuilding is not hardware-tested.
-//! The one unbounded case is a peripheral that is dead on the classic ESP32, where esp-hal's stop spins until the hardware reaches an end marker.
+//! Within the long-frame paths, the one unbounded case is a peripheral that is dead on the classic ESP32, where esp-hal's stop spins until the hardware reaches an end marker.
+//! Frames that fit in channel RAM carry no budget: the blocking path waits for the transaction without a timeout, and the async path awaits it, so a caller that needs a bound wraps the call in a timeout.
 //! A stopped clock ends the polling only after `LATCH_WAIT_MAX_STALLED_READS` unchanged clock reads, which are taken every 16 polls: about 16000 polls, that is milliseconds, not microseconds.
 //!
 //! Cost of the critical-section path:
@@ -271,14 +272,17 @@
 //! If `esp-idf-hal` gains async RMT in a future release, async support can be added there
 //! under a separate feature flag without affecting this crate.
 
-use bunting::rgb_to_grb;
+use bunting::{
+    latch_deadline_us, long_frame_action, rgb_to_grb, CodeTiming, LatchWait, LongFrameAction,
+    PollBudget, TIMEOUT_US_PER_CODE,
+};
 #[cfg(feature = "async")]
 use core::{
     future::Future,
     pin::{pin, Pin},
     task::{Context, Poll, Waker},
 };
-use esp_hal::time::{Duration, Instant, Rate};
+use esp_hal::time::{Instant, Rate};
 #[cfg(feature = "async")]
 use esp_hal::Async;
 use esp_hal::{
@@ -318,7 +322,8 @@ pub fn tx_channel_config() -> TxChannelConfig {
 ///   esp-hal stores the divider in a `u8` without validating it (`rmt.rs:657`, applied at `rmt.rs:1216`),
 ///   and this function never produces 0.
 pub fn tx_channel_config_for(source: Rate) -> Result<TxChannelConfig, Error> {
-    let divider = clk_divider_for(source.as_hz()).ok_or(Error::RmtConfig)?;
+    let divider =
+        bunting::clk_divider_for(source.as_hz(), TIMING_CLOCK_HZ).ok_or(Error::RmtConfig)?;
     Ok(channel_config_with_divider(divider))
 }
 
@@ -334,30 +339,6 @@ fn channel_config_with_divider(divider: u8) -> TxChannelConfig {
 /// The RMT timing clock the WS2812 constants assume, in hertz.
 const TIMING_CLOCK_HZ: u32 = 10_000_000;
 
-/// The divider that turns `source_hz` into exactly [`TIMING_CLOCK_HZ`], if one exists in `1..=255`.
-const fn clk_divider_for(source_hz: u32) -> Option<u8> {
-    if !source_hz.is_multiple_of(TIMING_CLOCK_HZ) {
-        return None;
-    }
-    let divider = source_hz / TIMING_CLOCK_HZ;
-    if divider == 0 || divider > u8::MAX as u32 {
-        None
-    } else {
-        Some(divider as u8)
-    }
-}
-
-const _: () = {
-    assert!(matches!(clk_divider_for(80_000_000), Some(RMT_CLK_DIV)));
-    assert!(matches!(clk_divider_for(40_000_000), Some(4)));
-    assert!(matches!(clk_divider_for(10_000_000), Some(1)));
-    assert!(matches!(clk_divider_for(2_550_000_000), Some(255)));
-    assert!(clk_divider_for(85_000_000).is_none());
-    assert!(clk_divider_for(0).is_none());
-    assert!(clk_divider_for(9_999_999).is_none());
-    assert!(clk_divider_for(2_560_000_000).is_none());
-};
-
 /// Minimum low time in microseconds between two frames, so the LEDs latch the previous one.
 ///
 /// Re-exported from `bunting`, which owns the value and the datasheet reasoning.
@@ -366,26 +347,6 @@ const _: () = {
 /// see [Frame spacing (latch)](crate#frame-spacing-latch) for how each path enforces it.
 #[doc(inline)]
 pub use bunting::WS2812_RESET_US;
-
-/// Default ceiling in microseconds on the estimated nominal masked time of one `LongFramePolicy::CriticalSection` frame.
-///
-/// The estimate takes 1.3 µs per pulse code.
-/// A long frame whose estimate exceeds the ceiling is refused with [`Error::FrameTooLong`].
-/// This limits the nominal estimate, not a hard interrupts-off bound:
-/// a stalled refill can keep interrupts masked up to the timeout of 2 µs per code plus 1 ms, about 2.5 ms at this default,
-/// and the stopped-clock fallback can take longer.
-/// 1 ms is about 32 LEDs.
-/// Change it with [`Ws2812Rmt::with_max_nominal_masked_us`]; `None` lifts it.
-/// See [Long frames](crate#long-frames).
-pub const DEFAULT_MAX_NOMINAL_MASKED_US: u32 = 1000;
-
-/// Consecutive unchanged timer reads after which the latch wait treats the timer as stopped.
-///
-/// A running timer advances by 1 µs every few reads (one read costs roughly 0.2–1 µs),
-/// so 1000 identical reads only happen when the time source is not running
-/// (firmware built without the esp-hal `rt` feature never starts it).
-/// The wait is then skipped after well under a millisecond instead of hanging.
-const LATCH_WAIT_MAX_STALLED_READS: u32 = 1000;
 
 /// Ticks of the encoded latch: [`WS2812_RESET_US`] at the 10 MHz RMT tick (10 ticks per µs).
 #[cfg(feature = "async")]
@@ -456,46 +417,20 @@ pub const fn buffer_size(num_leds: usize) -> usize {
     num_leds * 24 + 1
 }
 
-/// How the driver sends a frame that does not fit in one RMT channel's RAM.
+/// How the driver sends a frame that does not fit in one RMT channel's RAM, and its default masked-time ceiling.
 ///
-/// The policy applies to the blocking and the async driver alike, and defaults to [`LongFramePolicy::CriticalSection`].
-/// Frames that fit are never refilled and are not affected by the policy.
+/// Re-exported from `bunting`, which owns the policy type and the decision that uses it.
+/// The policy applies to the blocking and the async driver alike, and defaults to `LongFramePolicy::CriticalSection`.
+/// Set it with [`Ws2812Rmt::with_long_frame_policy`] and the ceiling with [`Ws2812Rmt::with_max_nominal_masked_us`].
 /// See [Long frames](crate#long-frames).
-///
-/// # How the driver sends a long frame
-///
-/// esp-hal refills the channel RAM from a polling loop, not from an interrupt.
-/// The refill is due about 30 µs after the RAM half-empties, so every variant that sends the frame busy-polls.
 ///
 /// | Policy | Blocking driver | Async driver |
 /// |:-------|:----------------|:-------------|
 /// | `CriticalSection` | Latch wait, then a bounded transmit inside a critical section, or [`Error::FrameTooLong`] above the masked-time ceiling | The same; the executor is blocked |
 /// | `Poll` | Latch wait, then a bounded transmit with interrupts live | Latch wait, then a bounded poll loop with interrupts live; the executor is blocked |
 /// | `Reject` | [`Error::FrameTooLong`] before the latch wait | [`Error::FrameTooLong`] before the latch wait |
-#[non_exhaustive]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum LongFramePolicy {
-    /// Busy-poll the transmit inside a critical section, bounded by a timeout.
-    ///
-    /// All interrupts are blocked for the whole frame, and in async mode the executor is blocked too.
-    /// A frame whose estimated nominal masked time exceeds the ceiling ([`DEFAULT_MAX_NOMINAL_MASKED_US`] by default, see [`Ws2812Rmt::with_max_nominal_masked_us`]) returns [`Error::FrameTooLong`] instead.
-    /// If the caller already runs with interrupts masked, they stay masked afterwards.
-    /// Masking removes interrupt latency from the refill; it does not guarantee the waveform.
-    #[default]
-    CriticalSection,
-    /// Busy-poll the transmit with interrupts live, bounded by a timeout.
-    ///
-    /// Interrupts, such as radio traffic, can delay the refill past its deadline and garble the frame.
-    /// Choose it only when the firmware cannot tolerate interrupts-off windows,
-    /// and accept that long frames can be corrupted under radio load.
-    /// In async mode the executor is blocked for the whole frame, although interrupts still run.
-    Poll,
-    /// Return [`Error::FrameTooLong`] without transmitting.
-    ///
-    /// Choose this when the firmware must never mask interrupts for a frame,
-    /// for example because of radio traffic.
-    Reject,
-}
+#[doc(inline)]
+pub use bunting::{LongFramePolicy, DEFAULT_MAX_NOMINAL_MASKED_US};
 
 /// Errors that can occur during WS2812 RMT operations.
 ///
@@ -606,7 +541,7 @@ pub struct Ws2812Rmt<'d, Dm: esp_hal::DriverMode, const N: usize> {
     /// Pre-allocated pulse-code buffer to avoid runtime allocation.
     buffer: [PulseCode; N],
     /// Earliest instant the next frame may start, used to enforce [`WS2812_RESET_US`].
-    next_frame_at: Option<Instant>,
+    next_frame_at: Option<u64>,
     /// What to do with frames that do not fit in one channel's RAM.
     long_frame_policy: LongFramePolicy,
     /// Ceiling on the estimated nominal masked time of a `CriticalSection` frame; `None` is unlimited.
@@ -737,28 +672,16 @@ impl<'d, Dm: esp_hal::DriverMode, const N: usize> Ws2812Rmt<'d, Dm, N> {
     /// Returns immediately when no frame was sent yet or the instant has passed.
     /// Never runs inside a critical section it opens itself; it restores the caller's interrupt state.
     /// If the caller already runs with interrupts masked, the wait runs masked too.
-    /// A stopped timer is detected after [`LATCH_WAIT_MAX_STALLED_READS`] unchanged reads,
+    /// A stopped timer is detected after [`bunting::LATCH_WAIT_MAX_STALLED_READS`] unchanged reads,
     /// and the wait is then skipped.
     fn wait_until_next_frame(&self) {
-        let Some(target) = self.next_frame_at else {
+        let Some(target_us) = self.next_frame_at else {
             return;
         };
-        let target_us = target.duration_since_epoch().as_micros();
-        let mut previous_us = Instant::now().duration_since_epoch().as_micros();
-        let mut stalled_reads = 0;
+        let mut wait = LatchWait::new(target_us, now_us());
         loop {
-            let now_us = Instant::now().duration_since_epoch().as_micros();
-            if remaining_us(now_us, target_us) == 0 {
+            if wait.done(now_us()) {
                 return;
-            }
-            if now_us == previous_us {
-                stalled_reads += 1;
-                if stalled_reads >= LATCH_WAIT_MAX_STALLED_READS {
-                    return;
-                }
-            } else {
-                stalled_reads = 0;
-                previous_us = now_us;
             }
             core::hint::spin_loop();
         }
@@ -905,14 +828,15 @@ impl<'d, const N: usize> Ws2812Rmt<'d, Blocking, N> {
             esp_hal::rmt::CHANNEL_RAM_SIZE,
             self.long_frame_policy,
             self.max_nominal_masked_us,
+            CODE_TIMING,
         ) {
-            Action::Direct => self.do_transmit(len),
-            Action::Reject => Err(Error::FrameTooLong),
-            Action::Poll => {
+            LongFrameAction::Direct => self.do_transmit(len),
+            LongFrameAction::Reject => Err(Error::FrameTooLong),
+            LongFrameAction::Poll => {
                 self.wait_until_next_frame();
                 self.transmit_bounded(len, false)
             }
-            Action::CriticalSection => {
+            LongFrameAction::CriticalSection => {
                 self.wait_until_next_frame();
                 self.transmit_bounded(len, true)
             }
@@ -950,7 +874,7 @@ impl<'d, const N: usize> Ws2812Rmt<'d, Blocking, N> {
                 Err(Error::Transmit)
             }
         };
-        self.next_frame_at = Some(latch_deadline());
+        self.next_frame_at = Some(latch_deadline_us(now_us()));
         result
     }
 
@@ -963,7 +887,7 @@ impl<'d, const N: usize> Ws2812Rmt<'d, Blocking, N> {
 
     /// Transmits a long `buffer[..len]` with a bounded refill poll, without the latch wait.
     ///
-    /// The refill polling is bounded by [`tx_timeout_us`], see [`start_and_poll`].
+    /// The refill polling is bounded by [`bunting::tx_timeout_us`], see [`start_and_poll`].
     /// With `masked` set, the transmit start and the polling run inside `critical_section::with`.
     ///
     /// If the first budget is spent before the frame ends, the section is left and [`drain`] polls the refill with interrupts live for a second budget.
@@ -991,7 +915,7 @@ impl<'d, const N: usize> Ws2812Rmt<'d, Blocking, N> {
             Ok(started) => started,
             Err(ch_back) => {
                 self.channel = Some(ch_back);
-                self.next_frame_at = Some(latch_deadline());
+                self.next_frame_at = Some(latch_deadline_us(now_us()));
                 return Err(Error::Transmit);
             }
         };
@@ -1013,7 +937,7 @@ impl<'d, const N: usize> Ws2812Rmt<'d, Blocking, N> {
             drop(txn);
             Err(Error::ChannelLost)
         };
-        self.next_frame_at = Some(latch_deadline());
+        self.next_frame_at = Some(latch_deadline_us(now_us()));
         result
     }
 }
@@ -1153,7 +1077,7 @@ impl<'d, const N: usize> Ws2812Rmt<'d, Async, N> {
     /// so no `Option` dance is needed here.
     ///
     /// Frames that fit in one channel's RAM are truly async.
-    /// For longer frames the [`LongFramePolicy`] decides, see [`long_frame_action`]:
+    /// For longer frames the [`LongFramePolicy`] decides, see [`bunting::long_frame_action`]:
     /// they are rejected, or driven to completion by [`Self::transmit_in_critical_section`].
     ///
     /// [`Error::FrameTooLong`] is returned before the latch wait.
@@ -1173,8 +1097,9 @@ impl<'d, const N: usize> Ws2812Rmt<'d, Async, N> {
             esp_hal::rmt::CHANNEL_RAM_SIZE,
             self.long_frame_policy,
             self.max_nominal_masked_us,
+            CODE_TIMING,
         );
-        if matches!(action, Action::Reject) {
+        if matches!(action, LongFrameAction::Reject) {
             return Err(Error::FrameTooLong);
         }
         if self.channel.is_none() {
@@ -1189,7 +1114,7 @@ impl<'d, const N: usize> Ws2812Rmt<'d, Async, N> {
         } = self;
         let ch = channel.as_mut().ok_or(Error::ChannelLost)?;
         if let Some(last) = len.checked_sub(1).and_then(|i| buffer.get_mut(i)) {
-            *last = if matches!(action, Action::Direct) {
+            *last = if matches!(action, LongFrameAction::Direct) {
                 LATCH_END_CODE
             } else {
                 PulseCode::end_marker()
@@ -1201,7 +1126,7 @@ impl<'d, const N: usize> Ws2812Rmt<'d, Async, N> {
         };
         let data = &buffer[..len];
         match action {
-            Action::Direct => {
+            LongFrameAction::Direct => {
                 // Named local declared after `stamp`: locals drop in reverse order, so on
                 // cancellation the transmit (and the channel stop) ends before `stamp` records.
                 let mut transmit = pin!(ch.transmit(data));
@@ -1209,17 +1134,17 @@ impl<'d, const N: usize> Ws2812Rmt<'d, Async, N> {
                 stamp.latch_on_wire = true;
                 Ok(())
             }
-            Action::Poll => Self::transmit_polling(ch, data, false),
-            Action::CriticalSection => Self::transmit_polling(ch, data, true),
-            Action::Reject => Err(Error::FrameTooLong),
+            LongFrameAction::Poll => Self::transmit_polling(ch, data, false),
+            LongFrameAction::CriticalSection => Self::transmit_polling(ch, data, true),
+            LongFrameAction::Reject => Err(Error::FrameTooLong),
         }
     }
 
     /// Drives a transmit that needs RAM refills to completion, with interrupts masked or live.
     ///
     /// esp-hal refills the channel RAM from the future's `poll`, so the future is polled with a
-    /// no-op waker, bounded by [`tx_timeout_us`].
-    /// A stopped timer (see [`LATCH_WAIT_MAX_STALLED_READS`]) also ends the loop with [`Error::Transmit`],
+    /// no-op waker, bounded by [`bunting::tx_timeout_us`].
+    /// A stopped timer (see [`bunting::LATCH_WAIT_MAX_STALLED_READS`]) also ends the loop with [`Error::Transmit`],
     /// so a frozen clock cannot keep interrupts masked.
     /// Either way the executor runs no other task until the frame ends.
     ///
@@ -1245,7 +1170,7 @@ impl<'d, const N: usize> Ws2812Rmt<'d, Async, N> {
         // A macro rather than a closure: a closure cannot store a borrow of `ch` in the outer `slot`.
         macro_rules! run {
             () => {{
-                let budget = PollBudget::start(data.len());
+                let budget = PollBudget::start(now_us(), data.len());
                 slot.set(Some(ch.transmit(data)));
                 let Some(fut) = slot.as_mut().as_pin_mut() else {
                     return Err(Error::Transmit);
@@ -1268,7 +1193,7 @@ impl<'d, const N: usize> Ws2812Rmt<'d, Async, N> {
 /// Otherwise the next frame may start [`WS2812_RESET_US`] from now.
 #[cfg(feature = "async")]
 struct NextFrameStamp<'a> {
-    slot: &'a mut Option<Instant>,
+    slot: &'a mut Option<u64>,
     latch_on_wire: bool,
 }
 
@@ -1276,62 +1201,10 @@ struct NextFrameStamp<'a> {
 impl Drop for NextFrameStamp<'_> {
     fn drop(&mut self) {
         *self.slot = Some(if self.latch_on_wire {
-            Instant::now()
+            now_us()
         } else {
-            latch_deadline()
+            latch_deadline_us(now_us())
         });
-    }
-}
-
-/// Polls between two clock reads in the long-frame loop.
-///
-/// A poll costs well under a microsecond, so reading the clock every poll would slow the refill loop.
-/// Sixteen polls bound the timeout overshoot to a few microseconds.
-const POLLS_PER_CLOCK_READ: u32 = 16;
-
-/// Deadline and stopped-timer bookkeeping shared by the refill polling loops.
-struct PollBudget {
-    deadline_us: u64,
-    polls: u32,
-    previous_us: u64,
-    stalled_reads: u32,
-}
-
-impl PollBudget {
-    /// Starts a budget that expires [`tx_timeout_us`] for `len` pulse codes from now.
-    #[inline(always)]
-    fn start(len: usize) -> Self {
-        Self {
-            deadline_us: Instant::now().duration_since_epoch().as_micros() + tx_timeout_us(len),
-            polls: 0,
-            previous_us: 0,
-            stalled_reads: 0,
-        }
-    }
-
-    /// Counts one poll and returns `true` once the budget is spent.
-    ///
-    /// The clock is read every [`POLLS_PER_CLOCK_READ`] polls.
-    /// The budget is spent at the deadline, or after [`LATCH_WAIT_MAX_STALLED_READS`] unchanged clock reads.
-    /// Stalls are only counted at clock reads, so a stopped clock ends the loop after about 16000 polls, which takes milliseconds.
-    #[inline(always)]
-    fn spent(&mut self) -> bool {
-        self.polls = self.polls.wrapping_add(1);
-        if !self.polls.is_multiple_of(POLLS_PER_CLOCK_READ) {
-            return false;
-        }
-        let now_us = Instant::now().duration_since_epoch().as_micros();
-        if now_us >= self.deadline_us {
-            return true;
-        }
-        if now_us == self.previous_us {
-            self.stalled_reads += 1;
-            self.stalled_reads >= LATCH_WAIT_MAX_STALLED_READS
-        } else {
-            self.stalled_reads = 0;
-            self.previous_us = now_us;
-            false
-        }
     }
 }
 
@@ -1355,7 +1228,7 @@ fn poll_to_completion(
         if let Poll::Ready(result) = fut.as_mut().poll(&mut cx) {
             return result.map_err(|_| Error::Transmit);
         }
-        if budget.spent() {
+        if budget.spent(now_us) {
             return Err(Error::Transmit);
         }
     }
@@ -1374,19 +1247,19 @@ fn start_and_poll<'ch, 'data>(
     channel: Channel<'ch, Blocking, Tx>,
     data: &'data [PulseCode],
 ) -> Result<(TxTransaction<'ch, 'data>, bool), Channel<'ch, Blocking, Tx>> {
-    let budget = PollBudget::start(data.len());
+    let budget = PollBudget::start(now_us(), data.len());
     let mut txn = channel.transmit(data).map_err(|(_, channel)| channel)?;
     let ended = poll_until_ended(&mut txn, budget);
     Ok((txn, ended))
 }
 
-/// Polls `txn` unmasked for a second budget of [`tx_timeout_us`] for `len` pulse codes, and returns whether it ended.
+/// Polls `txn` unmasked for a second budget of [`bunting::tx_timeout_us`] for `len` pulse codes, and returns whether it ended.
 ///
 /// This is the recovery loop after [`start_and_poll`] ran out of budget.
 /// Refills continue while it polls, so a slow but working frame still ends.
 #[esp_hal::ram]
 fn drain(txn: &mut TxTransaction<'_, '_>, len: usize) -> bool {
-    poll_until_ended(txn, PollBudget::start(len))
+    poll_until_ended(txn, PollBudget::start(now_us(), len))
 }
 
 /// Polls `txn` until it ends, returning `true`, or until `budget` is spent, returning `false`.
@@ -1396,210 +1269,78 @@ fn poll_until_ended(txn: &mut TxTransaction<'_, '_>, mut budget: PollBudget) -> 
         if txn.poll() {
             return true;
         }
-        if budget.spent() {
+        if budget.spent(now_us) {
             return false;
         }
-    }
-}
-
-/// What the driver does with a frame of a given length.
-enum Action {
-    /// The frame fits in channel RAM: no refill is needed, so the transmit is sent directly.
-    Direct,
-    /// Long frame: busy-poll the refill with interrupts live.
-    Poll,
-    /// Long frame: busy-poll the refill inside a critical section.
-    CriticalSection,
-    /// Long frame: refuse with [`Error::FrameTooLong`].
-    Reject,
-}
-
-/// Decides how to send `len` pulse codes given `ram` codes of channel RAM, the policy and the masked-time ceiling.
-///
-/// A `CriticalSection` frame whose [`masked_us`] exceeds `max_nominal_masked_us` is rejected.
-/// `Poll`, `Reject` and frames that fit in channel RAM ignore the ceiling.
-const fn long_frame_action(
-    len: usize,
-    ram: usize,
-    policy: LongFramePolicy,
-    max_nominal_masked_us: Option<u32>,
-) -> Action {
-    if fits_channel_ram(len, ram) {
-        return Action::Direct;
-    }
-    match policy {
-        LongFramePolicy::Reject => Action::Reject,
-        LongFramePolicy::Poll => Action::Poll,
-        LongFramePolicy::CriticalSection => match max_nominal_masked_us {
-            Some(ceiling) if masked_us(len) > ceiling as u64 => Action::Reject,
-            _ => Action::CriticalSection,
-        },
     }
 }
 
 /// RMT ticks per microsecond at the 10 MHz timing clock set by [`RMT_CLK_DIV`].
 const TICKS_PER_US: u64 = (1_000 / RMT_TICK_NS) as u64;
 
-/// Worst-case interrupts-off time in microseconds of a masked frame of `len` pulse codes, rounded up.
+/// The slowest pulse code (`T1H + T1L`) and the tick rate, the single definition site of the timing facts `bunting` takes.
+const CODE_TIMING: CodeTiming = CodeTiming {
+    ticks_per_one_code: (T1H + T1L) as u32,
+    ticks_per_us: TICKS_PER_US as u32,
+};
+
+/// The current time in microseconds since the esp-hal timer started.
 ///
-/// Takes the slowest code, `T1H + T1L` ticks, for every code.
-const fn masked_us(len: usize) -> u64 {
-    (len as u64 * (T1H + T1L) as u64).div_ceil(TICKS_PER_US)
-}
-
-/// The instant [`WS2812_RESET_US`] from now.
-fn latch_deadline() -> Instant {
-    Instant::now() + Duration::from_micros(WS2812_RESET_US as u64)
-}
-
-/// Microseconds left until `target_us`, given the current time `now_us`.
-const fn remaining_us(now_us: u64, target_us: u64) -> u64 {
-    target_us.saturating_sub(now_us)
+/// The one clock read of the driver.
+/// `bunting` never reads a clock; every helper takes this value as input.
+/// Inlined, so the `#[esp_hal::ram]` polling loops do not call into flash.
+#[inline(always)]
+fn now_us() -> u64 {
+    Instant::now().duration_since_epoch().as_micros()
 }
 
 const _: () = {
-    assert!(remaining_us(1000, 1280) == 280);
-    assert!(remaining_us(1279, 1280) == 1);
-    assert!(remaining_us(1280, 1280) == 0);
-    assert!(remaining_us(1500, 1280) == 0);
     assert!(WS2812_RESET_US as u64 * TICKS_PER_US <= PulseCode::MAX_LEN as u64);
+    // The timeout budget per code must exceed the longest code: 10 ticks make 1 µs at 100 ns per tick.
+    assert!(TIMEOUT_US_PER_CODE * TICKS_PER_US > (T0H + T0L) as u64);
+    assert!(TIMEOUT_US_PER_CODE * TICKS_PER_US > (T1H + T1L) as u64);
+    // Bind the tier constants to `bunting`.
+    assert!(CODE_TIMING.ticks_per_one_code == (T1H + T1L) as u32);
+    assert!(CODE_TIMING.ticks_per_us as u64 == TICKS_PER_US);
+    assert!(matches!(
+        bunting::clk_divider_for(80_000_000, TIMING_CLOCK_HZ),
+        Some(RMT_CLK_DIV)
+    ));
+    assert!(bunting::masked_us(769, CODE_TIMING) == 1000);
+    assert!(bunting::masked_us(770, CODE_TIMING) == 1001);
+    // A frame over one channel's RAM is refused under `Reject`, and above the ceiling under `CriticalSection`.
+    assert!(matches!(
+        long_frame_action(289, 48, LongFramePolicy::Reject, None, CODE_TIMING),
+        LongFrameAction::Reject
+    ));
+    assert!(matches!(
+        long_frame_action(
+            770,
+            48,
+            LongFramePolicy::CriticalSection,
+            Some(DEFAULT_MAX_NOMINAL_MASKED_US),
+            CODE_TIMING
+        ),
+        LongFrameAction::Reject
+    ));
+    assert!(matches!(
+        long_frame_action(
+            769,
+            48,
+            LongFramePolicy::CriticalSection,
+            Some(DEFAULT_MAX_NOMINAL_MASKED_US),
+            CODE_TIMING
+        ),
+        LongFrameAction::CriticalSection
+    ));
+    assert!(matches!(
+        long_frame_action(25, 48, LongFramePolicy::Reject, None, CODE_TIMING),
+        LongFrameAction::Direct
+    ));
 };
 
 #[cfg(feature = "async")]
 const _: () = assert!(LATCH_END_CODE.is_end_marker());
-
-const _: () = {
-    const POLICIES: [LongFramePolicy; 3] = [
-        LongFramePolicy::CriticalSection,
-        LongFramePolicy::Poll,
-        LongFramePolicy::Reject,
-    ];
-    let mut i = 0;
-    while i < POLICIES.len() {
-        let policy = POLICIES[i];
-        // A single LED (25 codes) fits on every chip, whatever the policy.
-        assert!(matches!(
-            long_frame_action(25, 48, policy, None),
-            Action::Direct
-        ));
-        assert!(matches!(
-            long_frame_action(25, 64, policy, None),
-            Action::Direct
-        ));
-        // Boundaries: 48 codes (C3, C6, S3) and 64 codes (ESP32).
-        assert!(matches!(
-            long_frame_action(48, 48, policy, None),
-            Action::Direct
-        ));
-        assert!(matches!(
-            long_frame_action(64, 64, policy, None),
-            Action::Direct
-        ));
-        assert!(!matches!(
-            long_frame_action(49, 48, policy, None),
-            Action::Direct
-        ));
-        assert!(!matches!(
-            long_frame_action(65, 64, policy, None),
-            Action::Direct
-        ));
-        i += 1;
-    }
-    assert!(matches!(
-        long_frame_action(49, 48, LongFramePolicy::CriticalSection, None),
-        Action::CriticalSection
-    ));
-    assert!(matches!(
-        long_frame_action(65, 64, LongFramePolicy::CriticalSection, None),
-        Action::CriticalSection
-    ));
-    assert!(matches!(
-        long_frame_action(49, 48, LongFramePolicy::Poll, None),
-        Action::Poll
-    ));
-    assert!(matches!(
-        long_frame_action(65, 64, LongFramePolicy::Poll, None),
-        Action::Poll
-    ));
-    assert!(matches!(
-        long_frame_action(289, 48, LongFramePolicy::Reject, None),
-        Action::Reject
-    ));
-    assert!(matches!(
-        long_frame_action(65, 64, LongFramePolicy::Reject, None),
-        Action::Reject
-    ));
-    assert!(DEFAULT_MAX_NOMINAL_MASKED_US == 1000);
-    assert!(masked_us(0) == 0);
-    assert!(masked_us(1) == 2);
-    assert!(masked_us(10) == 13);
-    assert!(masked_us(289) == 376);
-    assert!(masked_us(769) == 1000);
-    assert!(masked_us(770) == 1001);
-    // Ceiling routing: exactly at the ceiling passes, one code above is rejected.
-    assert!(matches!(
-        long_frame_action(769, 48, LongFramePolicy::CriticalSection, Some(1000)),
-        Action::CriticalSection
-    ));
-    assert!(matches!(
-        long_frame_action(770, 48, LongFramePolicy::CriticalSection, Some(1000)),
-        Action::Reject
-    ));
-    assert!(matches!(
-        long_frame_action(289, 48, LongFramePolicy::CriticalSection, Some(1000)),
-        Action::CriticalSection
-    ));
-    // `None` lifts the ceiling.
-    assert!(matches!(
-        long_frame_action(1537, 48, LongFramePolicy::CriticalSection, None),
-        Action::CriticalSection
-    ));
-    // `Poll`, `Reject` and `Direct` ignore the ceiling.
-    assert!(matches!(
-        long_frame_action(770, 48, LongFramePolicy::Poll, Some(1000)),
-        Action::Poll
-    ));
-    assert!(matches!(
-        long_frame_action(770, 48, LongFramePolicy::Reject, Some(1000)),
-        Action::Reject
-    ));
-    assert!(matches!(
-        long_frame_action(25, 48, LongFramePolicy::CriticalSection, Some(0)),
-        Action::Direct
-    ));
-};
-
-/// Returns `true` if `len` pulse codes fit in `ram` codes of one RMT channel's RAM,
-/// so that no refill is needed during transmission.
-const fn fits_channel_ram(len: usize, ram: usize) -> bool {
-    len <= ram
-}
-
-/// Timeout budget per pulse code, in microseconds.
-///
-/// About 1.5 times the worst-case code time of 1.3 µs (`T1H + T1L` = 13 ticks at 100 ns).
-/// Assumes the 10 MHz RMT tick set by [`RMT_CLK_DIV`]; a slower tick makes long frames time out
-/// with [`Error::Transmit`].
-const TIMEOUT_US_PER_CODE: u64 = 2;
-
-/// Fixed timeout margin in microseconds, covering transmit start-up and polling overhead.
-const TIMEOUT_MARGIN_US: u64 = 1000;
-
-/// Upper bound in microseconds for a refill-driven transmit of `len` pulse codes.
-const fn tx_timeout_us(len: usize) -> u64 {
-    len as u64 * TIMEOUT_US_PER_CODE + TIMEOUT_MARGIN_US
-}
-
-const _: () = {
-    assert!(fits_channel_ram(25, 48));
-    assert!(!fits_channel_ram(49, 48));
-    assert!(fits_channel_ram(49, 64));
-    assert!(!fits_channel_ram(289, 48));
-    assert!(tx_timeout_us(289) == 1578);
-    // At 100 ns per tick, 10 ticks make 1 µs: the per-code budget must exceed the longest code.
-    assert!(TIMEOUT_US_PER_CODE * TICKS_PER_US > (T0H + T0L) as u64);
-    assert!(TIMEOUT_US_PER_CODE * TICKS_PER_US > (T1H + T1L) as u64);
-};
 
 #[cfg(test)]
 mod tests {

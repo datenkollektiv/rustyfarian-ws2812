@@ -38,6 +38,9 @@
 use core::fmt;
 use rgb::RGB8;
 
+#[cfg(feature = "smart-leds-trait")]
+use crate::MAX_WRITE_LEDS;
+
 #[cfg(target_arch = "avr")]
 use crate::bitbang_avr::{send_byte, with_interrupts_disabled};
 
@@ -187,7 +190,7 @@ impl<P, const PORT_ADDR: u8, const PIN_BIT: u8> Ws2812BitBang<P, PORT_ADDR, PIN_
                     }
                 }
             });
-            // Pin is low at exit; the >50 µs gap before the next call latches the frame.
+            // Pin is low at exit; the >50 µs gap before the next call latches the frame (the ESP drivers use `bunting::WS2812_RESET_US`).
         }
         Ok(())
     }
@@ -261,16 +264,9 @@ impl<P, const PORT_ADDR: u8, const PIN_BIT: u8> smart_leds_trait::SmartLedsWrite
         T: IntoIterator<Item = I>,
         I: Into<Self::Color>,
     {
-        // 256 × 3 bytes = 768 bytes on stack — see the impl docs above.
-        let mut buf = [RGB8::default(); 256];
-        let mut count = 0usize;
-        for color in iterator {
-            if count >= buf.len() {
-                break;
-            }
-            buf[count] = color.into();
-            count += 1;
-        }
+        // Cap is ferriswheel's MAX_LEDS (not a dependency here); 256 x 3 bytes = 768 bytes on stack.
+        let mut buf = [RGB8::default(); MAX_WRITE_LEDS];
+        let count = bunting::collect_truncated(iterator.into_iter().map(Into::into), &mut buf);
         self.set_pixels_slice(&buf[..count])
     }
 }

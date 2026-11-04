@@ -24,8 +24,12 @@
 //! helpers for addressing WS2812 LEDs wired as a rectangular matrix.
 
 pub mod grid;
+mod latch;
+mod long_frame;
 mod timing;
 
+pub use latch::*;
+pub use long_frame::*;
 pub use timing::*;
 
 use rgb::RGB8;
@@ -120,6 +124,42 @@ pub const fn spi_data_len(num_leds: usize) -> usize {
 /// At 2 MHz: 280 µs × 2 Mbit/s ÷ 8 = 70 bytes. 80 provides margin.
 pub const SPI_RESET_BYTES_2MHZ: usize = 80;
 
+/// Checks that `buf_len` holds a frame of `num_leds` LEDs plus the 2 MHz reset tail.
+///
+/// Returns the data length (`num_leds * 12`) on success.
+/// Unlike [`spi_data_len`], the multiplication is checked, so an absurd `num_leds` is an error rather than a wrap.
+///
+/// # Errors
+///
+/// Returns [`SpiEncodeError::BufferTooSmall`] on overflow or when `buf_len < data_len + SPI_RESET_BYTES_2MHZ`.
+pub const fn checked_spi_frame_len(
+    num_leds: usize,
+    buf_len: usize,
+) -> Result<usize, SpiEncodeError> {
+    let Some(data_len) = num_leds.checked_mul(12) else {
+        return Err(SpiEncodeError::BufferTooSmall);
+    };
+    if data_len.saturating_add(SPI_RESET_BYTES_2MHZ) > buf_len {
+        return Err(SpiEncodeError::BufferTooSmall);
+    }
+    Ok(data_len)
+}
+
+/// Collects `iter` into `out`, stopping once `out` is full, and returns the number of items stored.
+///
+/// The first `out.len()` items are kept in order; the rest are not consumed.
+pub fn collect_truncated<I: IntoIterator<Item = RGB8>>(iter: I, out: &mut [RGB8]) -> usize {
+    let mut count = 0usize;
+    for color in iter {
+        if count >= out.len() {
+            break;
+        }
+        out[count] = color;
+        count += 1;
+    }
+    count
+}
+
 /// SPI lookup table: maps each 2-bit WS2812 pair to an SPI byte.
 ///
 /// Index by `(grb_value >> shift) & 0b11` for each 2-bit pair (MSB-first).
@@ -177,6 +217,55 @@ pub fn prerender_spi(colors: &[RGB8], buf: &mut [u8]) -> Result<(), SpiEncodeErr
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn checked_spi_frame_len_cases() {
+        assert_eq!(checked_spi_frame_len(0, 80), Ok(0));
+        assert_eq!(
+            checked_spi_frame_len(0, 0),
+            Err(SpiEncodeError::BufferTooSmall)
+        );
+        assert_eq!(checked_spi_frame_len(1, 92), Ok(12));
+        assert_eq!(
+            checked_spi_frame_len(1, 91),
+            Err(SpiEncodeError::BufferTooSmall)
+        );
+        assert_eq!(
+            checked_spi_frame_len(1, 0),
+            Err(SpiEncodeError::BufferTooSmall)
+        );
+        assert_eq!(
+            checked_spi_frame_len(usize::MAX, usize::MAX),
+            Err(SpiEncodeError::BufferTooSmall)
+        );
+        assert_eq!(
+            checked_spi_frame_len(usize::MAX / 12 + 1, usize::MAX),
+            Err(SpiEncodeError::BufferTooSmall)
+        );
+    }
+
+    #[test]
+    fn collect_truncated_cases() {
+        let mut out = [RGB8::default(); 4];
+        assert_eq!(collect_truncated(core::iter::empty(), &mut out), 0);
+        let mk = |i: u8| RGB8::new(i, 0, 0);
+        assert_eq!(collect_truncated((0..2).map(mk), &mut out), 2);
+        assert_eq!(out[1], mk(1));
+        assert_eq!(collect_truncated((0..4).map(mk), &mut out), 4);
+        let mut consumed = 0u32;
+        let n = collect_truncated(
+            (0..1004u32).map(|i| {
+                consumed += 1;
+                mk(i as u8)
+            }),
+            &mut out,
+        );
+        assert_eq!(n, 4);
+        assert_eq!(consumed, 5);
+        assert_eq!(out, [mk(0), mk(1), mk(2), mk(3)]);
+        let mut empty: [RGB8; 0] = [];
+        assert_eq!(collect_truncated((0..3).map(mk), &mut empty), 0);
+    }
+
     use super::*;
 
     #[test]

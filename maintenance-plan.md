@@ -14,9 +14,10 @@ maintenance file structure.
 ## Build & Test
 
 ### Primary build gate
-- `just verify` — non-modifying full check: fmt-check, deny, check, lint, test.
-  Use this as the audit's primary build gate. Exit 0 means fmt + deny + check +
-  clippy + all unit/doc tests passed on the host target.
+- `just verify && just deny` — non-modifying full check: fmt-check, check, lint, test (including pennant's `hal` feature), then deny.
+  Use this as the audit's primary build gate. Exit 0 means fmt + check + clippy +
+  all unit/doc tests passed on the host target and `cargo deny` is clean.
+  `just verify` alone does not run `cargo deny`.
 
 ### Compile-side validation for hardware-target drivers
 - `just check-hal` — bare-metal `esp-hal` driver against `riscv32imac-unknown-none-elf`.
