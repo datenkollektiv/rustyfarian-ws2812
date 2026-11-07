@@ -8,7 +8,7 @@ Covers: build verification, dependency updates, security scanning, CI/CD
 status, hardware-target validation, and toolchain freshness.
 
 The first end-to-end cycle ran on 2026-04-29; the artefacts in
-[`audit/`](audit/) serve as concrete templates for the audit / plan /
+the local, gitignored `audit/` directory serve as concrete templates for the audit / plan /
 maintenance file structure.
 
 ## Build & Test

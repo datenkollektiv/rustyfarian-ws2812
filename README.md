@@ -137,16 +137,16 @@ For `no_std` projects that only need the pure utilities:
 
 ```toml
 [dependencies]
-ferriswheel = "0.8"
-pennant = "0.8"
-bunting = "0.8"
+ferriswheel = "0.9"
+pennant = "0.9"
+bunting = "0.9"
 ```
 
 `pennant` ships the `StatusLed`/`AsyncStatusLed` traits, `PulseEffect`, and `NoLed` by default.
 Enable the `hal` feature for the `SimpleLed` adapter (RGB → on/off GPIO via `embedded-hal` 1.0, with a `Polarity` option for active-low LEDs):
 
 ```toml
-pennant = { version = "0.8", features = ["hal"] }
+pennant = { version = "0.9", features = ["hal"] }
 ```
 
 For ESP32 projects, pick the driver that matches your stack.
@@ -154,19 +154,19 @@ For ESP32 projects, pick the driver that matches your stack.
 Bare-metal / `no_std` (`esp-hal`, defaults to ESP32-C6):
 
 ```toml
-rustyfarian-esp-hal-ws2812 = { version = "0.8" }
+rustyfarian-esp-hal-ws2812 = { version = "0.9" }
 ```
 
 ESP-IDF / `std`:
 
 ```toml
-rustyfarian-esp-idf-ws2812 = { version = "0.8" }
+rustyfarian-esp-idf-ws2812 = { version = "0.9" }
 ```
 
 AVR (requires nightly and the `bitbang` feature):
 
 ```toml
-rustyfarian-avr-ws2812 = { version = "0.8", features = ["bitbang"] }
+rustyfarian-avr-ws2812 = { version = "0.9", features = ["bitbang"] }
 ```
 
 To track the unreleased `main` branch (e.g. for contributors):

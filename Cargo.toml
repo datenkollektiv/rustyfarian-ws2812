@@ -27,9 +27,9 @@ embedded-hal = { version = "1.0", default-features = false }
 critical-section = "1.2"
 
 # Internal crates
-ferriswheel = { path = "crates/ferriswheel", version = "0.8" }
-pennant = { path = "crates/pennant", version = "0.8" }
-bunting = { path = "crates/bunting", version = "0.8" }
+ferriswheel = { path = "crates/ferriswheel", version = "0.9" }
+pennant = { path = "crates/pennant", version = "0.9" }
+bunting = { path = "crates/bunting", version = "0.9" }
 
 # ESP32 dependencies
 esp-idf-hal = { version = "0.47" }
