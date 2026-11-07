@@ -16,3 +16,6 @@ release/
 review-queue/
 /archive/
 audit/
+# Bench run artefacts: local serial logs and verdicts, appended on every run.
+bench/*/logs/
+bench/*/results.jsonl

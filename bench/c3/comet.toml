@@ -1,0 +1,25 @@
+# Typical async LED-clock workload: whole 12-LED ring re-sent every 30 ms, stats once per second.
+# `comet: 33 frames, 0 errors, send min 405 / mean 410 / max 418 us, loop max 31 ms`
+examples = ["hal_c3_rainbow_comet_async"]
+
+[[step]]
+say = "Wait for the banner"
+expect = "hal_c3_rainbow_comet_async: 12 LEDs on GPIO4"
+timeout = 10
+optional = true
+arm = false       # the banner is printed during the reset, before the step
+
+[[step]]
+say = "Let it run for three reports"
+expect = ['comet: \d+ frames, 0 errors', 'comet: \d+ frames, 0 errors', 'comet: \d+ frames, 0 errors']
+reject = 'comet: \d+ frames, [1-9]\d* errors|transmit error|PANIC'
+timeout = 15
+
+[[step]]
+say = "A rainbow comet should circle the ring smoothly"
+confirm = "Comet circles without flicker, wrong colours or jumps?"
+
+[[step]]
+say = "Watch 10 s more; the log must stay at 0 errors"
+duration = 10
+reject = 'comet: \d+ frames, [1-9]\d* errors|transmit error|PANIC'

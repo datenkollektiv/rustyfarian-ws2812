@@ -1,0 +1,35 @@
+# Bench definition for rustyfarian-bench; run from this repo with `just bench <board>`.
+# Scenarios live in bench/<board>/*.toml; see bench/README.md.
+
+[commands]
+build = ["just", "build-example", "{example}"]
+# `just flash` takes no port; espflash reads ESPFLASH_PORT, so the detected port is pinned that way.
+flash = ["env", "ESPFLASH_PORT={port}", "just", "flash", "{example}"]
+
+[boards.s3]
+chip = "esp32s3"
+name = "CrowPanel 1.28\" HMI (ESP32-S3), 5-LED ring on GPIO48"
+checks = ["pulse", "rainbow"]   # first, in this order; the rest follow by name
+
+[boards.c3]
+chip = "esp32c3"
+name = "ESP32-C3 dev board, 12-LED WS2812B ring on GPIO4"
+checks = ["pulse", "rainbow"]   # first, in this order; the rest follow by name
+
+[boards.c6]
+chip = "esp32c6"
+name = "ESP32-C6 dev board, 12-LED WS2812B ring on GPIO18"
+checks = ["pulse", "rainbow"]   # first, in this order; the rest follow by name
+
+[boards.esp32]
+chip = "esp32"
+name = "ESP32-WROOM-32 dev board, 12-LED WS2812B ring on GPIO4"
+checks = ["pulse", "rainbow"]   # first, in this order; the rest follow by name
+
+[boards.avr]
+chip = "atmega328p"
+name = "Arduino Nano (ATmega328P), 12-LED WS2812B ring on D11"
+checks = ["pulse", "rainbow"]   # first, in this order; the rest follow by name
+detect = false                  # espflash cannot identify an AVR; --port is required
+build = ["just", "build-avr-bin", "{example}"]
+flash = ["just", "flash-avr-bin", "{example}", "{port}"]

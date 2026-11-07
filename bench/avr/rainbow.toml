@@ -1,0 +1,11 @@
+# Rainbow across the ring with the bit-bang driver (the default `avr-nano-rainbow` binary).
+# The Nano prints nothing and halts silently on a panic, so the verdict is visual.
+examples = ["avr-nano-rainbow"]
+
+[[step]]
+say = "Watch the ring for 5 s"
+duration = 5
+
+[[step]]
+say = "A rainbow should rotate smoothly around all 12 LEDs"
+confirm = "Rainbow across all 12 LEDs, rotating without stutter?"
