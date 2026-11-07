@@ -1,11 +1,19 @@
-# Rainbow across the ring with the bit-bang driver (the default `avr-nano-rainbow` binary).
-# The Nano prints nothing and halts silently on a panic, so the verdict is visual.
+# Rainbow across the 12-LED ring (D11), bit-bang driver (`avr-nano-rainbow`).
+# The Nano prints nothing and halts silently on a panic. Unattended: the serial link stays up for 60 s.
+# Attended: watch for 60 s, then one question.
 examples = ["avr-nano-rainbow"]
 
 [[step]]
-say = "Watch the ring for 5 s"
-duration = 5
+say = "Soak for 60 s; the board must stay up"
+duration = 60
+arm = false
 
 [[step]]
-say = "A rainbow should rotate smoothly around all 12 LEDs"
-confirm = "Rainbow across all 12 LEDs, rotating without stutter?"
+say = "Watch the ring: a rainbow rotates smoothly around all 12 LEDs"
+duration = 60   # maintenance-plan.md: a continuous 60 s run; Enter ends it early
+attended = true
+arm = false
+
+[[step]]
+say = "Answer for the whole watch"
+confirm = "The rainbow covered all 12 LEDs and rotated smoothly for the whole watch, no stutter, flicker or dark LED?"

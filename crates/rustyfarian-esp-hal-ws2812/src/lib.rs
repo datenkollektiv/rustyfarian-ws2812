@@ -184,11 +184,11 @@
 //! Residual risks, not yet proven on hardware:
 //!
 //! - Flash-cache misses can still stall the refill path.
-//!   The `ESP_HAL_CONFIG_PLACE_RMT_DRIVER_IN_RAM` setting above is the mitigation.
+//!   Without the `ESP_HAL_CONFIG_PLACE_RMT_DRIVER_IN_RAM` setting above (off by default), the RAM polling loops call esp-hal's RMT `poll` from flash on every iteration; the setting is the mitigation.
+//!   The clock read itself is inlined into those loops (checked by disassembly for v0.9.0); only the `poll` runs from flash.
 //! - Shared-resource contention from the radio (bus, SRAM and cache refills) is the working hypothesis for the Wi-Fi failure; it is not measured yet.
 //! - On ESP32 and ESP32-S3, the other core can stall the refill path through its flash accesses.
 //! - High-priority interrupt levels on Xtensa are not verified to be masked by `critical_section`.
-//! - esp-hal's `Instant::now` and its tick conversion are RAM-resident only if they are inlined into the `#[esp_hal::ram]` polling loops; this is not verified.
 //! - The poll-gap margin is not measured on hardware yet, and the waveform on the data pin has not been captured.
 //!   The `hal_c3_frame_sweep_async` example is the planned capture target.
 //!

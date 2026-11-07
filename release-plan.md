@@ -20,11 +20,12 @@ Settle the number before the pre-flight, from evidence, and record it under "Nex
 2. Read `[Unreleased]` in the CHANGELOG: new public API means a minor bump under the rule above, even where Cargo's 0.x rules (and `just semver`) would accept a patch.
 3. Read the Deprecated entries of the last release: an alias kept "for the 0.8 cycle" may go in the next minor; decide each one.
 
-### Next release: `v0.9.0` (proposed 2026-11-07, not yet decided)
+### Next release: `v0.9.0` (decided 2026-11-07)
 
 - `just semver 0.8.0`: `bunting`, `ferriswheel`, `pennant` and `rustyfarian-avr-ws2812` report "no semver update required"; `rustyfarian-esp-hal-ws2812` reports `LongFramePolicy` and `DEFAULT_MAX_NOMINAL_MASKED_US` as missing, but both are re-exported at the same path (`pub use bunting::{…}` in `lib.rs`), so code naming them still compiles; this looks like the tool not following re-exports from another crate (not yet confirmed upstream); `rustyfarian-esp-idf-ws2812` is not covered.
 - `bunting` gains public API (`latch` and long-frame helpers, `checked_spi_frame_len`, `collect_truncated`), so the rule above asks for a minor bump; Cargo alone would allow `0.8.1`.
-- Open: the aliases kept "for the 0.8 cycle" (AVR `write`, `ferriswheel`'s `smart-leds-compat`, esp-hal `set_pixels_slice_masked`) are removed in `0.9.0` or kept one more cycle.
+- The aliases kept "for the 0.8 cycle" (AVR `write`, `ferriswheel`'s `smart-leds-compat`, esp-hal `set_pixels_slice_masked`) stay one more cycle; removal is planned for `0.10.0`.
+- The esp-hal `just semver` result is accepted as a re-export false positive.
 
 ## Branch and Tag Convention
 
@@ -55,11 +56,11 @@ The [ADR 012](docs/adr/012-shared-logic-ladder.md) retrofit moves the latch and 
 Per-feature hardware gates are removed; this one pass replaces them, runs after the retrofit lands, and blocks the release.
 A sign-off is valid only for the binary that ran: record the commit and the ELF SHA-256 for every run, and re-run after any later code change.
 
-- [ ] Every bench in [`docs/features/long-frame-hardware-validation-v1.md`](docs/features/long-frame-hardware-validation-v1.md) (State section), on the release commit
+- [ ] Every bench in [`docs/features/archive/long-frame-hardware-validation-v1.md`](docs/features/archive/long-frame-hardware-validation-v1.md) (State section), on the release commit
 - [ ] Hardware tests in [`maintenance-plan.md`](maintenance-plan.md) (Hardware tests section), pass criteria included
 - [ ] Every cell of the chip matrix below passes the `maintenance-plan.md` pass criteria
 - [ ] Decide whether the `#[esp_hal::ram]` polling functions in the esp-hal driver (`poll_until_ended`, `start_and_poll`, `drain`) may keep calling into flash-mapped code (including the `panic_const_div_by_zero` site); this predates the retrofit, whose disassembly shows the same owner-and-callee sites as `main`
-- [ ] From the frame-sweep logic-analyser captures, compare the measured duration of a masked frame with the nominal `masked_us` estimate the ceiling admits by
+- [ ] From the frame-sweep logic-analyser captures, compare the measured duration of a masked frame with the nominal `masked_us` estimate the ceiling admits by — deferred from v0.9.0 to the roadmap ("Logic-analyser captures of the frame sweeps")
 - [ ] Desk check before the bench: the RAM-placement check of the release ELF (no new flash callees in the `#[esp_hal::ram]` functions) on each chip, not only the C3 frame sweep checked during the retrofit
 - [ ] Results recorded in ADR 010 and the CHANGELOG `[Unreleased]` entries that still mark validation as pending
 
@@ -77,6 +78,7 @@ Each cell therefore runs the moved latch and long-frame logic on that chip, unde
 
 AVR (Arduino Nano, ATmega328P), from `examples/avr-nano-rainbow/`: `bitbang_demo` (the recommended backend) and `spi_rainbow` (diagnostic only).
 `just bench <board>` runs the `pulse` and `rainbow` cells for S3, C3, C6, ESP32 and AVR (`bitbang_demo`, `avr-nano-rainbow`); the other cells and `spi_rainbow` are run by hand.
+Run each board once in each mode, `just bench <board> --unattended` then `--attended`.
 Both backends changed in the retrofit (SPI frame-length check, `SmartLedsWrite` collect), so both run.
 
 Known coverage limits:

@@ -133,7 +133,7 @@ The timestamp wait remains the mechanism for the critical-section and blocking p
 - **High-priority Xtensa interrupt levels** are not verified to be masked by `critical_section`.
 - **If the caller already runs masked** (inside a critical section or a high-priority interrupt executor), the cleanup spin and the latch wait run masked too.
 - **Hardware behaviour** is not proven by unit tests, which cannot run on the host.
-  The waveform capture in the maintenance-plan long-frame release gate, using `hal_c3_frame_sweep_async`, is the evidence; tracked in [long-frame hardware validation v1](../features/long-frame-hardware-validation-v1.md).
+  The waveform capture in the maintenance-plan long-frame release gate, using `hal_c3_frame_sweep_async`, is the evidence; tracked in [long-frame hardware validation v1](../features/archive/long-frame-hardware-validation-v1.md).
 
 ## Related
 

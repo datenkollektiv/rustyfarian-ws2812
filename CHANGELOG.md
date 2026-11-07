@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+The long-frame async release gate's logic-analyser capture was waived again for this release; its serial half passed on the ESP32-C3 and ESP32-C6, and the capture is a roadmap item.
+
 ### Added
 
 - `bunting` gains `latch` helpers (`latch_deadline_us`, `remaining_us`, `latch_wait_us_from_ns`, `StallGuard`, `LatchWait`) and long-frame helpers (`LongFramePolicy`, `LongFrameAction`, `long_frame_action`, `masked_us`, `tx_timeout_us`, `clk_divider_for`, `PollBudget`, `DEFAULT_MAX_NOMINAL_MASKED_US`), all clock-free and host-tested (ADR 012).
@@ -20,14 +22,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - `rustyfarian-esp-hal-ws2812`: the async pulse examples (`hal_c3_pulse_async`, `hal_c6_pulse_async`, `hal_esp32_pulse_async`, `hal_s3_pulse_async`) now run `PulseEffect` on the whole ring like their blocking twins, instead of pulsing the first LED through `AsyncStatusLed`, so one bench scenario covers both tiers.
 - AVR example `bitbang_demo` now breathes blue on all 12 ring LEDs (it was red on 10), the same pulse as the ESP examples, so the AVR bench check reads like the others.
-- `rustyfarian-esp-hal-ws2812`: the driver takes its long-frame decision, masking budget, refill timeout, clock divider and latch/stall arithmetic from `bunting`. `LongFramePolicy` and `DEFAULT_MAX_NOMINAL_MASKED_US` keep their paths through re-exports. The next-frame slot now holds microseconds as `Option<u64>` instead of an `Instant`, the clock read stays in the driver, and the polling loops keep their `#[esp_hal::ram]` placement and one clock read per 16 polls. Waveforms, timeouts and error variants are unchanged (ADR 012). The long-frame bench has not been re-run on hardware for this change
+- `rustyfarian-esp-hal-ws2812`: the driver takes its long-frame decision, masking budget, refill timeout, clock divider and latch/stall arithmetic from `bunting`. `LongFramePolicy` and `DEFAULT_MAX_NOMINAL_MASKED_US` keep their paths through re-exports. The next-frame slot now holds microseconds as `Option<u64>` instead of an `Instant`, the clock read stays in the driver, and the polling loops keep their `#[esp_hal::ram]` placement and one clock read per 16 polls. Waveforms, timeouts and error variants are unchanged (ADR 012). Hardware-validated on 2026-11-07 on the release binaries: both frame sweeps passed their serial gate (ESP32-C3, ESP32-C6), and the bench passed on ESP32-C3, ESP32-C6, ESP32-S3 and ESP32-WROOM-32; the logic-analyser capture and the downstream Wi-Fi benches remain open (see the roadmap)
 - `rustyfarian-esp-idf-ws2812`: the driver computes its latch wait with the shared `bunting::latch_wait_us_from_ns` (round-up and 280 µs cap preserved).
   No behaviour change.
-- `rustyfarian-avr-ws2812`: both drivers use the shared `bunting` helpers for the SPI buffer-fit check and for collecting `write` input; behaviour and stack cost (768 bytes) unchanged. The bit-bang `write` path changed (collect only, before the critical section) and has not been run on AVR hardware.
+- `rustyfarian-avr-ws2812`: both drivers use the shared `bunting` helpers for the SPI buffer-fit check and for collecting `write` input; behaviour and stack cost (768 bytes) unchanged. The bit-bang `write` path changed (collect only, before the critical section); it ran on an Arduino Nano on 2026-11-07 (`bitbang_demo`, `avr-nano-rainbow`). `SmartLedsWrite::write`'s collect path stays host-tested only, and the SPI backend's `spi_rainbow` still shows the white-ish output ADR 007 documents.
+
+### Deprecated
+
+- The aliases kept for the 0.8 cycle stay through 0.9 and are planned for removal in 0.10.0: `rustyfarian-avr-ws2812`'s `write`, `ferriswheel`'s `smart-leds-compat` feature and `rustyfarian-esp-hal-ws2812`'s `set_pixels_slice_masked`.
 
 ## [0.8.0] - 2026-11-03
 
-The long-frame async release gate (logic-analyser capture of `hal_c3_frame_sweep_async`) was waived for this release; it is tracked in [`docs/features/long-frame-hardware-validation-v1.md`](docs/features/long-frame-hardware-validation-v1.md).
+The long-frame async release gate (logic-analyser capture of `hal_c3_frame_sweep_async`) was waived for this release; it is tracked in [`docs/features/archive/long-frame-hardware-validation-v1.md`](docs/features/archive/long-frame-hardware-validation-v1.md).
 
 ### Breaking changes
 

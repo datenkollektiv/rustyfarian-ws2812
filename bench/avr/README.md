@@ -1,10 +1,10 @@
 # Bench — Arduino Nano (ATmega328P) with a 12-LED WS2812B ring
 
 ```sh
-just bench avr --port /dev/cu.usbserial-XXXX
+just bench avr
 ```
 
-The Nano is not detected, so the port is required; `ls /dev/cu.usb*` before and after plugging it in shows which one.
+The Nano is found by its USB identity (FTDI FT232R, `0403:6001`), not by espflash.
 
 Wiring: D11 through 330 Ω to DIN, GND to GND, 5V to VCC.
 

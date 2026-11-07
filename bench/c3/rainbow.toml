@@ -1,4 +1,5 @@
-# Known-good ESP-IDF baseline: rainbow across the ring. The IDF boot log proves the app started.
+# Rainbow across the 12-LED ring (GPIO4), ESP-IDF driver (`idf_c3_rainbow`).
+# Unattended: a 60 s soak that fails on a crash. Attended: watch for 60 s, then one question.
 examples = ["idf_c3_rainbow"]
 
 [[step]]
@@ -6,13 +7,21 @@ say = "Wait for the app to start"
 expect = "app_main"
 timeout = 15
 optional = true
-arm = false       # the banner is printed during the reset, before the step
+arm = false       # the IDF boot log is printed during the reset, before the step
 
 [[step]]
-say = "Watch the ring for 5 s"
-duration = 5
-reject = 'Guru Meditation|abort\(\)|panicked'
+say = "Soak for 60 s; the board must stay up and print no crash"
+duration = 60
+reject = 'PANIC|panicked|Guru Meditation|abort\(\)|WDT'
+arm = false
 
 [[step]]
-say = "A rainbow should rotate smoothly around all 12 LEDs"
-confirm = "Rainbow across all 12 LEDs, rotating without stutter?"
+say = "Watch the ring: a rainbow rotates smoothly around all 12 LEDs"
+duration = 60   # maintenance-plan.md: a continuous 60 s run; Enter ends it early
+reject = 'PANIC|panicked|Guru Meditation|abort\(\)|WDT'
+attended = true
+arm = false
+
+[[step]]
+say = "Answer for the whole watch"
+confirm = "The rainbow covered all 12 LEDs and rotated smoothly for the whole watch, no stutter, flicker or dark LED?"

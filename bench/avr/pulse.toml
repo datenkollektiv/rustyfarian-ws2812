@@ -1,15 +1,19 @@
 # Blue pulse on the 12-LED ring (D11): the bit-bang driver.
-# The Nano prints nothing and halts silently on a panic, so the verdict is visual; the watch steps only pace the operator.
+# The Nano prints nothing and halts silently on a panic. Unattended: the serial link stays up for 60 s.
+# Attended: watch for 60 s, then one question.
 examples = ["bitbang_demo"]
 
 [[step]]
-say = "Watch the ring for 5 s after reset"
-duration = 5
+say = "Soak for 60 s; the board must stay up"
+duration = 60
+arm = false
 
 [[step]]
-say = "All 12 LEDs should breathe blue together, dark to dim and back"
-confirm = "All 12 LEDs pulse blue in sync, none stuck, flickering or off-colour?"
+say = "Watch the ring: all 12 LEDs breathe blue together, dark to dim and back"
+duration = 60   # maintenance-plan.md: a continuous 60 s run; Enter ends it early
+attended = true
+arm = false
 
 [[step]]
-say = "Watch 10 s more for a dead pixel, a wrong colour or a white flash"
-duration = 10
+say = "Answer for the whole watch"
+confirm = "All 12 LEDs pulsed blue in sync for the whole watch, none stuck, flickering, flashing or off-colour?"

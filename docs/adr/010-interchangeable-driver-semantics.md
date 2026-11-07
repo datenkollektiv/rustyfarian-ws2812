@@ -67,6 +67,7 @@ Frames that fit in channel RAM, including `set_pixel`, keep the plain transmit a
 A late poll cannot garble them, and a timeout would report false errors.
 Only `Poll`, `CriticalSection` and `set_pixels_slice_masked` are bounded.
 The poll loop (`start_and_poll`) is placed in RAM with `#[esp_hal::ram]`, like the async `poll_to_completion`.
+The esp-hal poll it calls is not: `TxTransaction::poll` and `TxFuture::poll` stay in flash unless the user sets `ESP_HAL_CONFIG_PLACE_RMT_DRIVER_IN_RAM=true`.
 On the async driver, `Poll` runs `poll_to_completion` without the critical section, so the executor is still blocked for the frame.
 If a blocking transmit fails to start, esp-hal returns the channel with the error (`(Error, Self)`), so the driver keeps its channel; this fixes a loss that predates this change.
 The 2026-11-01 amendment below changes what happens after a blocking timeout.
@@ -286,3 +287,13 @@ A PR review changed three things; the decisions above still hold.
 - [ADR 008: Embassy as the Async Runtime](008-embassy-as-async-runtime.md)
 - [ADR 009: Long-Frame Policy and Latch Enforcement](009-long-frame-policy-and-latch.md)
 - [Feature: Interchangeable esp-hal and ESP-IDF drivers v1](../features/archive/driver-interchangeability-v1.md)
+
+**2026-11-07 update (v0.9.0 desk check):** disassembly of the release ELFs at `c6ac613` on C3, C6, ESP32 and S3 shows the RAM polling functions with the same callees as v0.8.0.
+The clock read is inlined, and no RAM function calls `bunting`.
+The flash callees on the polling path are esp-hal's `TxTransaction::poll` and `TxFuture::poll`, because `place_rmt_driver_in_ram` is off by default.
+This stays the default for v0.9.0; benching with the option on is a roadmap item.
+
+**2026-11-07 update (v0.9.0 hardware pass):** the release binaries of `88e63c6` ran on ESP32-C3, ESP32-C6, ESP32-S3 and ESP32-WROOM-32 under the default `CriticalSection` policy, every ring frame longer than one RMT block.
+`hal_c3_frame_sweep_async` passed three cycles and `hal_c6_frame_sweep_async` twelve, `PASS (0 failures)` each, including `Reject` and the cancelled-frame recovery.
+The pulse, rainbow, colour and comet checks passed on both tiers, and the C6 `smart-leds` and Embassy multi-task examples passed by hand.
+The logic-analyser capture and the downstream Wi-Fi benches (R1–R5, async under Wi-Fi) were not run; both are roadmap items.
