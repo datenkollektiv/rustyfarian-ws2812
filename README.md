@@ -73,6 +73,7 @@ Each example name encodes the driver, chip, and effect: `{driver}_{chip}_{effect
 | Example                      | Driver           | Board / Chip               | Effect                 | Data GPIO  | Notes                                                                               |
 |:-----------------------------|:-----------------|:---------------------------|:-----------------------|:-----------|:------------------------------------------------------------------------------------|
 | `hal_c3_pulse`               | esp-hal (no_std) | ESP32-C3                   | Pulse                  | GPIO4      |                                                                                     |
+| `hal_c3_colors`              | esp-hal (no_std) | ESP32-C3                   | Solid colours (bench)  | GPIO4      | Red, green, blue, white, off, 3 s each; prints each change                          |
 | `hal_c6_pulse`               | esp-hal (no_std) | ESP32-C6                   | Pulse                  | GPIO18     |                                                                                     |
 | `hal_esp32_pulse`            | esp-hal (no_std) | ESP32-WROOM-32             | Pulse                  | GPIO4      |                                                                                     |
 | `hal_s3_pulse`               | esp-hal (no_std) | ESP32-S3 (CrowPanel 1.28") | Pulse                  | GPIO48     |                                                                                     |
@@ -84,13 +85,14 @@ Each example name encodes the driver, chip, and effect: `{driver}_{chip}_{effect
 | `hal_c6_knight_rider`        | esp-hal (no_std) | ESP32-C6                   | Knight Rider / scanner | GPIO18     |                                                                                     |
 | `hal_c6_rainbow_comet`       | esp-hal (no_std) | ESP32-C6                   | Rainbow comet          | GPIO18     |                                                                                     |
 | `hal_c6_rainbow_comet_async` | esp-hal (no_std) | ESP32-C6                   | Rainbow comet (async)  | GPIO18     | `--features embassy`                                                                |
-| `hal_c3_pulse_async`         | esp-hal (no_std) | ESP32-C3                   | Pulse (async)          | GPIO4      | `--features embassy`; first LED only (`AsyncStatusLed`)                             |
-| `hal_c6_pulse_async`         | esp-hal (no_std) | ESP32-C6                   | Pulse (async)          | GPIO18     | `--features embassy`; first LED only (`AsyncStatusLed`)                             |
-| `hal_esp32_pulse_async`      | esp-hal (no_std) | ESP32-WROOM-32             | Pulse (async)          | GPIO4      | `--features embassy`; first LED only (`AsyncStatusLed`)                             |
-| `hal_s3_pulse_async`         | esp-hal (no_std) | ESP32-S3 (CrowPanel 1.28") | Pulse (async)          | GPIO48     | `--features embassy`; first LED only (`AsyncStatusLed`)                             |
+| `hal_c3_pulse_async`         | esp-hal (no_std) | ESP32-C3                   | Pulse (async)          | GPIO4      | `--features embassy`; all 12 LEDs, async twin of `hal_c3_pulse`                     |
+| `hal_c6_pulse_async`         | esp-hal (no_std) | ESP32-C6                   | Pulse (async)          | GPIO18     | `--features embassy`; all 12 LEDs, async twin of `hal_c6_pulse`                     |
+| `hal_esp32_pulse_async`      | esp-hal (no_std) | ESP32-WROOM-32             | Pulse (async)          | GPIO4      | `--features embassy`; all 12 LEDs, async twin of `hal_esp32_pulse`                  |
+| `hal_s3_pulse_async`         | esp-hal (no_std) | ESP32-S3 (CrowPanel 1.28") | Pulse (async)          | GPIO48     | `--features embassy`; all 5 LEDs, async twin of `hal_s3_pulse`                      |
 | `hal_c6_smart_leds`          | esp-hal (no_std) | ESP32-C6                   | smart-leds interop     | GPIO18     | `--features smart-leds`                                                             |
 | `idf_c3_rainbow`             | ESP-IDF (std)    | ESP32-C3                   | Rainbow                | GPIO4      |                                                                                     |
 | `idf_c3_pulse`               | ESP-IDF (std)    | ESP32-C3                   | Pulse                  | GPIO4      | Counterpart of `hal_c3_pulse`                                                       |
+| `idf_c3_colors`              | ESP-IDF (std)    | ESP32-C3                   | Solid colours (bench)  | GPIO4      | Counterpart of `hal_c3_colors`; same serial lines                                   |
 | `idf_c6_rainbow`             | ESP-IDF (std)    | ESP32-C6                   | Rainbow                | GPIO18     |                                                                                     |
 | `idf_esp32_rainbow`          | ESP-IDF (std)    | ESP32-WROOM-32             | Rainbow                | GPIO4      |                                                                                     |
 | `idf_s3_rainbow`             | ESP-IDF (std)    | ESP32-S3 (CrowPanel 1.28") | Rainbow                | GPIO48     | Provides the S3 bootloader for HAL flashing                                         |

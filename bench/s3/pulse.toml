@@ -1,0 +1,17 @@
+# Blue pulse on the 5-LED ring (GPIO48): blocking driver, then the async twin.
+# The S3 examples print nothing, so the verdict is visual; serial is only watched for a crash.
+examples = ["hal_s3_pulse", "hal_s3_pulse_async"]
+
+[[step]]
+say = "Watch the ring for 5 s after reset"
+duration = 5
+reject = 'PANIC|panicked|Guru Meditation|abort\(\)|WDT'
+
+[[step]]
+say = "All 5 LEDs should breathe blue together, dark to dim and back"
+confirm = "All 5 LEDs pulse blue in sync, none stuck, flickering or off-colour?"
+
+[[step]]
+say = "Watch 10 s more for a dead pixel, a wrong colour or a white flash"
+duration = 10
+reject = 'PANIC|panicked|Guru Meditation|abort\(\)|WDT'

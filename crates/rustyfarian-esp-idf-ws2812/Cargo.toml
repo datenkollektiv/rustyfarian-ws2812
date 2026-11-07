@@ -64,6 +64,9 @@ name = "idf_c3_rainbow"
 name = "idf_c3_pulse"
 
 [[example]]
+name = "idf_c3_colors"
+
+[[example]]
 name = "idf_c6_rainbow"
 
 [[example]]

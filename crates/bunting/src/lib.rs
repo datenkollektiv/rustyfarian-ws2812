@@ -131,7 +131,7 @@ pub const SPI_RESET_BYTES_2MHZ: usize = 80;
 ///
 /// # Errors
 ///
-/// Returns [`SpiEncodeError::BufferTooSmall`] on overflow or when `buf_len < data_len + SPI_RESET_BYTES_2MHZ`.
+/// Returns [`SpiEncodeError::BufferTooSmall`] on overflow (of the data length or of data plus tail) or when `buf_len < data_len + SPI_RESET_BYTES_2MHZ`.
 pub const fn checked_spi_frame_len(
     num_leds: usize,
     buf_len: usize,
@@ -139,7 +139,10 @@ pub const fn checked_spi_frame_len(
     let Some(data_len) = num_leds.checked_mul(12) else {
         return Err(SpiEncodeError::BufferTooSmall);
     };
-    if data_len.saturating_add(SPI_RESET_BYTES_2MHZ) > buf_len {
+    let Some(frame_len) = data_len.checked_add(SPI_RESET_BYTES_2MHZ) else {
+        return Err(SpiEncodeError::BufferTooSmall);
+    };
+    if frame_len > buf_len {
         return Err(SpiEncodeError::BufferTooSmall);
     }
     Ok(data_len)
@@ -149,11 +152,13 @@ pub const fn checked_spi_frame_len(
 ///
 /// The first `out.len()` items are kept in order; the rest are not consumed.
 pub fn collect_truncated<I: IntoIterator<Item = RGB8>>(iter: I, out: &mut [RGB8]) -> usize {
+    let mut iter = iter.into_iter();
     let mut count = 0usize;
-    for color in iter {
-        if count >= out.len() {
+    // Check the capacity before pulling, so nothing past `out.len()` is fetched or converted.
+    while count < out.len() {
+        let Some(color) = iter.next() else {
             break;
-        }
+        };
         out[count] = color;
         count += 1;
     }
@@ -241,6 +246,11 @@ mod tests {
             checked_spi_frame_len(usize::MAX / 12 + 1, usize::MAX),
             Err(SpiEncodeError::BufferTooSmall)
         );
+        // The data fits, but data + reset tail overflows: it must not saturate into a pass.
+        assert_eq!(
+            checked_spi_frame_len(usize::MAX / 12, usize::MAX),
+            Err(SpiEncodeError::BufferTooSmall)
+        );
     }
 
     #[test]
@@ -260,7 +270,7 @@ mod tests {
             &mut out,
         );
         assert_eq!(n, 4);
-        assert_eq!(consumed, 5);
+        assert_eq!(consumed, 4, "items past capacity must not be pulled");
         assert_eq!(out, [mk(0), mk(1), mk(2), mk(3)]);
         let mut empty: [RGB8; 0] = [];
         assert_eq!(collect_truncated((0..3).map(mk), &mut empty), 0);
