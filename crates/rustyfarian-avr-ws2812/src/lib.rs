@@ -140,11 +140,19 @@
 //! for wiring, toolchain setup, and `just` recipes:
 //!
 //! - `just flash-avr-example` — bit-bang `RainbowEffect`, the recommended demo (`src/main.rs`)
-//! - `just flash-avr-bitbang-demo` — bit-bang `PulseEffect` red breath (`bin/bitbang_demo`)
+//! - `just flash-avr-bitbang-demo` — bit-bang `PulseEffect` blue breath (`bin/bitbang_demo`)
 //! - `just flash-avr-spi-rainbow` — SPI prerendered comparison, **diagnostic only** (`bin/spi_rainbow`)
 //! - `just flash-avr-bitbang-spike` — frozen low-level reference, no driver crate (`bin/bitbang_spike`)
 
-use bunting::{prerender_spi, spi_data_len, SpiEncodeError, SPI_RESET_BYTES_2MHZ};
+use bunting::{
+    checked_spi_frame_len, prerender_spi, spi_data_len, SpiEncodeError, SPI_RESET_BYTES_2MHZ,
+};
+
+/// Stack capacity of the `SmartLedsWrite::write` collect buffer.
+///
+/// Matches `ferriswheel::effect::MAX_LEDS`; this crate does not depend on ferriswheel.
+#[cfg(feature = "smart-leds-trait")]
+pub(crate) const MAX_WRITE_LEDS: usize = 256;
 use core::fmt;
 use embedded_hal::spi::SpiBus;
 use rgb::RGB8;
@@ -235,13 +243,7 @@ impl<SPI: SpiBus, const N: usize> Ws2812Spi<SPI, N> {
         if colors.is_empty() {
             return Ok(());
         }
-        // `spi_data_len` multiplies unchecked; on a 16-bit `usize` an absurd slice could wrap past the check.
-        let Some(data_len) = colors.len().checked_mul(spi_data_len(1)) else {
-            return Err(SpiError::Encode(SpiEncodeError::BufferTooSmall));
-        };
-        if data_len.saturating_add(SPI_RESET_BYTES_2MHZ) > N {
-            return Err(SpiError::Encode(SpiEncodeError::BufferTooSmall));
-        }
+        let data_len = checked_spi_frame_len(colors.len(), N).map_err(SpiError::Encode)?;
         prerender_spi(colors, &mut self.buf[..data_len])?;
         // Zero the reset tail so the WS2812 latches the frame.
         self.buf[data_len..].fill(0);
@@ -320,16 +322,9 @@ impl<SPI: SpiBus, const N: usize> smart_leds_trait::SmartLedsWrite for Ws2812Spi
         T: IntoIterator<Item = I>,
         I: Into<Self::Color>,
     {
-        // 256 × 3 bytes = 768 bytes on stack — see the impl docs above.
-        let mut buf = [RGB8::default(); 256];
-        let mut count = 0usize;
-        for color in iterator {
-            if count >= buf.len() {
-                break;
-            }
-            buf[count] = color.into();
-            count += 1;
-        }
+        // Cap is ferriswheel's MAX_LEDS (not a dependency here); 256 x 3 bytes = 768 bytes on stack.
+        let mut buf = [RGB8::default(); MAX_WRITE_LEDS];
+        let count = bunting::collect_truncated(iterator.into_iter().map(Into::into), &mut buf);
         self.set_pixels_slice(&buf[..count])
     }
 }
@@ -414,6 +409,29 @@ mod tests {
         ws.set_pixel(RGB8::new(1, 2, 3)).unwrap();
         let spi = ws.release();
         assert_eq!(spi.writes, std::vec![92]);
+    }
+
+    #[test]
+    fn set_pixels_slice_buffer_boundary() {
+        let colors = [RGB8::new(1, 2, 3); 2];
+        let mut ok: Ws2812Spi<RecordingSpi, { spi_buffer_size(2) }> =
+            Ws2812Spi::new(RecordingSpi::default());
+        ok.set_pixels_slice(&colors).unwrap();
+        assert_eq!(ok.release().writes, std::vec![104]);
+        let mut short: Ws2812Spi<RecordingSpi, { spi_buffer_size(2) - 1 }> =
+            Ws2812Spi::new(RecordingSpi::default());
+        let err = short.set_pixels_slice(&colors).unwrap_err();
+        assert!(matches!(
+            err,
+            SpiError::Encode(SpiEncodeError::BufferTooSmall)
+        ));
+        assert!(short.release().writes.is_empty());
+        assert!(short_empty_ok());
+    }
+
+    fn short_empty_ok() -> bool {
+        let mut ws: Ws2812Spi<RecordingSpi, 0> = Ws2812Spi::new(RecordingSpi::default());
+        ws.set_pixels_slice(&[]).is_ok()
     }
 
     #[test]

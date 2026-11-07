@@ -1,0 +1,17 @@
+# Blue pulse on the 12-LED ring (GPIO18): blocking driver, then the async twin.
+# The C6 pulse examples print at most a start-up line, so the verdict is visual; serial is only watched for a crash.
+examples = ["hal_c6_pulse", "hal_c6_pulse_async"]
+
+[[step]]
+say = "Watch the ring for 5 s after reset"
+duration = 5
+reject = 'PANIC|panicked|Guru Meditation|abort\(\)|WDT'
+
+[[step]]
+say = "All 12 LEDs should breathe blue together, dark to dim and back"
+confirm = "All 12 LEDs pulse blue in sync, none stuck, flickering or off-colour?"
+
+[[step]]
+say = "Watch 60 s more for a dead pixel, a wrong colour or a white flash"
+duration = 60   # maintenance-plan.md: a continuous 60 s run
+reject = 'PANIC|panicked|Guru Meditation|abort\(\)|WDT'

@@ -12,6 +12,21 @@ Release process for the `rustyfarian-ws2812` workspace.
 - **Snapshot convention:** None; crates live at the released version between releases
 - **Who decides version:** Maintainer; minor bump for new public API, patch for fixes only
 
+## Choosing the version
+
+Settle the number before the pre-flight, from evidence, and record it under "Next release" below.
+
+1. Run `just semver` (or `just semver <last version>`): it compares each crate's public API with crates.io; a reported break forces a minor bump.
+2. Read `[Unreleased]` in the CHANGELOG: new public API means a minor bump under the rule above, even where Cargo's 0.x rules (and `just semver`) would accept a patch.
+3. Read the Deprecated entries of the last release: an alias kept "for the 0.8 cycle" may go in the next minor; decide each one.
+
+### Next release: `v0.9.0` (decided 2026-11-07)
+
+- `just semver 0.8.0`: `bunting`, `ferriswheel`, `pennant` and `rustyfarian-avr-ws2812` report "no semver update required"; `rustyfarian-esp-hal-ws2812` reports `LongFramePolicy` and `DEFAULT_MAX_NOMINAL_MASKED_US` as missing, but both are re-exported at the same path (`pub use bunting::{…}` in `lib.rs`), so code naming them still compiles; this looks like the tool not following re-exports from another crate (not yet confirmed upstream); `rustyfarian-esp-idf-ws2812` is not covered.
+- `bunting` gains public API (`latch` and long-frame helpers, `checked_spi_frame_len`, `collect_truncated`), so the rule above asks for a minor bump; Cargo alone would allow `0.8.1`.
+- The aliases kept "for the 0.8 cycle" (AVR `write`, `ferriswheel`'s `smart-leds-compat`, esp-hal `set_pixels_slice_masked`) stay one more cycle; removal is planned for `0.10.0`.
+- The esp-hal `just semver` result is accepted as a re-export false positive.
+
 ## Branch and Tag Convention
 
 - **Release branch:** `main`
@@ -27,12 +42,50 @@ Before any release:
 - [ ] `cargo deny` clean: `just deny`
 - [ ] Pure-crate dry-run clean: `just release-dry-run` (runs `verify` plus `cargo publish --dry-run` for `bunting`, `pennant`, `ferriswheel`)
 - [ ] Changelog has an `[Unreleased]` section with content for this release
+- [ ] Version decided and recorded: see Choosing the version
 - [ ] Version consistent across all crates: `crates/*/Cargo.toml`
 - [ ] No uncommitted changes: `git status --short` is empty
 - [ ] Working tree is on `main`
 - [ ] Authenticated with crates.io (see Authentication below) — only for crates.io publishes
 
 Note: driver crates cannot dry-run publish until the pure crates of the same version are live on crates.io — see Publish Order below.
+
+### Final hardware pass (next release, `v0.9.0`)
+
+The [ADR 012](docs/adr/012-shared-logic-ladder.md) retrofit moves the latch and long-frame logic into `bunting`, so no earlier hardware sign-off covers the release binaries.
+Per-feature hardware gates are removed; this one pass replaces them, runs after the retrofit lands, and blocks the release.
+A sign-off is valid only for the binary that ran: record the commit and the ELF SHA-256 for every run, and re-run after any later code change.
+
+- [ ] Every bench in [`docs/features/long-frame-hardware-validation-v1.md`](docs/features/long-frame-hardware-validation-v1.md) (State section), on the release commit
+- [ ] Hardware tests in [`maintenance-plan.md`](maintenance-plan.md) (Hardware tests section), pass criteria included
+- [ ] Every cell of the chip matrix below passes the `maintenance-plan.md` pass criteria
+- [ ] Decide whether the `#[esp_hal::ram]` polling functions in the esp-hal driver (`poll_until_ended`, `start_and_poll`, `drain`) may keep calling into flash-mapped code (including the `panic_const_div_by_zero` site); this predates the retrofit, whose disassembly shows the same owner-and-callee sites as `main`
+- [ ] From the frame-sweep logic-analyser captures, compare the measured duration of a masked frame with the nominal `masked_us` estimate the ceiling admits by
+- [ ] Desk check before the bench: the RAM-placement check of the release ELF (no new flash callees in the `#[esp_hal::ram]` functions) on each chip, not only the C3 frame sweep checked during the retrofit
+- [ ] Results recorded in ADR 010 and the CHANGELOG `[Unreleased]` entries that still mark validation as pending
+
+#### Chip matrix
+
+Every ESP ring example sends a frame longer than one RMT block (12 LEDs are 288 pulse codes, 5 LEDs are 120; a block is 48 words, 64 on the ESP32).
+Each cell therefore runs the moved latch and long-frame logic on that chip, under the default `CriticalSection` policy.
+
+| Chip                 | esp-hal blocking                    | esp-hal async                                                              | ESP-IDF                               |
+|:---------------------|:------------------------------------|:---------------------------------------------------------------------------|:--------------------------------------|
+| ESP32 (WROOM-32)     | `hal_esp32_pulse`                   | `hal_esp32_pulse_async`                                                    | `idf_esp32_rainbow`                   |
+| ESP32-C3 (reference) | `hal_c3_pulse`                      | `hal_c3_pulse_async`, `hal_c3_frame_sweep_async`                           | `idf_c3_rainbow`                      |
+| ESP32-C6             | `hal_c6_pulse`, `hal_c6_smart_leds` | `hal_c6_pulse_async`, `hal_c6_multitask_async`, `hal_c6_frame_sweep_async` | `idf_c6_rainbow`, `idf_c6_smart_leds` |
+| ESP32-S3             | `hal_s3_pulse`                      | `hal_s3_pulse_async`                                                       | `idf_s3_rainbow`                      |
+
+AVR (Arduino Nano, ATmega328P), from `examples/avr-nano-rainbow/`: `bitbang_demo` (the recommended backend) and `spi_rainbow` (diagnostic only).
+`just bench <board>` runs the `pulse` and `rainbow` cells for S3, C3, C6, ESP32 and AVR (`bitbang_demo`, `avr-nano-rainbow`); the other cells and `spi_rainbow` are run by hand.
+Run each board's bench three times: the `pulse` check's 60 s watch and the three runs meet the `maintenance-plan.md` pass criteria.
+Both backends changed in the retrofit (SPI frame-length check, `SmartLedsWrite` collect), so both run.
+
+Known coverage limits:
+
+- The non-default long-frame paths run on hardware only on the C3: `Reject` and the lifted ceiling in `hal_c3_frame_sweep_async` (and `hal_c6_frame_sweep_async` on the C6), `Poll` and the default ceiling in the downstream R3 and R4 benches; their arithmetic is host-tested in `bunting`.
+- No AVR example calls `SmartLedsWrite::write`; the collect path is host-tested only.
+- Radio coexistence (Wi-Fi) is a downstream bench on the C3, as listed in the long-frame feature doc.
 
 ## Version Bump
 

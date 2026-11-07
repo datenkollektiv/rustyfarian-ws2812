@@ -32,7 +32,8 @@ The `justfile` is the canonical interface — it handles target overrides, since
 
 | Command | Purpose |
 |:--------|:--------|
-| `just verify` | Primary CI gate: fmt-check + deny + check + clippy + test on host target |
+| `just verify` | Primary local gate: fmt-check + check + clippy + test on host target (no `cargo deny`) |
+| `just ci` | fmt-check + deny + check + clippy + test; unlike `verify` it runs `cargo deny` but not the pennant `hal` feature |
 | `just pre-commit` | fmt + check + clippy + test (auto-fixes formatting) |
 | `just check-hal` | Compile-check the bare-metal esp-hal driver against `riscv32imac-unknown-none-elf` |
 | `just check-idf` | Compile-check the ESP-IDF driver (requires `espup` toolchain) |

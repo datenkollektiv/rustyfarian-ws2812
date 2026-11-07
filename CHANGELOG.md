@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `bunting` gains `latch` helpers (`latch_deadline_us`, `remaining_us`, `latch_wait_us_from_ns`, `StallGuard`, `LatchWait`) and long-frame helpers (`LongFramePolicy`, `LongFrameAction`, `long_frame_action`, `masked_us`, `tx_timeout_us`, `clk_divider_for`, `PollBudget`, `DEFAULT_MAX_NOMINAL_MASKED_US`), all clock-free and host-tested (ADR 012).
+- `bunting::checked_spi_frame_len` and `bunting::collect_truncated`, the shared SPI buffer-fit check and truncating collector.
+- `rustyfarian-esp-hal-ws2812`: `hal_c6_frame_sweep_async` example, a port of the C3 frame sweep to the ESP32-C6 (GPIO18), so the long-frame release gate can run on the C6.
+- `rustyfarian-esp-hal-ws2812`: `hal_c3_colors` example (`--features esp-println`), the bench's visual check: the whole 12-LED ring in one solid colour at a time (red, green, blue, white, off, 3 s each, forever), logging each change so `rustyfarian-bench` can pace one question per colour.
+- `rustyfarian-esp-idf-ws2812`: `idf_c3_colors`, the ESP-IDF counterpart of `hal_c3_colors` with identical serial lines, so one bench scenario covers both tiers.
+- `bench/`: a `rustyfarian-bench` definition with the same `pulse` and `rainbow` checks on S3, C3, C6, the ESP32-WROOM-32 and the Arduino Nano, plus `colors`, `comet` and `frame-sweep` on the C3; run with `just bench <board>` (e.g. `just bench s3`); `bench-list` and `bench-detect` recipes alongside.
+- [ADR 012](docs/adr/012-shared-logic-ladder.md) records the shared-logic ladder and the retrofit above; the hardware run is the final hardware pass in `release-plan.md`.
+
+### Changed
+
+- `rustyfarian-esp-hal-ws2812`: the async pulse examples (`hal_c3_pulse_async`, `hal_c6_pulse_async`, `hal_esp32_pulse_async`, `hal_s3_pulse_async`) now run `PulseEffect` on the whole ring like their blocking twins, instead of pulsing the first LED through `AsyncStatusLed`, so one bench scenario covers both tiers.
+- AVR example `bitbang_demo` now breathes blue on all 12 ring LEDs (it was red on 10), the same pulse as the ESP examples, so the AVR bench check reads like the others.
+- `rustyfarian-esp-hal-ws2812`: the driver takes its long-frame decision, masking budget, refill timeout, clock divider and latch/stall arithmetic from `bunting`. `LongFramePolicy` and `DEFAULT_MAX_NOMINAL_MASKED_US` keep their paths through re-exports. The next-frame slot now holds microseconds as `Option<u64>` instead of an `Instant`, the clock read stays in the driver, and the polling loops keep their `#[esp_hal::ram]` placement and one clock read per 16 polls. Waveforms, timeouts and error variants are unchanged (ADR 012). The long-frame bench has not been re-run on hardware for this change
+- `rustyfarian-esp-idf-ws2812`: the driver computes its latch wait with the shared `bunting::latch_wait_us_from_ns` (round-up and 280 µs cap preserved).
+  No behaviour change.
+- `rustyfarian-avr-ws2812`: both drivers use the shared `bunting` helpers for the SPI buffer-fit check and for collecting `write` input; behaviour and stack cost (768 bytes) unchanged. The bit-bang `write` path changed (collect only, before the critical section) and has not been run on AVR hardware.
+
+### Deprecated
+
+- The aliases kept for the 0.8 cycle stay through 0.9 and are planned for removal in 0.10.0: `rustyfarian-avr-ws2812`'s `write`, `ferriswheel`'s `smart-leds-compat` feature and `rustyfarian-esp-hal-ws2812`'s `set_pixels_slice_masked`.
+
 ## [0.8.0] - 2026-11-03
 
 The long-frame async release gate (logic-analyser capture of `hal_c3_frame_sweep_async`) was waived for this release; it is tracked in [`docs/features/long-frame-hardware-validation-v1.md`](docs/features/long-frame-hardware-validation-v1.md).

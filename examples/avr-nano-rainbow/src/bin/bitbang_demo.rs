@@ -1,5 +1,8 @@
 //! Production bit-bang driver demo: `Ws2812BitBang` driving `ferriswheel::PulseEffect`.
 //!
+//! The AVR twin of the ESP pulse examples (`hal_c3_pulse.rs`): the same 12-LED ring as `main.rs`,
+//! breathing blue instead of rainbow.
+//!
 //! This is the recommended bit-bang reference for ATmega328P. It uses the
 //! [`rustyfarian_avr_ws2812::Ws2812BitBang`] driver — a thin wrapper around the
 //! cycle-counted asm validated in `bin/bitbang_spike.rs` — exposed via const
@@ -20,7 +23,7 @@
 //! Or via just from the workspace root: `just flash-avr-bitbang-demo`.
 //!
 //! Pass criteria:
-//! - All `NUM_LEDS` glow smooth red, breathing on a sine curve (identical to the spike)
+//! - All 12 LEDs breathe blue together, on a sine curve
 //! - No flicker, no other colors, no chain leakage
 
 #![no_std]
@@ -31,7 +34,7 @@ use panic_halt as _;
 use rgb::RGB8;
 use rustyfarian_avr_ws2812::{ports, Ws2812BitBang};
 
-const NUM_LEDS: usize = 10;
+const NUM_LEDS: usize = 12;
 
 #[arduino_hal::entry]
 fn main() -> ! {
@@ -53,10 +56,9 @@ fn main() -> ! {
 
     let mut effect = PulseEffect::new(NUM_LEDS)
         .unwrap()
-        .with_color(RGB8::new(255, 0, 0))
-        .with_min_brightness(0)
-        .with_max_brightness(32)
-        .with_speed(2)
+        .with_color(RGB8::new(0, 0, 255))
+        .with_max_brightness(64)
+        .with_speed(3)
         .unwrap();
 
     let mut buf = [RGB8::default(); NUM_LEDS];
@@ -64,6 +66,6 @@ fn main() -> ! {
     loop {
         effect.update(&mut buf).ok();
         driver.set_pixels_slice(&buf).ok();
-        arduino_hal::delay_ms(20);
+        arduino_hal::delay_ms(50);
     }
 }

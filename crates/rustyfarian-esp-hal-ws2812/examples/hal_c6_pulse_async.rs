@@ -1,11 +1,8 @@
 //! ESP32-C6 Async Pulse Example (esp-hal + Embassy, bare-metal)
 //!
-//! Pulses the first LED of a 12-LED WS2812B ring in blue with the async RMT driver;
-//! [`AsyncStatusLed`] drives a single status LED; the ring is cleared once at start, so the other LEDs stay dark.
+//! Runs a [`PulseEffect`] (blue) from `ferriswheel` on all LEDs of a 12-LED WS2812B ring with the
+//! async RMT driver; the async twin of `hal_c6_pulse`.
 //! The animation loop uses [`embassy_time::Timer`] to yield between frames.
-//!
-//! This example demonstrates using `AsyncStatusLed` from `pennant` with the
-//! async HAL driver — the same pattern as blocking `StatusLed`, but with `.await`.
 //!
 //! ## Components
 //!
@@ -48,20 +45,12 @@ use embassy_executor::Spawner;
 use embassy_time::Timer;
 use esp_hal::{rmt::Rmt, time::Rate, timer::timg::TimerGroup};
 use esp_println::println;
-use pennant::AsyncStatusLed;
+use ferriswheel::PulseEffect;
 use rgb::RGB8;
 use rustyfarian_esp_hal_ws2812::{buffer_size, Ws2812Rmt};
 
 const NUM_LEDS: usize = 12;
 const N: usize = buffer_size(NUM_LEDS);
-
-fn scale(color: RGB8, brightness: u8) -> RGB8 {
-    RGB8::new(
-        ((color.r as u16 * brightness as u16) / 255) as u8,
-        ((color.g as u16 * brightness as u16) / 255) as u8,
-        ((color.b as u16 * brightness as u16) / 255) as u8,
-    )
-}
 
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
@@ -83,34 +72,18 @@ async fn main(_spawner: Spawner) -> ! {
 
     let mut ws = Ws2812Rmt::<_, N>::from_channel_creator(rmt.channel0, peripherals.GPIO18).unwrap();
 
-    // Clear the whole ring once. `AsyncStatusLed` below drives only the first LED, and the
-    // others would keep whatever the previous firmware latched.
-    ws.set_pixels_slice(&[RGB8::default(); NUM_LEDS])
-        .await
+    let mut effect = PulseEffect::new(NUM_LEDS)
+        .unwrap()
+        .with_color(RGB8::new(0, 0, 255))
+        .with_max_brightness(64)
+        .with_speed(3)
         .unwrap();
+    let mut colors = [RGB8::default(); NUM_LEDS];
 
-    let base_color = RGB8::new(0, 0, 255);
-    let mut brightness: u8 = 0;
-    let mut increasing = true;
-
-    println!("Entering async pulse loop (AsyncStatusLed)");
+    println!("Entering async pulse loop (PulseEffect)");
     loop {
-        AsyncStatusLed::set_color(&mut ws, scale(base_color, brightness))
-            .await
-            .unwrap();
-
-        if increasing {
-            if brightness >= 64 {
-                increasing = false;
-            } else {
-                brightness = brightness.saturating_add(2);
-            }
-        } else if brightness == 0 {
-            increasing = true;
-        } else {
-            brightness = brightness.saturating_sub(2);
-        }
-
-        Timer::after_millis(30).await;
+        effect.update(&mut colors).ok();
+        ws.set_pixels_slice(&colors).await.ok();
+        Timer::after_millis(50).await;
     }
 }

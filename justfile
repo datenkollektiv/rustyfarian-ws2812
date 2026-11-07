@@ -25,6 +25,11 @@ ramdisk_mounted := shell(justfile_directory() + '/scripts/ramdisk-mounted.sh "' 
 hal_dir := if ramdisk_mounted == "true" { ramdisk + "/targets/hal/" + file_name(justfile_directory()) } else { "target/hal" }
 idf_dir := if ramdisk_mounted == "true" { ramdisk + "/targets/idf/" + file_name(justfile_directory()) } else { "target/idf" }
 
+# Guided bench runner: a local rustyfarian-bench checkout if RUSTYFARIAN_BENCH points at one,
+# otherwise the pinned release from GitHub.
+bench_dir := env("RUSTYFARIAN_BENCH", "")
+bench := if bench_dir != "" { 'uv run --project "' + bench_dir + '" rustyfarian-bench' } else { "uvx --from git+https://github.com/datenkollektiv/rustyfarian-bench@v0.2.0 rustyfarian-bench" }
+
 # list available recipes (default)
 _default:
     @just --list
@@ -110,6 +115,13 @@ check-hal-async:
     cargo check {{ hal_crate }} --target {{ hal_target }} --target-dir {{ hal_dir }} --features embassy,rt,esp-println,smart-leds --examples
     cargo check {{ hal_crate }} --target riscv32imc-unknown-none-elf --target-dir {{ hal_dir }} --no-default-features --features esp32c3,unstable,pennant,async
     cargo check {{ hal_crate }} --target riscv32imc-unknown-none-elf --target-dir {{ hal_dir }} --no-default-features --features esp32c3,unstable,pennant,rt,embassy,esp-println --examples
+
+# Compare each crate's public API with a published release (default: the latest on crates.io),
+# each on the target and features its check recipes use (requires: cargo install cargo-semver-checks)
+# semver-check every crate against crates.io: `just semver 0.8.0`
+[group('Build & Check')]
+semver baseline="":
+    scripts/semver.sh "{{ baseline }}" "{{ host_target }}" "{{ hal_target }}"
 
 # check the AVR SPI driver on host (no AVR toolchain)
 [group('Build & Check')]
@@ -230,7 +242,7 @@ audit:
 # build the AVR Nano rainbow example (bit-bang)
 [group('AVR Examples')]
 build-avr-example:
-    cd examples/avr-nano-rainbow && cargo +{{ avr_nightly }} build --release -Z build-std=core
+    scripts/avr.sh "{{ avr_nightly }}" build
 
 # build every binary in the AVR Nano example crate (default + bitbang_demo + spi_rainbow + bitbang_spike).
 # --locked is the CI reproducibility gate: it fails loudly if Cargo.toml was edited without
@@ -252,25 +264,34 @@ build-avr-example-upstream:
 # flash the AVR Nano rainbow demo (bit-bang)
 [group('AVR Examples')]
 flash-avr-example:
-    cd examples/avr-nano-rainbow && cargo +{{ avr_nightly }} run --release -Z build-std=core
+    scripts/avr.sh "{{ avr_nightly }}" flash
 
 # build and flash the production bit-bang PulseEffect demo (uses Ws2812BitBang from the driver crate)
 # flash the production bit-bang PulseEffect demo
 [group('AVR Examples')]
-flash-avr-bitbang-demo:
-    cd examples/avr-nano-rainbow && cargo +{{ avr_nightly }} run --release -Z build-std=core --bin bitbang_demo
+flash-avr-bitbang-demo: (flash-avr-bin "bitbang_demo")
+
+# build one AVR Nano binary by name (requires: just setup avr, avr-gcc)
+# build one AVR Nano binary by name
+[group('AVR Examples')]
+build-avr-bin bin:
+    scripts/avr.sh "{{ avr_nightly }}" build "{{ bin }}"
+
+# build and flash one AVR Nano binary by name; ravedude finds the board unless a port is given (requires: just setup avr, avr-gcc, ravedude)
+# build and flash one AVR Nano binary, optionally on a port
+[group('AVR Examples')]
+flash-avr-bin bin port="":
+    scripts/avr.sh "{{ avr_nightly }}" flash "{{ bin }}" "{{ port }}"
 
 # build and flash the SPI prerendered rainbow — DIAGNOSTIC ONLY; many strips render this as white-ish (see ADR 007)
 # flash the SPI prerendered rainbow (DIAGNOSTIC ONLY)
 [group('AVR Examples')]
-flash-avr-spi-rainbow:
-    cd examples/avr-nano-rainbow && cargo +{{ avr_nightly }} run --release -Z build-std=core --bin spi_rainbow
+flash-avr-spi-rainbow: (flash-avr-bin "spi_rainbow")
 
 # build and flash the AVR Nano bit-bang spike (frozen low-level reference, see docs/features/avr-bitbang-driver.md)
 # flash the AVR bit-bang spike (frozen reference)
 [group('AVR Examples')]
-flash-avr-bitbang-spike:
-    cd examples/avr-nano-rainbow && cargo +{{ avr_nightly }} run --release -Z build-std=core --bin bitbang_spike
+flash-avr-bitbang-spike: (flash-avr-bin "bitbang_spike")
 
 # --- ESP Examples ---------------------------------------------------------
 
@@ -316,6 +337,21 @@ monitor:
 [group('Flash & Monitor')]
 erase-flash:
     espflash erase-flash
+
+# guided hardware check: `just bench s3`, `just bench c3 colors`
+[group('Flash & Monitor')]
+bench target *args:
+    {{ bench }} --repo . run "{{ target }}" {{ args }}
+
+# list the bench scenarios
+[group('Flash & Monitor')]
+bench-list:
+    {{ bench }} --repo . list
+
+# probe the connected boards (chip and MAC per port)
+[group('Flash & Monitor')]
+bench-detect:
+    {{ bench }} detect
 
 # --- Documentation --------------------------------------------------------
 

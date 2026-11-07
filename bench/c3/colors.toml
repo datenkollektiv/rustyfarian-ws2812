@@ -1,0 +1,25 @@
+# The boring check: the whole 12-LED ring in one solid colour at a time, 3 s each, forever.
+# Order per cycle: RED, GREEN, BLUE, WHITE, OFF. The log proves the sequence; eyes judge the colours.
+# Both tiers print the same lines, so the steps are shared: hal first, then the idf twin.
+examples = ["hal_c3_colors", "idf_c3_colors"]
+
+[[step]]
+say = "Wait for the banner"
+expect = "(hal|idf)_c3_colors: 12 LEDs on GPIO4"
+timeout = 10
+optional = true
+arm = false       # the banner is printed during the reset, before the step
+
+[[step]]
+say = "Let one full cycle run: it starts at the next red (up to 15 s away), then green, blue, white, off"
+expect = ["showing RED", "showing GREEN", "showing BLUE", "showing WHITE", "showing OFF"]
+reject = 'FAIL|PANIC|panicked|Guru Meditation|abort\(\)'   # hal prints PANIC; idf panics or aborts
+timeout = 35   # up to one cycle until the next red, plus the 12 s to reach off
+
+[[step]]
+say = "Watch the next cycle: red, then green, blue, white, dark, 3 s each"
+confirm = "Were the colours right and in that order, on all 12 LEDs?"
+
+[[step]]
+say = "Watch one more cycle for a dark, flickering or odd-coloured LED"
+confirm = "Every LED lit in every colour, none dark, flickering or different?"

@@ -1,0 +1,18 @@
+# Known-good ESP-IDF baseline: rainbow across the ring. The IDF boot log proves the app started.
+examples = ["idf_s3_rainbow"]
+
+[[step]]
+say = "Wait for the app to start"
+expect = "app_main"
+timeout = 15
+optional = true
+arm = false       # the banner is printed during the reset, before the step
+
+[[step]]
+say = "Watch the ring for 5 s"
+duration = 5
+reject = 'Guru Meditation|abort\(\)|panicked'
+
+[[step]]
+say = "A rainbow should rotate smoothly around all 5 LEDs"
+confirm = "Rainbow across all 5 LEDs, rotating without stutter?"
