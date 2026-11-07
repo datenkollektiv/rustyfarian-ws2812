@@ -347,6 +347,12 @@ A "docs only" polish after a hardware run therefore silently invalidates the sig
 Fix: record the binary's `sha256` with the sign-off, then rebuild after any polish and compare; keep a comment rewrite within the same line count if the binary must stay identical.
 Verified 2026-10-14: adding two lines to `hal_s3_pulse_async.rs`'s header changed its sha256, and a same-line-count rewrite restored the flashed hash byte for byte.
 
+**docs.rs cannot build `rustyfarian-esp-idf-ws2812`: it fails at `rustup target add riscv32imac-esp-espidf`, before any of our code compiles.**
+The target in `[package.metadata.docs.rs]` is tier 3 with no prebuilt artifacts, so docs.rs's toolchain setup aborts (verified 2026-11-08 from the v0.9.0 build log).
+Another target renders nothing, because the whole crate is `#![cfg(target_os = "espidf")]`.
+Inferred, not tested: `-Zbuild-std` would only move the failure to `esp-idf-sys`, whose build downloads ESP-IDF while docs.rs builds offline.
+Fix: none on docs.rs; the crate's `documentation` field points crates.io at its README, and self-hosted `cargo +esp doc` output is the route to real API docs.
+
 ---
 
 ## Developer Tooling

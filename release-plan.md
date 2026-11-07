@@ -184,7 +184,8 @@ Each `release-publish` / `release-dry-run-crate` call uses the host target and s
 `release-publish-idf` / `release-dry-run-idf` use `cargo +esp` with `riscv32imac-esp-espidf` (requires `espup`).
 
 docs.rs will build `rustyfarian-esp-hal-ws2812` using the `[package.metadata.docs.rs]` target metadata.
-`rustyfarian-esp-idf-ws2812` docs.rs builds will fail (docs.rs lacks the ESP-IDF build environment); this is expected for ESP-IDF crates — users are directed to the README for usage guidance.
+`rustyfarian-esp-idf-ws2812` docs.rs builds will fail: docs.rs cannot install the tier-3 `riscv32imac-esp-espidf` target, so the build stops before compiling anything (see `docs/project-lore.md`, "Release & crates.io").
+The crate's `documentation` field points crates.io at its README instead.
 
 ## Changelog
 
