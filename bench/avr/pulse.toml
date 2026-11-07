@@ -1,0 +1,15 @@
+# Blue pulse on the 12-LED ring (D11): the bit-bang driver.
+# The Nano prints nothing and halts silently on a panic, so the verdict is visual; the watch steps only pace the operator.
+examples = ["bitbang_demo"]
+
+[[step]]
+say = "Watch the ring for 5 s after reset"
+duration = 5
+
+[[step]]
+say = "All 12 LEDs should breathe blue together, dark to dim and back"
+confirm = "All 12 LEDs pulse blue in sync, none stuck, flickering or off-colour?"
+
+[[step]]
+say = "Watch 10 s more for a dead pixel, a wrong colour or a white flash"
+duration = 10

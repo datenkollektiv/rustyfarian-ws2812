@@ -1,0 +1,17 @@
+# Blue pulse on the 12-LED ring (GPIO4): blocking driver, the async twin, then the ESP-IDF twin.
+# The C3 pulse examples print nothing, so the verdict is visual; serial is only watched for a crash.
+examples = ["hal_c3_pulse", "hal_c3_pulse_async", "idf_c3_pulse"]
+
+[[step]]
+say = "Watch the ring for 5 s after reset"
+duration = 5
+reject = 'PANIC|panicked|Guru Meditation|abort\(\)|WDT'
+
+[[step]]
+say = "All 12 LEDs should breathe blue together, dark to dim and back"
+confirm = "All 12 LEDs pulse blue in sync, none stuck, flickering or off-colour?"
+
+[[step]]
+say = "Watch 10 s more for a dead pixel, a wrong colour or a white flash"
+duration = 10
+reject = 'PANIC|panicked|Guru Meditation|abort\(\)|WDT'

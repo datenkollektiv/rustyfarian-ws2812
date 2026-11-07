@@ -140,7 +140,7 @@
 //! for wiring, toolchain setup, and `just` recipes:
 //!
 //! - `just flash-avr-example` — bit-bang `RainbowEffect`, the recommended demo (`src/main.rs`)
-//! - `just flash-avr-bitbang-demo` — bit-bang `PulseEffect` red breath (`bin/bitbang_demo`)
+//! - `just flash-avr-bitbang-demo` — bit-bang `PulseEffect` blue breath (`bin/bitbang_demo`)
 //! - `just flash-avr-spi-rainbow` — SPI prerendered comparison, **diagnostic only** (`bin/spi_rainbow`)
 //! - `just flash-avr-bitbang-spike` — frozen low-level reference, no driver crate (`bin/bitbang_spike`)
 

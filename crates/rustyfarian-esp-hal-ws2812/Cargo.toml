@@ -59,6 +59,10 @@ name = "hal_c3_pulse"
 required-features = ["esp32c3", "rt"]
 
 [[example]]
+name = "hal_c3_colors"
+required-features = ["esp32c3", "rt", "esp-println"]
+
+[[example]]
 name = "hal_c6_pulse"
 required-features = ["esp32c6", "rt"]
 

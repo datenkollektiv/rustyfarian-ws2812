@@ -126,6 +126,12 @@ Previously no runtime test covered them: esp-hal host tests cannot build on macO
 Code landed: [ADR 012](adr/012-shared-logic-ladder.md) moved the latch and long-frame arithmetic into `bunting` with `now` as input, and the host tests now cover it.
 Awaiting the long-frame hardware run, which is tracked with the validation item above.
 
+### Add esp-hal rainbow examples, so the bench `rainbow` check covers both tiers
+
+The plain rainbow exists only as an ESP-IDF example (`idf_<chip>_rainbow`), so the bench's `rainbow` check runs ESP-IDF only, while `pulse` runs esp-hal.
+Add `hal_<chip>_rainbow` for S3, C3, C6 and ESP32 with the same `RainbowEffect` settings as the IDF examples, and list each one before its IDF twin in `bench/<chip>/rainbow.toml`.
+Deferred past v0.9.0 (decided 2026-11-07): new examples would need their own hardware run before that release.
+
 ### Document async support status in README driver table
 
 `rustyfarian-esp-hal-ws2812` has an `async` feature with `AsyncStatusLed`.
