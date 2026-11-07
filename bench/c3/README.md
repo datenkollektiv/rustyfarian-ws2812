@@ -12,4 +12,4 @@ Wiring: GPIO4 through 330 Ω to DIN, GND to GND, 3V3 to VCC; connect the board o
 | `rainbow`     | ESP-IDF                         | `idf_c3_rainbow`                                     | rotating rainbow, app started                |
 | `colors`      | esp-hal, ESP-IDF                | `hal_c3_colors`, `idf_c3_colors`                     | solid red, green, blue, white, off, 3 s each |
 | `comet`       | esp-hal async                   | `hal_c3_rainbow_comet_async`                         | three reports with `0 errors`, smooth comet  |
-| `frame-sweep` | esp-hal async                   | `hal_c3_frame_sweep_async`                           | two cycles `PASS (0 failures)`, log only     |
+| `frame-sweep` | esp-hal async                   | `hal_c3_frame_sweep_async`                           | three cycles `PASS (0 failures)`, log only   |

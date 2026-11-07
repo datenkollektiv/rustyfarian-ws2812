@@ -10,11 +10,11 @@ Guided, rerunnable hardware checks, driven by [`rustyfarian-bench`](https://gith
 | ESP32-WROOM-32 + 12-LED ring | [esp32/](esp32/) |
 | Arduino Nano + 12-LED ring   | [avr/](avr/)     |
 
-The Nano is not detected (espflash cannot identify an AVR), so `just bench avr` always needs `--port`.
+espflash cannot identify the Nano, so the bench finds it by its USB identity (`usb_id` in `bench.toml`) instead.
 
 ## Running a check
 
-From this repo's root; `just bench` runs `rustyfarian-bench` v0.2.0 from GitHub, or from a local checkout if `RUSTYFARIAN_BENCH` points at one:
+From this repo's root; `just bench` runs `rustyfarian-bench` v0.3.0 from GitHub, or from a local checkout if `RUSTYFARIAN_BENCH` points at one:
 
 ```sh
 just bench s3
@@ -52,6 +52,9 @@ The runner builds, waits for the board, flashes, resets into the app, captures s
 Every board starts with the same two checks, `pulse` and `rainbow` (order set by `checks` in `bench.toml`).
 On the ESP boards `pulse` covers esp-hal (blocking and async) and `rainbow` covers ESP-IDF, since the plain rainbow exists only as an ESP-IDF example; each board README names the tier per check.
 Those examples print nothing, so verdicts are `confirm` steps for the operator plus `duration` steps that fail on a crash.
+Every check splits into an unattended part (logs, soaks, crash watches) and an attended part (a 60 s watch, then one question).
+`just bench <board> --unattended` runs the first and needs nobody; `just bench <board> --attended` runs the second; a full pass needs both.
+Nothing waits for Enter: the attended watch starts by itself with a 60 s countdown, and Enter ends it early once you have seen enough (recorded as `ended by operator after N s of 60 s`).
 The other C3 fixtures log over serial, so their checks are `expect` steps like an input bench.
 The frame sweep self-reports `PASS`/`FAIL` per cycle; the comet reports an error count every second.
 Visual checks get their own slow fixture (`hal_c3_colors`: one solid colour at a time, 3 s each); effect patterns are too fast to judge by eye.

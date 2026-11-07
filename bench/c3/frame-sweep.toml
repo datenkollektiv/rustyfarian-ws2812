@@ -1,5 +1,5 @@
 # Self-reporting long-frame fixture on the 12-LED ring (GPIO4): five phases per cycle, verdict per cycle.
-# The log is the verdict; the pattern is too fast for eyes (the colours check is `colors`).
+# The log is the verdict; the pattern is too fast for eyes (the colours check is `colors`). Unattended only.
 # `cycle 3: PASS (0 failures); ring shows the verdict` — any phase that misses prints FAIL.
 examples = ["hal_c3_frame_sweep_async"]
 
@@ -11,7 +11,8 @@ optional = true
 arm = false       # the banner is printed during the reset, before the step
 
 [[step]]
-say = "Let two cycles run; the ring flashes blue per phase and ends each cycle dim green"
-expect = ['cycle \d+: PASS \(0 failures\)', 'cycle \d+: PASS \(0 failures\)']
-reject = "FAIL|PANIC"
-timeout = 30   # a cycle takes about 6.5 s; up to one partial cycle plus two full ones
+say = "The log must show three clean cycles (the release gate)"
+expect = ['cycle \d+: PASS \(0 failures\)', 'cycle \d+: PASS \(0 failures\)', 'cycle \d+: PASS \(0 failures\)']
+reject = 'FAIL|PANIC|panicked|Guru Meditation|abort\(\)|WDT'
+timeout = 35   # a cycle takes about 6.5 s: three from boot, with margin
+arm = false

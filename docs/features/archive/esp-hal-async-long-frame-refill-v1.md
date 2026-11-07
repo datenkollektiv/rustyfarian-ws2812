@@ -63,7 +63,7 @@ Reproduced independently by a second downstream project (64 LEDs, ESP32-C3, ESP-
 - [x] Core implementation
 - [x] Checks passing (`just check-hal`, `check-hal-c3`, `check-hal-xtensa`, new `check-hal-async`, `clippy-hal-async`, `verify`, `deny`)
 - [x] Review follow-up implemented
-- [x] Hardware-validated per the maintenance-plan long-frame release gate (`hal_c3_frame_sweep_async`): moved to [long-frame hardware validation v1](../long-frame-hardware-validation-v1.md) on 2026-11-03; the serial-log runs below pin older binaries
+- [x] Hardware-validated per the maintenance-plan long-frame release gate (`hal_c3_frame_sweep_async`): moved to [long-frame hardware validation v1](long-frame-hardware-validation-v1.md) on 2026-11-03; the serial-log runs below pin older binaries
 - [x] Documentation updated (lib.rs, crate README, CHANGELOG, lore, ADR 008)
 
 ## Sources

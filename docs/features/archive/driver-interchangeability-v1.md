@@ -69,7 +69,7 @@ The decisions are recorded in [ADR 010](../../adr/010-interchangeable-driver-sem
 - [x] Upstream follow-up (esp-idf-hal): place `handle_isr` in IRAM, or skip registering it as `on_trans_done` when no async wait is used. Until then, `CONFIG_RMT_ISR_IRAM_SAFE` cannot be enabled with `Ws2812Rmt::new`. Moved to the roadmap (Long term) on 2026-11-03.
 - [x] `set_pixels_slice(&[])` sends a bare end marker, while `SmartLedsWrite::write` with an empty iterator sends nothing; both drivers should agree. Aligned 2026-11-02: empty input is a no-op returning `Ok(())` in `set_pixels_slice` (blocking and async, both crates) and the deprecated `set_pixels_slice_masked`, matching `SmartLedsWrite`; a bare end marker latches no data and is indistinguishable from silence on the strip.
 - [x] No runtime tests cover the `PollBudget` and latch logic. The esp-hal host tests cannot build on macOS (an `esp32c6` Mach-O `link_section` error), and the ESP-IDF crate is `espidf`-only. Should the clock be injectable so the logic can be tested on the host? Moved to the roadmap (Mid term) on 2026-11-03.
-- [x] Is esp-hal's `Instant::now` inlined into the RAM-placed poll loops? Moved to [long-frame hardware validation v1](../long-frame-hardware-validation-v1.md) as a desk check on 2026-11-03.
+- [x] Is esp-hal's `Instant::now` inlined into the RAM-placed poll loops? Moved to [long-frame hardware validation v1](long-frame-hardware-validation-v1.md) as a desk check on 2026-11-03.
 - [x] Pre-existing `just check-ide` failure (E0463, no `std` for `riscv32imac`), reproduced on a clean HEAD export. Separate issue, filed as a bug on 2026-11-03.
 
 ## State
@@ -87,8 +87,8 @@ The decisions are recorded in [ADR 010](../../adr/010-interchangeable-driver-sem
   - [x] R4 `with_max_nominal_masked_us(Some(300))` (then `with_max_masked_us`) on a ~376 µs frame: nothing sent, `FrameTooLong` only
   - [x] R5 `set_pixels_slice_masked`: clean, 0 errors
   - [x] Re-run R3 on the `ChannelLost` build: R3′ on `c85a61a` (see below)
-  - [x] Re-run R4 with the ceiling lifted or raised: moved to [long-frame hardware validation v1](../long-frame-hardware-validation-v1.md) on 2026-11-03
-- [x] Not covered here: the async path, other chips, longer strips, the waveform capture, the drop and rebuild path; moved to [long-frame hardware validation v1](../long-frame-hardware-validation-v1.md) on 2026-11-03
+  - [x] Re-run R4 with the ceiling lifted or raised: moved to [long-frame hardware validation v1](long-frame-hardware-validation-v1.md) on 2026-11-03
+- [x] Not covered here: the async path, other chips, longer strips, the waveform capture, the drop and rebuild path; moved to [long-frame hardware validation v1](long-frame-hardware-validation-v1.md) on 2026-11-03
 - [x] `c85a61a` replaced `f53c5e8` (amended commit) and carries the `ChannelLost` build; the R1′, R3′ and R6 runs on it are recorded in ADR 010
   - [x] R1′ `set_pixels_slice` default: 3,888 `Ok`, 0 `Transmit`, 0 `ChannelLost`, clean
   - [x] R3′ `Poll`: 8,396 `Ok`, 23 `Transmit`, 0 `ChannelLost`, visually clean

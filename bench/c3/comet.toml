@@ -1,5 +1,6 @@
 # Typical async LED-clock workload: whole 12-LED ring re-sent every 30 ms, stats once per second.
 # `comet: 33 frames, 0 errors, send min 405 / mean 410 / max 418 us, loop max 31 ms`
+# Unattended: three clean reports, then a 60 s soak with no error. Attended: watch for 60 s, then one question.
 examples = ["hal_c3_rainbow_comet_async"]
 
 [[step]]
@@ -10,16 +11,25 @@ optional = true
 arm = false       # the banner is printed during the reset, before the step
 
 [[step]]
-say = "Let it run for three reports"
+say = "The log must show three reports with 0 errors"
 expect = ['comet: \d+ frames, 0 errors', 'comet: \d+ frames, 0 errors', 'comet: \d+ frames, 0 errors']
-reject = 'comet: \d+ frames, [1-9]\d* errors|transmit error|PANIC'
+reject = 'comet: \d+ frames, [1-9]\d* errors|transmit error|PANIC|panicked|Guru Meditation|abort\(\)|WDT'
 timeout = 15
+arm = false
 
 [[step]]
-say = "A rainbow comet should circle the ring smoothly"
-confirm = "Comet circles without flicker, wrong colours or jumps?"
+say = "Soak for 60 s; the log must stay at 0 errors"
+duration = 60
+reject = 'comet: \d+ frames, [1-9]\d* errors|transmit error|PANIC|panicked|Guru Meditation|abort\(\)|WDT'
+arm = false
 
 [[step]]
-say = "Watch 10 s more; the log must stay at 0 errors"
-duration = 10
-reject = 'comet: \d+ frames, [1-9]\d* errors|transmit error|PANIC'
+say = "Watch the ring: a rainbow comet circles smoothly"
+duration = 60   # maintenance-plan.md: a continuous 60 s run; Enter ends it early
+reject = 'comet: \d+ frames, [1-9]\d* errors|transmit error|PANIC|panicked|Guru Meditation|abort\(\)|WDT'
+attended = true
+arm = false
+
+[[step]]
+say = "Answer for the whole watch"
+confirm = "The comet circled smoothly for the whole watch, no flicker, wrong colours or jumps?"

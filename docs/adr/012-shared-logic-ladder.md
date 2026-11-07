@@ -151,7 +151,7 @@ The evidence so far, by scope:
 
 - The pure crates stay `no_std` and allocation-free; machines are free of async, and their inputs and actions are small `Copy` values.
 - Rung 2 and 3 machines need state-transition tests in the pure crate that owns them.
-- A change to the latch or long-frame logic re-runs the long-frame bench ([`docs/features/long-frame-hardware-validation-v1.md`](../features/long-frame-hardware-validation-v1.md)).
+- A change to the latch or long-frame logic re-runs the long-frame bench ([`docs/features/archive/long-frame-hardware-validation-v1.md`](../features/archive/long-frame-hardware-validation-v1.md)).
 
 ## Alternatives Considered
 

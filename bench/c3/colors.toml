@@ -1,5 +1,5 @@
-# The boring check: the whole 12-LED ring in one solid colour at a time, 3 s each, forever.
-# Order per cycle: RED, GREEN, BLUE, WHITE, OFF. The log proves the sequence; eyes judge the colours.
+# The whole 12-LED ring in one solid colour at a time, 3 s each, forever: red, green, blue, white, off.
+# Unattended: the log proves one cycle in order. Attended: watch for 60 s (four cycles), then one question.
 # Both tiers print the same lines, so the steps are shared: hal first, then the idf twin.
 examples = ["hal_c3_colors", "idf_c3_colors"]
 
@@ -11,15 +11,19 @@ optional = true
 arm = false       # the banner is printed during the reset, before the step
 
 [[step]]
-say = "Let one full cycle run: it starts at the next red (up to 15 s away), then green, blue, white, off"
+say = "The log must show one full cycle in order: red, green, blue, white, off"
 expect = ["showing RED", "showing GREEN", "showing BLUE", "showing WHITE", "showing OFF"]
-reject = 'FAIL|PANIC|panicked|Guru Meditation|abort\(\)'   # hal prints PANIC; idf panics or aborts
+reject = 'FAIL|PANIC|panicked|Guru Meditation|abort\(\)|WDT'
 timeout = 35   # up to one cycle until the next red, plus the 12 s to reach off
+arm = false
 
 [[step]]
-say = "Watch the next cycle: red, then green, blue, white, dark, 3 s each"
-confirm = "Were the colours right and in that order, on all 12 LEDs?"
+say = "Watch the ring: red, green, blue, white, dark, 3 s each, on all 12 LEDs"
+duration = 60   # maintenance-plan.md: a continuous 60 s run; Enter ends it early
+reject = 'FAIL|PANIC|panicked|Guru Meditation|abort\(\)|WDT'
+attended = true
+arm = false
 
 [[step]]
-say = "Watch one more cycle for a dark, flickering or odd-coloured LED"
-confirm = "Every LED lit in every colour, none dark, flickering or different?"
+say = "Answer for the whole watch"
+confirm = "Every cycle showed red, green, blue, white, dark in that order, every LED lit in every colour, none flickering or different?"

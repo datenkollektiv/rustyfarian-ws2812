@@ -46,9 +46,10 @@ All completed items are documented in the [CHANGELOG](../CHANGELOG.md).
 timeline
     title Fuzzy Rustyfarian WS2812 Roadmap
 
-    Near term : Long-frame hardware validation (feature-doc)
+    Near term : Logic-analyser captures of the frame sweeps
               : cargo-deny — ban multiple rgb versions
-              : Shared-logic ladder retrofit — hardware run (ADR 012)
+              : Bench with place_rmt_driver_in_ram on
+              : Downstream C3 Wi-Fi re-bench
 
     Mid term  : Remove send_and_wait workaround (esp-idf-hal fix)
               : SmartLedsWriteAsync for esp-hal async driver
@@ -114,17 +115,22 @@ versions in the dep graph at the time of the change.
 
 ## Hardware Driver Improvements
 
-### Long-frame hardware validation
+### Logic-analyser captures of the frame sweeps
 
-The long-frame policy ([ADR 009](adr/009-long-frame-policy-and-latch.md), [ADR 010](adr/010-interchangeable-driver-semantics.md)) is implemented for both esp-hal modes, but its downstream Wi-Fi benches pin binaries from before the 300 ns T0H change.
-Re-bench on the current tree, run R4 with the ceiling lifted, cover the async path, and capture the `hal_c3_frame_sweep_async` waveform.
-Design and progress: [`docs/features/long-frame-hardware-validation-v1.md`](features/long-frame-hardware-validation-v1.md).
+Capture `hal_c3_frame_sweep_async` on GPIO4 and `hal_c6_frame_sweep_async` on GPIO18 for at least three cycles (`maintenance-plan.md`, long-frame async release gate).
+Check 24 × LEDs symbols per frame, T0H/T1H in spec, no stale bits and ≥ 280 µs latches, and measure the 12- and 64-LED masked frames against `masked_us` (expected 317–375 µs and 1690–1997 µs).
+Deferred from v0.9.0 (decided 2026-11-07); both serial halves passed on the release binaries (C3 3 cycles, C6 12 cycles).
+Carried open question: force the drop-and-rebuild path after `Error::ChannelLost` on hardware, or keep the "rebuild not hardware-tested" caveat.
 
-### Shared-logic ladder retrofit (host tests for the long-frame `PollBudget` and latch logic) — awaiting hardware run
+### Bench the long-frame paths with `place_rmt_driver_in_ram` on
 
-Previously no runtime test covered them: esp-hal host tests cannot build on macOS (Mach-O `link_section` error), and the ESP-IDF crate is `espidf`-only.
-Code landed: [ADR 012](adr/012-shared-logic-ladder.md) moved the latch and long-frame arithmetic into `bunting` with `now` as input, and the host tests now cover it.
-Awaiting the long-frame hardware run, which is tracked with the validation item above.
+The v0.9.0 desk check found the `#[esp_hal::ram]` poll loops calling esp-hal's RMT `poll` from flash on every iteration, because the option defaults to off.
+Build the frame sweeps with `ESP_HAL_CONFIG_PLACE_RMT_DRIVER_IN_RAM=true`, confirm by disassembly that the poll path is RAM-resident, and compare the frame-sweep results; then decide whether the examples or the README should turn it on.
+
+### Downstream C3 Wi-Fi re-bench of the long-frame paths
+
+Re-run R1 (default `set_pixels_slice`), R2 (`SmartLedsWrite::write`), R3 (`Poll`), R4 (ceiling lifted) and R5 (`set_pixels_slice_masked`), plus the async path, under Wi-Fi on a C3 in a downstream project.
+The in-repo long-frame checks run in the v0.9.0 hardware pass; these were split off on 2026-11-07 because they need the downstream radio bench.
 
 ### Add esp-hal rainbow examples, so the bench `rainbow` check covers both tiers
 
