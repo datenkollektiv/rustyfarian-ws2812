@@ -12,6 +12,6 @@ say = "All 5 LEDs should breathe blue together, dark to dim and back"
 confirm = "All 5 LEDs pulse blue in sync, none stuck, flickering or off-colour?"
 
 [[step]]
-say = "Watch 10 s more for a dead pixel, a wrong colour or a white flash"
-duration = 10
+say = "Watch 60 s more for a dead pixel, a wrong colour or a white flash"
+duration = 60   # maintenance-plan.md: a continuous 60 s run
 reject = 'PANIC|panicked|Guru Meditation|abort\(\)|WDT'

@@ -19,6 +19,7 @@ Hardware evidence, pinned to one binary each, that the long-frame paths of `rust
 | Re-run R1, R2, R3 and R5 on the current tree | The `f53c5e8` and `c85a61a` benches pin older binaries; T0H moved to 300 ns since | Carry the old results over |
 | ESP32-C3 is the reference chip; the C6 joins if available | The maintenance-plan release gate names both; downstream projects run the C3 | Every chip and strip length |
 | `CriticalSection` on 300-LED strips needs no new run | The 1000 µs ceiling (32 LEDs) refuses such frames by default; `Poll` or an explicit ceiling lift is the documented route | Bench a 300-LED strip |
+| The Wi-Fi items (R1–R5, async under Wi-Fi) move to a roadmap follow-up; the doc closes on the in-repo items | They run in a downstream project; decided 2026-11-07 for v0.9.0 | Hold the doc open for them |
 
 ## Constraints
 
@@ -48,3 +49,4 @@ They run once, in the final hardware pass after the [ADR 012](../adr/012-shared-
 - 2026-11-03 — Created from the leftover hardware gates of driver interchangeability v1 and deadline-free async transmit v1; both archived
 - 2026-11-04 — Added `hal_c6_frame_sweep_async`, a port of the C3 sweep, so the C6 item can run
 - 2026-11-04 — Hardware gate removed; the bench list moves into the final hardware pass after the ADR 012 retrofit
+- 2026-11-07 — Wi-Fi items deferred to the roadmap; the in-repo items run in the v0.9.0 hardware pass

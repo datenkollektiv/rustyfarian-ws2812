@@ -120,6 +120,11 @@ The long-frame policy ([ADR 009](adr/009-long-frame-policy-and-latch.md), [ADR 0
 Re-bench on the current tree, run R4 with the ceiling lifted, cover the async path, and capture the `hal_c3_frame_sweep_async` waveform.
 Design and progress: [`docs/features/long-frame-hardware-validation-v1.md`](features/long-frame-hardware-validation-v1.md).
 
+### Downstream C3 Wi-Fi re-bench of the long-frame paths
+
+Re-run R1 (default `set_pixels_slice`), R2 (`SmartLedsWrite::write`), R3 (`Poll`), R4 (ceiling lifted) and R5 (`set_pixels_slice_masked`), plus the async path, under Wi-Fi on a C3 in a downstream project.
+The in-repo long-frame checks run in the v0.9.0 hardware pass; these were split off on 2026-11-07 because they need the downstream radio bench.
+
 ### Shared-logic ladder retrofit (host tests for the long-frame `PollBudget` and latch logic) — awaiting hardware run
 
 Previously no runtime test covered them: esp-hal host tests cannot build on macOS (Mach-O `link_section` error), and the ESP-IDF crate is `espidf`-only.

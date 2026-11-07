@@ -25,6 +25,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   No behaviour change.
 - `rustyfarian-avr-ws2812`: both drivers use the shared `bunting` helpers for the SPI buffer-fit check and for collecting `write` input; behaviour and stack cost (768 bytes) unchanged. The bit-bang `write` path changed (collect only, before the critical section) and has not been run on AVR hardware.
 
+### Deprecated
+
+- The aliases kept for the 0.8 cycle stay through 0.9 and are planned for removal in 0.10.0: `rustyfarian-avr-ws2812`'s `write`, `ferriswheel`'s `smart-leds-compat` feature and `rustyfarian-esp-hal-ws2812`'s `set_pixels_slice_masked`.
+
 ## [0.8.0] - 2026-11-03
 
 The long-frame async release gate (logic-analyser capture of `hal_c3_frame_sweep_async`) was waived for this release; it is tracked in [`docs/features/long-frame-hardware-validation-v1.md`](docs/features/long-frame-hardware-validation-v1.md).

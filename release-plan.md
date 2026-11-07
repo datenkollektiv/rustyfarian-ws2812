@@ -20,11 +20,12 @@ Settle the number before the pre-flight, from evidence, and record it under "Nex
 2. Read `[Unreleased]` in the CHANGELOG: new public API means a minor bump under the rule above, even where Cargo's 0.x rules (and `just semver`) would accept a patch.
 3. Read the Deprecated entries of the last release: an alias kept "for the 0.8 cycle" may go in the next minor; decide each one.
 
-### Next release: `v0.9.0` (proposed 2026-11-07, not yet decided)
+### Next release: `v0.9.0` (decided 2026-11-07)
 
 - `just semver 0.8.0`: `bunting`, `ferriswheel`, `pennant` and `rustyfarian-avr-ws2812` report "no semver update required"; `rustyfarian-esp-hal-ws2812` reports `LongFramePolicy` and `DEFAULT_MAX_NOMINAL_MASKED_US` as missing, but both are re-exported at the same path (`pub use bunting::{…}` in `lib.rs`), so code naming them still compiles; this looks like the tool not following re-exports from another crate (not yet confirmed upstream); `rustyfarian-esp-idf-ws2812` is not covered.
 - `bunting` gains public API (`latch` and long-frame helpers, `checked_spi_frame_len`, `collect_truncated`), so the rule above asks for a minor bump; Cargo alone would allow `0.8.1`.
-- Open: the aliases kept "for the 0.8 cycle" (AVR `write`, `ferriswheel`'s `smart-leds-compat`, esp-hal `set_pixels_slice_masked`) are removed in `0.9.0` or kept one more cycle.
+- The aliases kept "for the 0.8 cycle" (AVR `write`, `ferriswheel`'s `smart-leds-compat`, esp-hal `set_pixels_slice_masked`) stay one more cycle; removal is planned for `0.10.0`.
+- The esp-hal `just semver` result is accepted as a re-export false positive.
 
 ## Branch and Tag Convention
 
@@ -77,6 +78,7 @@ Each cell therefore runs the moved latch and long-frame logic on that chip, unde
 
 AVR (Arduino Nano, ATmega328P), from `examples/avr-nano-rainbow/`: `bitbang_demo` (the recommended backend) and `spi_rainbow` (diagnostic only).
 `just bench <board>` runs the `pulse` and `rainbow` cells for S3, C3, C6, ESP32 and AVR (`bitbang_demo`, `avr-nano-rainbow`); the other cells and `spi_rainbow` are run by hand.
+Run each board's bench three times: the `pulse` check's 60 s watch and the three runs meet the `maintenance-plan.md` pass criteria.
 Both backends changed in the retrofit (SPI frame-length check, `SmartLedsWrite` collect), so both run.
 
 Known coverage limits:
