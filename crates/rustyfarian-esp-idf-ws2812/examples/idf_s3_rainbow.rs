@@ -7,7 +7,7 @@
 //! known-good hardware baseline.
 //! Use it to verify LED behaviour before testing the bare-metal driver.
 //!
-//! This example also exists so that `just run hal_s3_*` can obtain the ESP-IDF v5.3.3
+//! This example also exists so that `just run hal_s3_*` can obtain the IDF-built
 //! bootloader for the ESP32-S3 (`scripts/ensure-bootloader.sh` builds it from here).
 //!
 //! ## Components

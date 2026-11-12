@@ -301,7 +301,7 @@ flash-avr-bitbang-spike: (flash-avr-bin "bitbang_spike")
 build-example example:
     scripts/build-example.sh "{{ example }}" "{{ hal_dir }}" "{{ idf_dir }}"
 
-# ensure the IDF-built v5.3.3 bootloader is in the build cache for the given chip
+# ensure the IDF-built bootloader is in the build cache for the given chip
 # cache the IDF-built bootloader for a chip (c3|c6|esp32|s3)
 [group('ESP Examples')]
 ensure-bootloader chip:
@@ -515,3 +515,5 @@ release-publish-hal:
 [group('Release')]
 release-publish-idf:
     cargo +esp publish -p rustyfarian-esp-idf-ws2812 --target riscv32imac-esp-espidf --target-dir {{ idf_dir }} $(scripts/idf-build-dir.sh --config)
+
+import? '.devcontainer/yolo.just'

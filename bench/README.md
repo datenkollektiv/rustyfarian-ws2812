@@ -37,7 +37,7 @@ From the bench checkout instead: `just bench rustyfarian-ws2812 s3`.
 
 The runner builds, waits for the board, flashes, resets into the app, captures serial output and guides each step.
 
-> Note: The first run on a board takes longer: the hal examples are flashed with the ESP-IDF v5.3.3 bootloader, because the one bundled with espflash 4.x refuses them.
+> Note: The first run on a board takes longer: the hal examples are flashed with the IDF-built bootloader, because the one bundled with espflash 4.x refuses them.
 > `just flash` automatically builds `idf_<board>_rainbow` once to produce it.
 
 ## Layout

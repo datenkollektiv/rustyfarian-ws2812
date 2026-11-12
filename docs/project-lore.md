@@ -10,6 +10,11 @@ Refer to `CLAUDE.md` and the `/project-lore` skill for recording guidelines.
 
 ## Build System
 
+**`.cargo/config.toml` must be committed, even though this is a library workspace: a fresh clone without it cannot link any firmware.**
+It carries the `ESP_IDF_VERSION` pin, the `ldproxy` linker, `build-std`, the esp-hal `-Tlinkall.x` rustflags and `ESP_IDF_SDKCONFIG_DEFAULTS`. It sat in `.gitignore` from 2026-02-05 to 2026-11-12, unnoticed, because CI only checks and never links firmware.
+Cargo reads config only from the invoking directory, its parents and `$CARGO_HOME`, never from a dependency, so committing it cannot affect downstream users.
+Fix: keep it tracked; a clean `ubuntu:26.04` container clone is the test that catches a regression.
+
 **The crate that produces the final binary or example must call `embuild::espidf::sysenv::output()` in its own `build.rs`.**
 Wrapping `esp-idf-sys` in a library crate (e.g. `rustyfarian-esp-idf-ws2812`) is not sufficient: the `--ldproxy-linker` link arg emitted by `esp-idf-sys`'s build script is not reliably forwarded to the final link step, causing `ldproxy: Cannot locate argument '--ldproxy-linker'`.
 Fix: add a `build.rs` to every crate that owns binaries or examples, calling `embuild::espidf::sysenv::output()`, and add `embuild` to its `[build-dependencies]`.
@@ -57,6 +62,11 @@ The nightly cannot simply move: upstream `avr-hal` main and `avr-hal-template` p
 The bound covers the whole AVR build path, not just the AVR crate: overriding only `rustyfarian-avr-ws2812` to 1.88 still fails with `bunting@0.6.0 requires rustc 1.95`, because `bunting` is a path dependency that inherits the workspace value.
 Fix: keep the workspace `rust-version` at the nightly's version and raise it per crate only where the ESP stack demands it (`rustyfarian-esp-hal-ws2812`, `rustyfarian-esp-idf-ws2812`); re-check upstream's `rust-toolchain.toml` before raising the floor.
 Measured 2026-09-21 with a two-crate scratch workspace, then hit for real the same day when the first attempt at the `esp-hal 1.2` MSRV bump put 1.95 on the workspace.
+
+**ESP-IDF v5.3.3 cannot install on Ubuntu 26.04 (the `ubuntu-latest` runner since late October 2026): its esp-clang 16 needs `libxml2.so.2`, and 26.04 ships only `libxml2.so.16`.**
+Symptom: every esp-idf-sys build dies in `idf_tools.py install` when it loads esp-clang. Two downstream repos hit this on 2026-10-30 and 2026-11-02 and pinned their IDF jobs to `ubuntu-24.04`; that report is inherited, not reproduced here.
+ESP-IDF v6.1 installs esp-clang `esp-21.1.3_20260408`, whose `libclang.so` has no libxml2 dependency (`readelf -d` on x86_64 and aarch64, 2026-11-12). A fresh clone built `idf_c6_rainbow` on `ubuntu:26.04` (aarch64, Python 3.14.4) the same day.
+Fix: move the ESP-IDF pin to v6.1, then drop the `ubuntu-24.04` runner pin; dropping the runner pin while still on v5.3.3 breaks CI again.
 
 ---
 
@@ -155,9 +165,11 @@ Before reporting a visual stall, watch a power-cycled board with no monitor atta
 A binary built for the wrong MCU (wrong `memory.ld`) places the app descriptor at a misaligned flash offset; `--ignore-app-descriptor` does not suppress that error.
 The real fix is to use the correct target and MCU — the flag is not a substitute for correct build configuration.
 
-**`espflash 4.3.0` bundles an ESP-IDF `release/v5.5` branch bootloader, which breaks IDF and esp-hal binaries built against v5.3.3 (64 KB vs 32 KB MMU pages).**
-IDF symptom: `Segment 0 load address …, doesn't match data …` (page-offset mismatch). HAL symptom: `Failed to fetch app description header!` (IDF `release/v5.5` branch is stricter about `esp_app_desc_t` placement). Both stem from the wrong bootloader being flashed.
-Fix: pass `--bootloader target/<idf-triple>/debug/build/esp-idf-sys-<hash>/out/build/bootloader/bootloader.bin` (v5.3.3 — works for both binary types). The `run-example` justfile recipe handles it; `ensure-bootloader` builds the IDF cache on demand. Re-verify when upgrading either espflash or ESP-IDF.
+**Flash every ESP example, esp-hal and ESP-IDF alike, with the bootloader esp-idf-sys builds for the pinned ESP-IDF, never with the bootloader bundled in espflash.**
+Current guidance (ESP-IDF v6.1 pin, espflash 4.6.0, `esp-bootloader-esp-idf` 0.6.0): the IDF-built v6.1 bootloader boots both binary types. Verified 2026-11-12 from serial logs, without a visual check: `hal_c3_colors` and `idf_c3_colors` on the ESP32-C3, and the unattended bench (`pulse`, `pulse_async`, `rainbow`, 60 s soaks, no reset) on the C6 and S3.
+Fix: use `just flash`, `just run` or `just bench`. `run-example.sh` passes `--bootloader` with the cached `bootloader.bin` (`find_idf_bootloader` in `scripts/lib.sh`), and `ensure-bootloader` builds the cache on demand.
+Open: the classic ESP32 is not re-verified, and whether espflash's bundled bootloader now accepts either binary type is untested (the just-enforcer hook blocks a bare `espflash` call). Re-verify when upgrading espflash or ESP-IDF.
+History (v5.3.3 pin, espflash 4.3.0, until 2026-11-12): the bundled `release/v5.5` bootloader broke both binary types. IDF failed with `Segment 0 load address …, doesn't match data …` (64 KB vs 32 KB MMU pages), and HAL with `Failed to fetch app description header!`. The IDF-built v5.3.3 bootloader was the workaround then; it is no longer the recommendation.
 
 **`esp-idf-sys`'s build script hard-exits with "Unsupported target 'riscv32imac-unknown-none-elf'" even when that target is only the workspace IDE/analysis default and the IDF crate is never explicitly requested.**
 `esp-idf-sys` is an unconditional transitive dependency of `rustyfarian-esp-idf-ws2812`; Cargo always pulls it into the dep graph and runs its build script for every target, including the bare-metal default.
@@ -212,6 +224,7 @@ Still present in `esp-idf-hal 0.47.0` (re-checked 2026-09-21 against `src/rmt/en
 Source-verified 2026-11-01 (`esp-idf-hal` `src/rmt/tx_channel.rs:35-37`, `:216`; ESP-IDF `rmt_tx.c:506-508`); reproduced on the downstream rgb-clock C3 bench the same day, where the OTA image then rolled back.
 With the default (`n`), a 12-LED ring stayed clean through a 1.6 MB OTA download on that bench (one run, no analyser).
 Fix: leave the setting off until esp-idf-hal places its callback in IRAM; do not recommend it in the docs.
+From ESP-IDF 5.5 the check is keyed on `CONFIG_RMT_TX_ISR_CACHE_SAFE`, and `CONFIG_RMT_ISR_IRAM_SAFE` is a deprecated option that enables it (Kconfig source-checked 2026-11-12 for v5.4.4, v5.5, v5.5.6 and v6.1; v6.1 `rmt_tx.c:506-508`), so on 5.5+ enabling either one breaks `Ws2812Rmt::new`.
 
 **The new RMT API (`TxChannelDriver`) registers ISR callbacks via `rmt_tx_register_event_callbacks`, requiring a larger FreeRTOS ISR stack than the legacy API.**
 The default `CONFIG_FREERTOS_ISR_STACKSIZE=1536` overflows with the new API's callback overhead.
@@ -361,13 +374,17 @@ Fix: none on docs.rs; the crate's `documentation` field points crates.io at its 
 Batch text edits via `sed -i ''` and `perl -i -0pe` therefore remain available even though direct `cargo` is funnelled through `just`.
 Side effect during settings cleanup: any `Bash(cargo *)` permission entries are functionally **dead** while the enforcer is active — they look granted but the hook intercepts before the permission resolver runs.
 
-**The `block-git-mutations` hook rejects `git worktree add`, so a clean-HEAD reproduction needs `git archive` instead.**
-Checking whether a failure predates the working-tree changes is otherwise a stash or worktree, both blocked (verified 2026-11-01).
+**The `block-git-mutations` hook makes a worktree a one-way street for agents, so a clean-HEAD reproduction needs `git archive` instead.**
+Stash is blocked. `git worktree add` was blocked on 2026-11-01 but passed on 2026-11-12, while `git worktree remove` was blocked that day, leaving an orphaned worktree for the maintainer to remove.
 Fix: export HEAD to a scratch directory and run the recipe there.
 
 ```bash
 rm -rf /tmp/head && mkdir /tmp/head && git archive HEAD | tar -x -C /tmp/head
 ```
+
+**`docker cp -` from a macOS `tar` stream fails with `lsetxattr ... com.apple.provenance: operation not supported`, and `docker run -v` cannot mount the `/Volumes/RustBuilds` RAM disk.**
+bsdtar packs macOS extended attributes that the Linux container filesystem rejects, and the RAM disk is not in Docker Desktop's file-sharing list (both seen 2026-11-12 during the Ubuntu 26.04 onboarding test).
+Fix: build the stream with `COPYFILE_DISABLE=1 tar --no-xattrs --no-mac-metadata`, and pipe RAM-disk files over stdin (`docker run -i … < file`) instead of mounting them.
 
 **RustRover does not use rust-analyzer as its backend and silently ignores `rust-analyzer.toml`.**
 RustRover ships its own proprietary Kotlin-based analysis engine; the `[cargo] target` key in `rust-analyzer.toml` has no effect.
