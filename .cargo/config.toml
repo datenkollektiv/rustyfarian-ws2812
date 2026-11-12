@@ -1,0 +1,80 @@
+[build]
+target = "riscv32imac-unknown-none-elf"
+target-dir = "target/ide"
+
+[target.riscv32imac-esp-espidf]
+linker = "ldproxy"
+runner = "espflash flash --ignore-app-descriptor"
+rustflags = [
+    "--cfg", "espidf_time64",
+    "-C", "force-frame-pointers",
+]
+
+# ESP-IDF for ESP32-C3 (riscv32imc, no atomics)
+[target.riscv32imc-esp-espidf]
+linker = "ldproxy"
+runner = "espflash flash --ignore-app-descriptor"
+rustflags = [
+    "--cfg", "espidf_time64",
+    "-C", "force-frame-pointers",
+]
+
+# Bare-metal ESP32-C3 (riscv32imc, no atomics)
+[target.riscv32imc-unknown-none-elf]
+runner = "espflash flash --ignore-app-descriptor"
+rustflags = [
+    "-C", "link-arg=-Tlinkall.x",
+]
+
+# Bare-metal ESP32-C6 / ESP32-H2 (riscv32imac, with atomics)
+[target.riscv32imac-unknown-none-elf]
+runner = "espflash flash --ignore-app-descriptor"
+rustflags = [
+    "-C", "link-arg=-Tlinkall.x",
+]
+
+# Bare-metal ESP32 (Xtensa LX6) — requires the Xtensa toolchain from espup
+[target.xtensa-esp32-none-elf]
+runner = "espflash flash --ignore-app-descriptor"
+rustflags = [
+    "-C", "link-arg=-Tlinkall.x",
+]
+
+# Bare-metal ESP32-S3 (Xtensa LX7) — requires the Xtensa toolchain from espup
+[target.xtensa-esp32s3-none-elf]
+runner = "espflash flash --ignore-app-descriptor"
+rustflags = [
+    "-C", "link-arg=-Tlinkall.x",
+]
+
+# ESP-IDF for ESP32 (Xtensa) — requires `cargo +esp` from espup
+[target.xtensa-esp32-espidf]
+linker = "ldproxy"
+runner = "espflash flash --ignore-app-descriptor"
+rustflags = [
+    "--cfg", "espidf_time64",
+    "-C", "force-frame-pointers",
+]
+
+# ESP-IDF for ESP32-S3 (Xtensa) — requires `cargo +esp` from espup
+[target.xtensa-esp32s3-espidf]
+linker = "ldproxy"
+runner = "espflash flash --ignore-app-descriptor"
+rustflags = [
+    "--cfg", "espidf_time64",
+    "-C", "force-frame-pointers",
+]
+
+[unstable]
+build-std = ["std", "panic_abort"]
+
+[env]
+MCU="esp32c6"
+# Note: this variable is not used by the pio builder (`cargo build --features pio`)
+ESP_IDF_VERSION = "v6.1"
+ESP_IDF_TOOLS_INSTALL_DIR = "global"
+# embuild (esp-idf-sys) derives the project root from the parent of the target-dir,
+# which breaks when --target-dir points outside the workspace (e.g. a RAM disk).
+# Setting this explicitly ensures sdkconfig.defaults is always applied regardless
+# of where the target directory lives.
+ESP_IDF_SDKCONFIG_DEFAULTS = { value = "sdkconfig.defaults", relative = true }

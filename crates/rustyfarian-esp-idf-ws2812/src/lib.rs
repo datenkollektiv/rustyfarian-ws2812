@@ -41,14 +41,14 @@
 //! A frame that fits in one RMT memory block (48 symbols on ESP32-C3, C6, S3 and H2, 64 on ESP32 and S2, so 2 LEDs with the default configuration) is loaded before the transmit starts.
 //! Longer frames are refilled from the RMT interrupt service routine while the frame is on the wire.
 //! This tolerates task latency, for example while the Wi-Fi or Bluetooth tasks run, but it is not hard real time.
-//! The RMT ISR is not IRAM-safe by default (`CONFIG_RMT_ISR_IRAM_SAFE` is `n` in ESP-IDF v5.3.3), so a flash-cache disable during a frame, as caused by an NVS or flash write or an OTA update, could in principle delay a refill.
+//! The RMT TX ISR is not IRAM-safe by default (`CONFIG_RMT_TX_ISR_CACHE_SAFE`, `CONFIG_RMT_ISR_IRAM_SAFE` before ESP-IDF 5.5, defaults to `n`), so a flash-cache disable during a frame, as caused by an NVS or flash write or an OTA update, could in principle delay a refill.
 //! The ISR also runs at a low or medium priority that it shares with other peripherals.
 //! On a downstream ESP32-C3 bench (12 LEDs, 2026-11-01) the default kept the ring clean through a 1.6 MB OTA download; that is one run, not a guarantee.
 //!
 //! Every send waits for the transmit to complete without a timeout (`wait_all_done(None)`), so a stalled RMT peripheral blocks the call.
 //!
-//! **Do not enable `CONFIG_RMT_ISR_IRAM_SAFE`.**
-//! esp-idf-hal 0.47 registers a transmit-done callback that lives in flash, and ESP-IDF rejects it when the ISR is IRAM-safe.
+//! **Do not enable `CONFIG_RMT_ISR_IRAM_SAFE` or, from ESP-IDF 5.5, `CONFIG_RMT_TX_ISR_CACHE_SAFE`.**
+//! esp-idf-hal 0.47 registers a transmit-done callback that lives in flash, and ESP-IDF rejects it when the TX ISR is IRAM-safe.
 //! [`Ws2812Rmt::new`] then fails with `ESP_ERR_INVALID_ARG` ("on_trans_done callback not in IRAM").
 //! When the setting is enabled, an `ESP_ERR_INVALID_ARG` from the constructor names it as the likely cause.
 //! This holds until esp-idf-hal places its callback in IRAM.
@@ -134,7 +134,7 @@ pub const MIN_RESOLUTION_HZ: u32 = 10_000_000;
 /// `Encoder` and `Transmit` occur during a send: that frame was not sent, and the driver stays usable.
 /// `Transmit` means this frame failed; the driver stays usable and the next call sends a fresh frame.
 ///
-/// `Display` names the failed stage only, apart from the `CONFIG_RMT_ISR_IRAM_SAFE` hint on `Channel`.
+/// `Display` names the failed stage only, apart from the RMT ISR IRAM-safe hint on `Channel`.
 /// Print the error with `{:?}` or walk [`core::error::Error::source`] to see the ESP-IDF code; `anyhow`'s `Debug` output does the latter.
 /// The ESP-IDF cause is available through [`core::error::Error::source`], so error reporters that walk the source chain print it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -147,7 +147,7 @@ pub enum Error {
     },
     /// The RMT TX channel could not be created, for example because no TX channel is free.
     ///
-    /// With `CONFIG_RMT_ISR_IRAM_SAFE` enabled this fails with `ESP_ERR_INVALID_ARG`, and `Display` names the setting as the likely cause.
+    /// With `CONFIG_RMT_ISR_IRAM_SAFE` or `CONFIG_RMT_TX_ISR_CACHE_SAFE` enabled this fails with `ESP_ERR_INVALID_ARG`, and `Display` names the setting as the likely cause.
     /// See [Long frames and radios](crate#long-frames-and-radios).
     Channel(EspError),
     /// The RMT driver rejected one of the WS2812 pulse timings.
@@ -167,14 +167,17 @@ impl core::fmt::Display for Error {
                 MIN_RESOLUTION_HZ / 1_000_000
             ),
             // esp-idf-hal 0.47 registers a flash-resident transmit-done callback, which ESP-IDF rejects
-            // with ESP_ERR_INVALID_ARG when the RMT ISR is IRAM-safe. Other invalid configurations return
-            // the same code, so the text names the setting as the likely cause, not the certain one.
-            #[cfg(esp_idf_rmt_isr_iram_safe)]
+            // with ESP_ERR_INVALID_ARG when the RMT TX ISR is IRAM-safe. ESP-IDF 5.5 split the setting:
+            // CONFIG_RMT_ISR_IRAM_SAFE became a deprecated option that enables CONFIG_RMT_TX_ISR_CACHE_SAFE.
+            // Other invalid configurations return the same code, so the text names the setting as the
+            // likely cause, not the certain one.
+            #[cfg(any(esp_idf_rmt_isr_iram_safe, esp_idf_rmt_tx_isr_cache_safe))]
             Self::Channel(e)
                 if e.code() == esp_idf_hal::sys::ESP_ERR_INVALID_ARG as esp_idf_hal::sys::esp_err_t =>
             {
                 f.write_str(
-                    "RMT TX channel creation failed with ESP_ERR_INVALID_ARG; CONFIG_RMT_ISR_IRAM_SAFE is enabled, \
+                    "RMT TX channel creation failed with ESP_ERR_INVALID_ARG; the RMT ISR IRAM-safe setting (CONFIG_RMT_ISR_IRAM_SAFE, \
+                     or CONFIG_RMT_TX_ISR_CACHE_SAFE from ESP-IDF 5.5) is enabled, \
                      which esp-idf-hal 0.47 does not support (its transmit-done callback is not in IRAM), \
                      so check that setting first",
                 )
@@ -296,7 +299,7 @@ impl<'d> Ws2812Rmt<'d> {
     ///
     /// - [`Error::ResolutionTooLow`]: the resolution is below 10 MHz.
     /// - [`Error::Channel`]: the RMT channel cannot be created, for example when no TX channel is free.
-    ///   With `CONFIG_RMT_ISR_IRAM_SAFE` enabled it fails with `ESP_ERR_INVALID_ARG`, and the error names the setting as the likely cause.
+    ///   With `CONFIG_RMT_ISR_IRAM_SAFE` or `CONFIG_RMT_TX_ISR_CACHE_SAFE` enabled it fails with `ESP_ERR_INVALID_ARG`, and the error names the setting as the likely cause.
     ///   See [Long frames and radios](crate#long-frames-and-radios).
     /// - [`Error::Timing`] and [`Error::Encoder`]: the RMT driver rejected a pulse timing or the bytes encoder.
     ///

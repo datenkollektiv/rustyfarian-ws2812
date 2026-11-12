@@ -60,12 +60,20 @@ For ad-hoc cargo invocations on platform-independent crates, always pass `--targ
 
 **Changelog and ADRs.** Behaviour changes go under `## [Unreleased]` in `CHANGELOG.md` (Keep a Changelog format). Architectural decisions get a new ADR before the code lands.
 
+## Coding Principles
+
+- **State assumptions** before starting. If a task has multiple valid interpretations, present them rather than picking silently.
+- **Simplicity first.** Minimum code that solves the problem. No features beyond what was asked. No abstractions for single-use code. No error handling for impossible scenarios.
+- **Surgical changes.** Touch only what the task requires. Do not improve adjacent code, comments, or formatting. Every changed line should trace directly to the user's request.
+- When your changes create orphans (unused imports, variables, functions), remove them. Do not remove pre-existing dead code unless asked.
+- **Recorded knowledge is load-bearing — verify before acting on it.** README notes, comments, and `docs/project-lore.md` capture point-in-time facts that quietly drift. Treat a recorded claim that steers automated behaviour (build, CI, permissions, scripts) as a hypothesis to confirm against the current code, not as ground truth.
+
 ## Important Files
 
 - `justfile` — every standard task; read first when unsure how to build/test something
 - `Cargo.toml` (root) — workspace dependency pins and the rationale comments
 - `.cargo/config.toml` — default target, per-target rustflags / runners / linkers
 - `crates/ferriswheel/src/effect.rs` — `Effect` trait, `EffectError`, `MAX_LEDS`
-- `docs/project-lore.md` — debugging gotchas not derivable from the source
+- `docs/project-lore.md` — debugging gotchas not derivable from the source; entries are point-in-time, verify against current code before acting on one
 - `docs/ROADMAP.md` and `docs/adr/` — what's planned and why decisions look the way they do
-- `CHANGELOG.md` — release history; latest is `[0.6.0] 2026-05-20`
+- `CHANGELOG.md` — release history; the top dated entry is the latest release

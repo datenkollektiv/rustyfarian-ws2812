@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# ensure-bootloader.sh — ensure the IDF-built v5.3.3 bootloader is in the build cache
+# ensure-bootloader.sh — ensure the IDF-built bootloader is in the build cache
 # Usage: scripts/ensure-bootloader.sh <chip> [hal_dir [idf_dir]]   chip: c3 | c6 | esp32 | s3
 #
-# espflash 4.x bundles an ESP-IDF v5.5.1 bootloader that rejects both v5.3.3 IDF
-# binaries (32 KB MMU page mismatch) and bare-metal esp-hal binaries (app descriptor
-# format). The v5.3.3 bootloader built by esp-idf-sys works for both.
+# espflash 4.x bundles its own bootloader, which rejected bare-metal esp-hal binaries
+# (app descriptor format) and, while the pin was ESP-IDF v5.3.3, IDF binaries too
+# (32 KB MMU page mismatch). The bootloader esp-idf-sys builds for the pinned ESP-IDF
+# (.cargo/config.toml) boots both: v6.1 verified on ESP32-C3, C6 and S3 on 2026-11-12;
+# not yet re-run on the classic ESP32.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=./lib.sh

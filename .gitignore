@@ -6,7 +6,8 @@ Cargo.lock
 # and depends on avr-hal by git (unpublished upstream). Its lockfile is the only thing
 # pinning the transitive dependency set, so CI reproducibility requires committing it.
 !examples/avr-nano-rainbow/Cargo.lock
-.cargo/config.toml
+
+.devcontainer
 
 .envrc
 .idea/
@@ -15,6 +16,7 @@ CLAUDE.md
 release/
 review-queue/
 /archive/
+/memory/
 audit/
 # Bench run artefacts: local serial logs and verdicts, appended on every run.
 bench/*/logs/

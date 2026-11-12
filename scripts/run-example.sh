@@ -94,7 +94,7 @@ case "$prefix" in
         fi
         bl=$(find_idf_bootloader "$idf_target" "$idf_dir")
         if [ -z "$bl" ]; then
-            printf 'Error: HAL examples require the IDF-built v5.3.3 bootloader; rebuild an IDF example to populate it: just build-example idf_%s_rainbow\n' "$chip" >&2
+            printf 'Error: HAL examples require the IDF-built bootloader; rebuild an IDF example to populate it: just build-example idf_%s_rainbow\n' "$chip" >&2
             exit 1
         fi
         printf 'Flashing %s with bootloader %s...\n' "$example" "$bl"

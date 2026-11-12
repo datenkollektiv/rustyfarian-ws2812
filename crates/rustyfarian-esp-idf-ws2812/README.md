@@ -36,8 +36,8 @@ led.set_pixels_slice(&colors)?;
 The RMT channel is refilled from the RMT interrupt service routine (ISR), so task latency does not delay the refill.
 That tolerates a busy task, but it is not hard real time: other interrupts can still delay it.
 
-The RMT ISR is not IRAM-safe by default in ESP-IDF v5.3.3 (`CONFIG_RMT_ISR_IRAM_SAFE` defaults to `n`), and it runs at a low or medium shared interrupt priority.
-Do not enable `CONFIG_RMT_ISR_IRAM_SAFE`.
+The RMT TX ISR is not IRAM-safe by default (`CONFIG_RMT_TX_ISR_CACHE_SAFE`, `CONFIG_RMT_ISR_IRAM_SAFE` before ESP-IDF 5.5, defaults to `n`), and it runs at a low or medium shared interrupt priority.
+Do not enable `CONFIG_RMT_ISR_IRAM_SAFE` or, from ESP-IDF 5.5, `CONFIG_RMT_TX_ISR_CACHE_SAFE`.
 With the setting on, `Ws2812Rmt::new` can fail with `ESP_ERR_INVALID_ARG` ("on_trans_done callback not in IRAM"), because esp-idf-hal registers its flash-resident ISR handler as the `on_trans_done` callback.
 Other invalid configurations can also return `ESP_ERR_INVALID_ARG`, so the constructor's error names the setting as a likely cause rather than the only one.
 On a downstream ESP32-C3 bench, the firmware with the setting on failed to start and rolled back its OTA image.

@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- The workspace builds its ESP-IDF examples and bench firmware against ESP-IDF v6.1 (was v5.3.3); the libraries still do not pin an ESP-IDF version.
+- `.cargo/config.toml` is now committed. It carries the ESP-IDF pin, the `ldproxy` linker, `build-std`, the esp-hal linker scripts and the `sdkconfig.defaults` path, so before this a fresh clone could not build firmware. Cargo never reads it for downstream users.
+
+### Fixed
+
+- `rustyfarian-esp-idf-ws2812`: the `Error::Channel` hint for `ESP_ERR_INVALID_ARG` now also appears when `CONFIG_RMT_TX_ISR_CACHE_SAFE` is enabled. From ESP-IDF 5.5 that setting triggers the failure, and `CONFIG_RMT_ISR_IRAM_SAFE` is a deprecated option that enables it, so the hint was missing when the new setting was enabled directly.
+
 ## [0.9.0] - 2026-11-08
 
 The long-frame async release gate's logic-analyser capture was waived again for this release; its serial half passed on the ESP32-C3 and ESP32-C6, and the capture is a roadmap item.
