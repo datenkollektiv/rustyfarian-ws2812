@@ -202,14 +202,14 @@ a new wave appears upstream:
 
 ## CI/CD
 
-GitHub Actions workflows in `.github/workflows/`:
-- `audit.yml` — RustSec advisory check on push.
-- `clippy.yml` — lint gate.
-- `fmt.yml` — formatting gate.
-- `rust.yml` — build + test matrix.
+GitHub Actions workflows in `.github/workflows/` follow the shared [rustyfarian-ci](https://github.com/datenkollektiv/rustyfarian-ci) conventions; each job runs one `just ci-<job>` recipe:
+- `audit.yml` — RustSec advisory check on push and weekly (`ci-audit`).
+- `clippy.yml` — lint gate (`ci-clippy`).
+- `fmt.yml` — formatting gate (`ci-fmt`).
+- `rust.yml` — host check + test (`ci-test`) and `cargo deny` (`ci-deny`).
+- `cross-target-*.yml` — RISC-V, Xtensa, AVR and ESP-IDF builds (`ci-riscv`, `ci-xtensa`, `ci-avr`, `ci-idf <chip>`), path-filtered.
 
-Local equivalents: `just act-audit`, `just act-clippy`, `just act-fmt`, `just act-ci`,
-`just act-all` (require Docker + `act`).
+Local equivalents: `just ci-<job>`, or `just act [job]` through `act` (requires Docker).
 
 ## Documentation Freshness
 

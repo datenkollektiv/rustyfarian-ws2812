@@ -30,6 +30,10 @@ idf_dir := if ramdisk_mounted == "true" { ramdisk + "/targets/idf/" + file_name(
 bench_dir := env("RUSTYFARIAN_BENCH", "")
 bench := if bench_dir != "" { 'uv run --project "' + bench_dir + '" rustyfarian-bench' } else { "uvx --from git+https://github.com/datenkollektiv/rustyfarian-bench@v0.3.0 rustyfarian-bench" }
 
+# act: a local rustyfarian-ci checkout if RUSTYFARIAN_CI points at one, otherwise the pushed @v1.
+ci_dir := env("RUSTYFARIAN_CI", "")
+ci_repo_flag := if ci_dir != "" { '--local-repository "datenkollektiv/rustyfarian-ci@v1=' + absolute_path(ci_dir) + '"' } else { "" }
+
 # list available recipes (default)
 _default:
     @just --list
@@ -389,34 +393,65 @@ verify:
 [group('CI')]
 pre-commit: fmt check clippy test
 
-# CI-equivalent verification (non-modifying): format check, deny, check, lint, test
-# CI-equivalent gate: fmt-check, deny, check, lint, test
+# CI-equivalent verification (non-modifying): the host CI jobs except audit
+# CI-equivalent gate: fmt, deny, clippy, test jobs
 [group('CI')]
-ci: fmt-check deny check clippy test
+ci: ci-fmt ci-deny ci-clippy ci-test
 
-# run the CI workflow via act (requires Docker)
+# CI job recipes: each GitHub Actions job runs exactly one of these (rustyfarian-ci conventions)
+# CI job: check formatting
 [group('CI')]
-act-ci:
-    act -j check-and-test
+ci-fmt: fmt-check
 
-# run the fmt-check workflow via act (requires Docker)
+# CI job: lint the pure crates and pennant's hal feature
 [group('CI')]
-act-fmt:
-    act -j fmt
+ci-clippy: clippy clippy-pennant-hal
 
-# run the clippy workflow via act (requires Docker)
+# CI job: check and test the pure crates, incl. feature guards
 [group('CI')]
-act-clippy:
-    act -j clippy
+ci-test: check test check-ferriswheel-smart-leds-trait test-pennant-hal
 
-# run the audit workflow via act (requires Docker)
+# CI job: cargo-deny licenses, advisories, bans and sources
 [group('CI')]
-act-audit:
-    act -j audit
+ci-deny: deny
 
-# run all CI workflows via act (requires Docker)
+# CI job: cargo-audit advisories
 [group('CI')]
-act-all: act-fmt act-clippy act-ci act-audit
+ci-audit: audit
+
+# CI job: check the esp-hal driver on the RISC-V targets
+[group('CI')]
+ci-riscv: && check-hal check-hal-c3 check-hal-async
+    rustup target add riscv32imac-unknown-none-elf riscv32imc-unknown-none-elf
+
+# CI job: check the esp-hal driver on Xtensa (requires espup)
+[group('CI')]
+ci-xtensa: check-hal-xtensa
+
+# CI job: check the AVR driver and link the AVR example bins
+[group('CI')]
+ci-avr: check-avr-target check-avr-target-bitbang build-avr-example-all-bins
+
+# CI job: build the AVR example against upstream avr-hal main
+[group('CI')]
+ci-avr-upstream: build-avr-example-upstream
+
+# CI job: link every ESP-IDF example of one chip (c3|c6|esp32|s3)
+[group('CI')]
+ci-idf chip:
+    scripts/ci-idf.sh "{{ chip }}" "{{ hal_dir }}" "{{ idf_dir }}"
+
+# Set RUSTYFARIAN_CI to a local rustyfarian-ci checkout to test unpushed reusable workflows.
+# The default runs the host jobs; act ignores `paths:` filters, so run the toolchain-heavy
+# cross-target jobs explicitly (`just act riscv`; requires Docker + act).
+# run CI jobs via act: all host jobs, or one (`just act fmt`)
+[group('CI')]
+act job="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for j in {{ if job == "" { "fmt clippy test deny audit" } else { job } }}; do
+        act -j "$j" --pull=false -P ubuntu-latest=catthehacker/ubuntu:act-latest {{ ci_repo_flag }}
+    done
 
 # --- Setup ----------------------------------------------------------------
 

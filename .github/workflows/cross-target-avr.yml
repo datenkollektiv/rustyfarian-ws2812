@@ -5,7 +5,7 @@ name: Cross-target AVR
 #   2. a real linked build of the example package — the driver crate is lib-only,
 #      so nothing links until the example binaries are built, and the AVR linker,
 #      target-cpu and ABI are only exercised there.
-# Path-filtered: only runs when the AVR driver, its example, or the manifest changes.
+# Path-filtered: only runs when the AVR driver, its example, the manifest or the `ci-*` recipes change.
 
 # NOTE: the push and pull_request `paths:` lists below are duplicated and must stay in
 # sync. GitHub Actions does not support YAML anchors/aliases, so this cannot be factored out.
@@ -18,6 +18,7 @@ on:
       - "crates/bunting/**"
       - "crates/ferriswheel/**"
       - "Cargo.toml"
+      - "justfile"
       - ".github/workflows/cross-target-avr.yml"
   pull_request:
     branches: ["main"]
@@ -27,6 +28,7 @@ on:
       - "crates/bunting/**"
       - "crates/ferriswheel/**"
       - "Cargo.toml"
+      - "justfile"
       - ".github/workflows/cross-target-avr.yml"
   workflow_dispatch:
 
@@ -43,36 +45,26 @@ env:
 jobs:
   avr:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      # @master rather than @stable: this needs an exact pinned nightly plus a
-      # component list. Keep the toolchain in lockstep with `avr_nightly` in the justfile.
-      - name: Install pinned AVR nightly toolchain
-        uses: dtolnay/rust-toolchain@master
+      # setup-avr installs avr-gcc (needed for the libgcc 32-bit multiply intrinsics) and the
+      # pinned nightly. Keep the toolchain in lockstep with `avr_nightly` in the justfile.
+      - name: Setup AVR toolchain
+        uses: datenkollektiv/rustyfarian-ci/.github/actions/setup-avr@v1
         with:
           toolchain: nightly-2025-04-27
-          components: rust-src
-
-      # avr-gcc is required even for a core-only no_std build: AVR 32-bit
-      # multiplication intrinsics come from libgcc, which compiler-builtins
-      # does not yet provide. binutils-avr supplies avr-ld; avr-libc the crt objects.
-      - name: Install AVR GCC toolchain
-        run: sudo apt-get update && sudo apt-get install -y gcc-avr binutils-avr avr-libc
 
       - name: Cache cargo artifacts
         uses: Swatinem/rust-cache@v2
+        with:
+          key: avr-nightly-2025-04-27
 
       - name: Setup just
         uses: extractions/setup-just@v4
 
-      - name: Check AVR SPI driver (avr-none)
-        run: just check-avr-target
-
-      - name: Check AVR bit-bang driver (avr-none)
-        run: just check-avr-target-bitbang
-
-      - name: Build all AVR example binaries (link step)
-        run: just build-avr-example-all-bins
+      - name: Run just ci-avr
+        run: just ci-avr

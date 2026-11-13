@@ -33,19 +33,16 @@ env:
 jobs:
   avr-upstream:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Install pinned AVR nightly toolchain
-        uses: dtolnay/rust-toolchain@master
+      - name: Setup AVR toolchain
+        uses: datenkollektiv/rustyfarian-ci/.github/actions/setup-avr@v1
         with:
           toolchain: nightly-2025-04-27
-          components: rust-src
-
-      - name: Install AVR GCC toolchain
-        run: sudo apt-get update && sudo apt-get install -y gcc-avr binutils-avr avr-libc
 
       - name: Setup just
         uses: extractions/setup-just@v4
@@ -53,5 +50,5 @@ jobs:
       # Deliberately uncached: the point is a fresh build against upstream avr-hal's tip.
       # Scoped on purpose — only the avr-hal git packages re-resolve, so a failure here
       # means upstream moved, not that an unrelated crate published a new version.
-      - name: Build AVR example against upstream avr-hal main
-        run: just build-avr-example-upstream
+      - name: Run just ci-avr-upstream
+        run: just ci-avr-upstream

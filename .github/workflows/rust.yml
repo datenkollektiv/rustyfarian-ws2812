@@ -14,45 +14,13 @@ concurrency:
   group: rust-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  CARGO_TERM_COLOR: always
-  RUSTUP_TOOLCHAIN: stable
-
 jobs:
-  check-and-test:
-    runs-on: ubuntu-latest
+  test:
+    uses: datenkollektiv/rustyfarian-ci/.github/workflows/host-checks.yml@v1
+    with:
+      check: test
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-
-      - name: Cache cargo artifacts
-        uses: Swatinem/rust-cache@v2
-
-      - name: Setup just
-        uses: extractions/setup-just@v4
-
-      - name: Install cargo-deny
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-deny
-
-      - name: Deny (licenses, advisories, bans)
-        run: just deny
-
-      - name: Check pure crates
-        run: just check
-
-      - name: Test pure crates
-        run: just test
-
-      - name: Check ferriswheel smart-leds-trait (rgb version divergence guard)
-        run: just check-ferriswheel-smart-leds-trait
-
-      - name: Test pennant hal feature (SimpleLed adapter — off by default)
-        run: just test-pennant-hal
+  deny:
+    uses: datenkollektiv/rustyfarian-ci/.github/workflows/host-checks.yml@v1
+    with:
+      check: deny
