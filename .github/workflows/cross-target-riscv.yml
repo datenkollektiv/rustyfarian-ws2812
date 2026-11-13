@@ -2,7 +2,7 @@ name: Cross-target RISC-V
 
 # Gates the bare-metal esp-hal driver on both RISC-V configurations:
 # ESP32-C6/H2 (riscv32imac, with atomics) and ESP32-C3 (riscv32imc, no atomics).
-# Path-filtered: only runs when the driver crate or workspace manifest changes.
+# Path-filtered: only runs when the driver crate, workspace manifest or the `ci-*` recipes change.
 
 # NOTE: the push and pull_request `paths:` lists below are duplicated and must stay in
 # sync. GitHub Actions does not support YAML anchors/aliases, so this cannot be factored out.
@@ -15,6 +15,7 @@ on:
       - "crates/pennant/**"
       - "crates/ferriswheel/**"
       - "Cargo.toml"
+      - "justfile"
       - ".github/workflows/cross-target-riscv.yml"
   pull_request:
     branches: ["main"]
@@ -24,6 +25,7 @@ on:
       - "crates/pennant/**"
       - "crates/ferriswheel/**"
       - "Cargo.toml"
+      - "justfile"
       - ".github/workflows/cross-target-riscv.yml"
   workflow_dispatch:
 
@@ -36,38 +38,29 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
-  RUSTUP_TOOLCHAIN: stable
 
 jobs:
   riscv:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      RUSTUP_TOOLCHAIN: stable
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+      # `just ci-riscv` adds both RISC-V targets itself, so the toolchain step needs no `targets:`.
+      - name: Setup Rust and just
+        uses: datenkollektiv/rustyfarian-ci/.github/actions/setup-rust-just@v1
         with:
           toolchain: stable
-          targets: riscv32imac-unknown-none-elf, riscv32imc-unknown-none-elf
-
-      - name: Cache cargo artifacts
-        uses: Swatinem/rust-cache@v2
-
-      - name: Setup just
-        uses: extractions/setup-just@v4
+          cache-key: riscv
 
       # Coverage note: check-hal is a library-only check of the default (C6) feature set.
       # check-hal-c3 runs twice — library, then `--examples` with `rt` enabled, so it also
       # compiles hal_c3_pulse. check-hal-async covers the `async` feature on C6 and C3 and
       # compiles the *_async examples with `embassy,rt`. Examples requiring features that are
       # off are skipped by Cargo rather than failing.
-      - name: Check esp-hal driver (ESP32-C6, riscv32imac)
-        run: just check-hal
-
-      - name: Check esp-hal driver (ESP32-C3, riscv32imc, incl. examples)
-        run: just check-hal-c3
-
-      - name: Check esp-hal driver async API (ESP32-C6 and ESP32-C3, incl. examples)
-        run: just check-hal-async
+      - name: Run just ci-riscv
+        run: just ci-riscv

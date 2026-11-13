@@ -27,6 +27,7 @@ on:
       - "crates/pennant/**"
       - "crates/ferriswheel/**"
       - "Cargo.toml"
+      - "justfile"
       - ".github/workflows/cross-target-xtensa.yml"
   pull_request:
     branches: ["main"]
@@ -36,6 +37,7 @@ on:
       - "crates/pennant/**"
       - "crates/ferriswheel/**"
       - "Cargo.toml"
+      - "justfile"
       - ".github/workflows/cross-target-xtensa.yml"
   workflow_dispatch:
 
@@ -48,41 +50,35 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
+  XTENSA_VERSION: "1.97.0.0"
 
 jobs:
   xtensa:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      # The version string must stay in the cache key below — scripts/xtensa-toolchain.sh
-      # hard-fails when it finds more than one version under
-      # ~/.rustup/toolchains/esp/xtensa-esp-elf/*, which a version-less key would allow.
-      - name: Cache Xtensa toolchain
-        uses: actions/cache@v6
-        with:
-          path: ~/.rustup/toolchains/esp
-          key: xtensa-esp-${{ runner.os }}-1.97.0.0-esp32-esp32s3
-
       # Installs the Xtensa Rust fork for esp32 and esp32s3 (not the RISC-V or S2 targets).
-      # rust-src comes with it, so -Z build-std=core needs no extra step.
-      - name: Install Rust toolchain for Xtensa
-        uses: esp-rs/xtensa-toolchain@v1.7.0
+      # rust-src comes with it, so -Z build-std=core needs no extra step. The version stays in
+      # the toolchain cache key (inside the action) — scripts/xtensa-toolchain.sh hard-fails
+      # when it finds more than one version under ~/.rustup/toolchains/esp/xtensa-esp-elf/*.
+      - name: Setup Xtensa toolchain
+        uses: datenkollektiv/rustyfarian-ci/.github/actions/setup-xtensa@v1
         with:
-          default: false
+          version: ${{ env.XTENSA_VERSION }}
           buildtargets: esp32,esp32s3
-          version: "1.97.0.0"
-          ldproxy: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cache cargo artifacts
         uses: Swatinem/rust-cache@v2
+        with:
+          # rust-cache sees the default rustc, not the esp toolchain, so the pin is part of the key.
+          key: xtensa-${{ env.XTENSA_VERSION }}
 
       - name: Setup just
         uses: extractions/setup-just@v4
 
-      - name: Check esp-hal driver (ESP32 WROOM-32 and ESP32-S3, Xtensa)
-        run: just check-hal-xtensa
+      - name: Run just ci-xtensa
+        run: just ci-xtensa

@@ -1,0 +1,107 @@
+name: Cross-target ESP-IDF
+
+# Compile+link gate for the ESP-IDF driver (rustyfarian-esp-idf-ws2812) under ESP-IDF v6.1,
+# one matrix job per chip, building every `idf_<chip>_*` example. This is NOT hardware
+# validation — that stays manual via `just bench`.
+#
+# ubuntu-latest works because v6.1's esp-clang has no libxml2 dependency; v5.3.3 shipped
+# esp-clang 16, which cannot load libxml2.so.2 on current runners (docs/project-lore.md).
+# Path-filtered: only runs when the IDF driver, the crates it builds on, the sdkconfig or the
+# build scripts change.
+
+# NOTE: the push and pull_request `paths:` lists below are duplicated and must stay in
+# sync. GitHub Actions does not support YAML anchors/aliases, so this cannot be factored out.
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "crates/rustyfarian-esp-idf-ws2812/**"
+      - "crates/bunting/**"
+      - "crates/pennant/**"
+      - "crates/ferriswheel/**"
+      - "Cargo.toml"
+      - ".cargo/config.toml"
+      - "sdkconfig.defaults"
+      - "justfile"
+      - "scripts/ci-idf.sh"
+      - "scripts/build-example.sh"
+      - "scripts/lib.sh"
+      - ".github/workflows/cross-target-esp-idf.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "crates/rustyfarian-esp-idf-ws2812/**"
+      - "crates/bunting/**"
+      - "crates/pennant/**"
+      - "crates/ferriswheel/**"
+      - "Cargo.toml"
+      - ".cargo/config.toml"
+      - "sdkconfig.defaults"
+      - "justfile"
+      - "scripts/ci-idf.sh"
+      - "scripts/build-example.sh"
+      - "scripts/lib.sh"
+      - ".github/workflows/cross-target-esp-idf.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cross-idf-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  XTENSA_VERSION: "1.97.0.0"
+  # Must match ESP_IDF_VERSION in .cargo/config.toml: setup-esp-idf exports it, which wins over cargo's [env].
+  IDF_VERSION: v6.1
+
+jobs:
+  idf:
+    name: idf ${{ matrix.chip }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { chip: c3, mcu: esp32c3, target: riscv32imc-esp-espidf }
+          - { chip: c6, mcu: esp32c6, target: riscv32imac-esp-espidf }
+          - { chip: esp32, mcu: esp32, target: xtensa-esp32-espidf }
+          - { chip: s3, mcu: esp32s3, target: xtensa-esp32s3-espidf }
+    env:
+      CHIP: ${{ matrix.chip }}
+      # scripts/lib.sh resolve_idf_build_dir otherwise defaults to a macOS cache path outside
+      # target/, so rust-cache would not save the esp-idf-sys CMake tree.
+      RUSTYFARIAN_IDF_BUILD_DIR: ${{ github.workspace }}/target/idf-build
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      # espup installs the esp toolchain only for an Xtensa target, so the RISC-V chips request esp32.
+      - name: Setup Xtensa toolchain
+        uses: datenkollektiv/rustyfarian-ci/.github/actions/setup-xtensa@v1
+        with:
+          version: ${{ env.XTENSA_VERSION }}
+          buildtargets: ${{ matrix.chip == 's3' && 'esp32s3' || 'esp32' }}
+
+      - name: Setup ESP-IDF
+        uses: datenkollektiv/rustyfarian-ci/.github/actions/setup-esp-idf@v1
+        with:
+          idf-version: ${{ env.IDF_VERSION }}
+          mcu: ${{ matrix.mcu }}
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          # rust-cache sees the default rustc, not the esp toolchain, so the toolchain version is part of the key.
+          # A restored esp-idf-sys CMake tree from another IDF version or sdkconfig fails to configure.
+          key: ${{ matrix.target }}-${{ env.XTENSA_VERSION }}-${{ env.IDF_VERSION }}-${{ hashFiles('.cargo/config.toml', 'sdkconfig.defaults') }}
+
+      - name: Setup just
+        uses: extractions/setup-just@v4
+
+      - name: Run just ci-idf ${{ matrix.chip }}
+        run: just ci-idf "$CHIP"

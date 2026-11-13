@@ -33,7 +33,9 @@ The `justfile` is the canonical interface — it handles target overrides, since
 | Command | Purpose |
 |:--------|:--------|
 | `just verify` | Primary local gate: fmt-check + check + clippy + test on host target (no `cargo deny`) |
-| `just ci` | fmt-check + deny + check + clippy + test; unlike `verify` it runs `cargo deny` but not the pennant `hal` feature |
+| `just ci` | The host CI jobs except audit (`ci-fmt`, `ci-deny`, `ci-clippy`, `ci-test`); unlike `verify` it runs `cargo deny` |
+| `just ci-<job>` | Exactly what one GitHub Actions job runs (`fmt`, `clippy`, `test`, `deny`, `audit`, `riscv`, `xtensa`, `avr`, `idf <chip>`); workflows use [rustyfarian-ci](https://github.com/datenkollektiv/rustyfarian-ci) `@v1` |
+| `just act [job]` | Run CI jobs through `act` (Docker); `RUSTYFARIAN_CI=../rustyfarian-ci` tests an unpushed rustyfarian-ci |
 | `just pre-commit` | fmt + check + clippy + test (auto-fixes formatting) |
 | `just check-hal` | Compile-check the bare-metal esp-hal driver against `riscv32imac-unknown-none-elf` |
 | `just check-idf` | Compile-check the ESP-IDF driver (requires `espup` toolchain) |

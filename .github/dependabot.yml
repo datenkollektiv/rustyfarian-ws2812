@@ -4,3 +4,26 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]
+
+  - package-ecosystem: cargo
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      # esp-idf-sys is a `links` crate: the esp-idf stack must move in lockstep.
+      esp-idf:
+        patterns: ["esp-idf-*", "embuild"]
+      # The esp-hal stack is exact-pinned (AGENTS.md), so a bump wave lands as one PR.
+      esp-hal:
+        patterns: ["esp-hal", "esp-rtos", "esp-bootloader-esp-idf", "esp-println", "embassy-*"]
+      cargo:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]

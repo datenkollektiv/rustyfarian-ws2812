@@ -6,8 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- CI: `cross-target-esp-idf.yml` builds and links every ESP-IDF example on the ESP32-C3, ESP32-C6, ESP32 and ESP32-S3 via the new `just ci-idf <chip>`. Before this no workflow compiled `rustyfarian-esp-idf-ws2812` at all. Green means "links under ESP-IDF v6.1", not "hardware-validated".
+
 ### Changed
 
+- CI adopts the shared [rustyfarian-ci](https://github.com/datenkollektiv/rustyfarian-ci) `@v1`: the fmt, clippy, test, deny and audit jobs call its reusable `host-checks.yml`, and the cross-target workflows use its setup actions. Every job runs exactly one `just ci-<job>` recipe and has a timeout; `just act [job]` replaces the `act-*` recipes. `rust.yml` now runs `test` and `deny` as separate jobs, so the GitHub check names change (e.g. `test / test`).
+- CI: the clippy job now also lints pennant's `hal` feature (`just clippy-pennant-hal`), which `just verify` already ran; `just ci` now runs the same host jobs as CI except audit.
+- Dependabot also watches GitHub Actions and Cargo, with the ESP-IDF and the exact-pinned esp-hal stacks grouped so each moves as one PR.
 - The workspace builds its ESP-IDF examples and bench firmware against ESP-IDF v6.1 (was v5.3.3); the libraries still do not pin an ESP-IDF version.
 - `.cargo/config.toml` is now committed. It carries the ESP-IDF pin, the `ldproxy` linker, `build-std`, the esp-hal linker scripts and the `sdkconfig.defaults` path, so before this a fresh clone could not build firmware. Cargo never reads it for downstream users.
 
