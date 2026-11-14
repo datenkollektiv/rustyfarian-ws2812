@@ -17,6 +17,8 @@ release/
 review-queue/
 /archive/
 /memory/
+# Tracking notes for requests filed with other repos; they cite local review queues.
+/docs/feature-requests/
 audit/
 # Bench run artefacts: local serial logs and verdicts, appended on every run.
 bench/*/logs/

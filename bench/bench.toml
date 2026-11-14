@@ -11,19 +11,19 @@ chip = "esp32s3"
 name = "CrowPanel 1.28\" HMI (ESP32-S3), 5-LED ring on GPIO48"
 checks = ["pulse", "rainbow"]   # first, in this order; the rest follow by name
 
-[boards.c3]
+[boards.c3-mini1]
 chip = "esp32c3"
-name = "ESP32-C3 dev board, 12-LED WS2812B ring on GPIO4"
+name = "ESP32-C3-DevKitM-1 (ESP32-C3-MINI-1), 12-LED WS2812B ring on GPIO4"
 checks = ["pulse", "rainbow"]   # first, in this order; the rest follow by name
 
 [boards.c6]
 chip = "esp32c6"
-name = "ESP32-C6 dev board, 12-LED WS2812B ring on GPIO18"
+name = "ESP32-C6-DevKitC-1, 12-LED WS2812B ring on GPIO18"
 checks = ["pulse", "rainbow"]   # first, in this order; the rest follow by name
 
 [boards.esp32]
 chip = "esp32"
-name = "ESP32-WROOM-32 dev board, 12-LED WS2812B ring on GPIO4"
+name = "ESP32-WROOM-32 DevKit, 12-LED WS2812B ring on GPIO4"
 checks = ["pulse", "rainbow"]   # first, in this order; the rest follow by name
 
 [boards.avr]

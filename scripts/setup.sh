@@ -20,7 +20,14 @@ component="$1"
 avr_nightly="$2"
 
 setup_tools() {
-    cargo install cargo-deny cargo-audit cargo-watch espup
+    cargo install cargo-deny cargo-audit cargo-semver-checks cargo-watch espflash espup ldproxy
+    if ! command -v uv >/dev/null 2>&1; then
+        if command -v brew >/dev/null 2>&1; then
+            brew install uv
+        else
+            echo "The bench recipes need uv: https://docs.astral.sh/uv/getting-started/installation/"
+        fi
+    fi
 }
 
 setup_hal() {
@@ -31,6 +38,7 @@ setup_hal() {
 setup_avr() {
     rustup toolchain install "$avr_nightly"
     rustup component add rust-src --toolchain "$avr_nightly"
+    cargo install ravedude
     echo "AVR toolchain ready: $avr_nightly"
     echo "Ensure avr-gcc is installed: brew install avr-gcc (macOS) / apt install gcc-avr (Debian)"
 }

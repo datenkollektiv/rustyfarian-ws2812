@@ -5,13 +5,13 @@ examples = ["hal_esp32_pulse", "hal_esp32_pulse_async"]
 [[step]]
 say = "Soak for 60 s; the board must stay up and print no crash"
 duration = 60
-reject = 'PANIC|panicked|Guru Meditation|abort\(\)|WDT'
+reject = 'PANIC|panicked|Guru Meditation|abort\(\)|WDT'  # reads the boot banner: first step after the reset, so reject_reboot is left out
 arm = false
 
 [[step]]
 say = "Watch the ring: all 12 LEDs breathe blue together, dark to dim and back"
 duration = 60   # maintenance-plan.md: a continuous 60 s run; Enter ends it early
-reject = 'PANIC|panicked|Guru Meditation|abort\(\)|WDT'
+reject = 'PANIC|panicked|Guru Meditation|abort\(\)|WDT'  # attended step right after the reset in --attended runs: reads the boot banner, so reject_reboot is left out
 attended = true
 arm = false
 
