@@ -1,7 +1,7 @@
-# Bench — ESP32-C3 with a 12-LED WS2812B ring
+# Bench — ESP32-C3-DevKitM-1 (ESP32-C3-MINI-1) with a 12-LED WS2812B ring
 
 ```sh
-just bench c3
+just bench c3-mini1
 ```
 
 Wiring: GPIO4 through 330 Ω to DIN, GND to GND, 3V3 to VCC; connect the board over its native USB port so the log arrives.

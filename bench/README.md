@@ -2,23 +2,25 @@
 
 Guided, rerunnable hardware checks, driven by [`rustyfarian-bench`](https://github.com/datenkollektiv/rustyfarian-bench).
 
-| Board                        | Directory        |
-|:-----------------------------|:-----------------|
-| CrowPanel 1.28" HMI (S3)     | [s3/](s3/)       |
-| ESP32-C3 + 12-LED ring       | [c3/](c3/)       |
-| ESP32-C6 + 12-LED ring       | [c6/](c6/)       |
-| ESP32-WROOM-32 + 12-LED ring | [esp32/](esp32/) |
-| Arduino Nano + 12-LED ring   | [avr/](avr/)     |
+| Board                                | Directory              | Last full pass |
+|:-------------------------------------|:-----------------------|:---------------|
+| CrowPanel 1.28" HMI (S3)             | [s3/](s3/)             | open           |
+| ESP32-C3-DevKitM-1 (ESP32-C3-MINI-1) | [c3-mini1/](c3-mini1/) | open           |
+| ESP32-C6-DevKitC-1                   | [c6/](c6/)             | open           |
+| ESP32-WROOM-32 DevKit                | [esp32/](esp32/)       | open           |
+| Arduino Nano                         | [avr/](avr/)           | open           |
+
+A full pass is every check of the board in both `--unattended` and `--attended` mode.
 
 espflash cannot identify the Nano, so the bench finds it by its USB identity (`usb_id` in `bench.toml`) instead.
 
 ## Running a check
 
-From this repo's root; `just bench` runs `rustyfarian-bench` v0.3.0 from GitHub, or from a local checkout if `RUSTYFARIAN_BENCH` points at one:
+From this repo's root; `just bench` runs `rustyfarian-bench` v0.5.0 from GitHub, or from a local checkout if `RUSTYFARIAN_BENCH` points at one:
 
 ```sh
 just bench s3
-just bench c3
+just bench c3-mini1
 ```
 
 One board per command; it runs every check for that board in turn.
@@ -27,7 +29,7 @@ More targets:
 ```sh
 just bench s3 pulse
 just bench hal_s3_pulse_async --no-build
-just bench c3 --port /dev/cu.usbmodemXXXX
+just bench c3-mini1 --port /dev/cu.usbmodemXXXX
 just bench-list
 just bench-detect
 ```

@@ -59,8 +59,8 @@ jobs:
           toolchain: stable
           cache-key: riscv
 
-      # Coverage note: check-hal is a library-only check of the default (C6) feature set.
-      # check-hal-c3 runs twice — library, then `--examples` with `rt` enabled, so it also
+      # Coverage note: check-hal (c6) is a library-only check of the default feature set.
+      # check-hal c3 runs twice — library, then `--examples` with `rt` enabled, so it also
       # compiles hal_c3_pulse. check-hal-async covers the `async` feature on C6 and C3 and
       # compiles the *_async examples with `embassy,rt`. Examples requiring features that are
       # off are skipped by Cargo rather than failing.

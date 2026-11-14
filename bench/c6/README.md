@@ -1,4 +1,4 @@
-# Bench — ESP32-C6 with a 12-LED WS2812B ring
+# Bench — ESP32-C6-DevKitC-1 with a 12-LED WS2812B ring
 
 ```sh
 just bench c6

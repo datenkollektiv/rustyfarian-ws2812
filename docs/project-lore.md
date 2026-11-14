@@ -317,7 +317,7 @@ The only real link coverage is `just build-avr-example-all-bins`, which builds t
 Fix: when a CI job's purpose is catching toolchain rot, gate the package that produces binaries, not the library crate — gating the driver alone looks like AVR coverage and is not.
 
 **Dev-dependencies are invisible when deriving CI path filters from `[dependencies]`, yet any `--examples` pass pulls them in.**
-`ferriswheel` appears only under `[dev-dependencies]` of `rustyfarian-esp-hal-ws2812`, but 14 of that crate's 17 examples use it, and both `check-hal-c3` and `check-hal-xtensa` run a `--examples` invocation.
+`ferriswheel` appears only under `[dev-dependencies]` of `rustyfarian-esp-hal-ws2812`, but 14 of that crate's 17 examples use it, and both `check-hal c3` and `check-hal-xtensa` run a `--examples` invocation.
 A path filter built from the runtime dependency list alone therefore lets a `ferriswheel` change break the ESP jobs without ever triggering them.
 Fix: derive workflow `paths:` from dependencies *and* dev-dependencies whenever the job builds examples, tests, or benches.
 

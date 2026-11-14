@@ -32,17 +32,18 @@ The `justfile` is the canonical interface — it handles target overrides, since
 
 | Command | Purpose |
 |:--------|:--------|
-| `just verify` | Primary local gate: fmt-check + check + clippy + test on host target (no `cargo deny`) |
-| `just ci` | The host CI jobs except audit (`ci-fmt`, `ci-deny`, `ci-clippy`, `ci-test`); unlike `verify` it runs `cargo deny` |
+| `just verify` | Primary local gate, read-only and offline: `fmt-check`, then check + clippy + test on host target |
+| `just ci` | `verify`, then `deny`: the host CI checks except audit |
 | `just ci-<job>` | Exactly what one GitHub Actions job runs (`fmt`, `clippy`, `test`, `deny`, `audit`, `riscv`, `xtensa`, `avr`, `idf <chip>`); workflows use [rustyfarian-ci](https://github.com/datenkollektiv/rustyfarian-ci) `@v1` |
 | `just act [job]` | Run CI jobs through `act` (Docker); `RUSTYFARIAN_CI=../rustyfarian-ci` tests an unpushed rustyfarian-ci |
-| `just pre-commit` | fmt + check + clippy + test (auto-fixes formatting) |
-| `just check-hal` | Compile-check the bare-metal esp-hal driver against `riscv32imac-unknown-none-elf` |
+| `just pre-commit` | `fmt`, then `verify` (auto-fixes formatting) |
+| `just check-hal [chip]` | Compile-check the bare-metal esp-hal driver: `c6` (default, `riscv32imac`) or `c3` (`riscv32imc`) |
 | `just check-idf` | Compile-check the ESP-IDF driver (requires `espup` toolchain) |
 | `just check-avr` / `just check-avr-target` | AVR driver on host / on real `avr-none` (nightly + `avr-gcc`) |
 | `just test` | Unit and doc tests on host target |
 | `just run <example>` | Flash an example to a connected ESP32 board |
 | `just build-example <name>` | Build an example without flashing |
+| `just bench <board>` | Guided hardware check via rustyfarian-bench; boards and checks in `bench/README.md` (ADR 013) |
 
 For ad-hoc cargo invocations on platform-independent crates, always pass `--target` (e.g. `--target aarch64-apple-darwin`) — the workspace default points at an embedded RISC-V target.
 

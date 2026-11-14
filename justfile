@@ -19,8 +19,7 @@ avr_nightly := "nightly-2025-04-27"
 ramdisk := "/Volumes/RustBuilds"
 # Detect a real mounted volume; `path_exists` would be fooled by a stale /Volumes/<name>
 # directory that was never `hdiutil attach`-ed (or wasn't cleaned up after detach).
-# The wrapper delegates to `is_ramdisk_mounted` in scripts/lib.sh so the check lives in
-# one place and stays consistent with scripts/ramdisk.sh.
+# scripts/ramdisk-mounted.sh is the byte-identical rustyfarian-ci copy.
 ramdisk_mounted := shell(justfile_directory() + '/scripts/ramdisk-mounted.sh "' + ramdisk + '"')
 hal_dir := if ramdisk_mounted == "true" { ramdisk + "/targets/hal/" + file_name(justfile_directory()) } else { "target/hal" }
 idf_dir := if ramdisk_mounted == "true" { ramdisk + "/targets/idf/" + file_name(justfile_directory()) } else { "target/idf" }
@@ -28,7 +27,7 @@ idf_dir := if ramdisk_mounted == "true" { ramdisk + "/targets/idf/" + file_name(
 # Guided bench runner: a local rustyfarian-bench checkout if RUSTYFARIAN_BENCH points at one,
 # otherwise the pinned release from GitHub.
 bench_dir := env("RUSTYFARIAN_BENCH", "")
-bench := if bench_dir != "" { 'uv run --project "' + bench_dir + '" rustyfarian-bench' } else { "uvx --from git+https://github.com/datenkollektiv/rustyfarian-bench@v0.3.0 rustyfarian-bench" }
+bench := if bench_dir != "" { 'uv run --project "' + bench_dir + '" rustyfarian-bench' } else { "uvx --from git+https://github.com/datenkollektiv/rustyfarian-bench@v0.5.0 rustyfarian-bench" }
 
 # act: a local rustyfarian-ci checkout if RUSTYFARIAN_CI points at one, otherwise the pushed @v1.
 ci_dir := env("RUSTYFARIAN_CI", "")
@@ -45,10 +44,10 @@ _default:
 doctor:
     @scripts/doctor.sh "{{ ramdisk }}" "{{ hal_dir }}" "{{ idf_dir }}" "$(scripts/idf-build-dir.sh)" "$(scripts/idf-build-dir.sh --glob)"
 
-# manage the RAM disk: just ramdisk attach | detach
+# manage the RAM disk: attach | detach | prune [days]
 [group('Build Environment')]
-ramdisk action:
-    @scripts/ramdisk.sh "{{ action }}"
+ramdisk action *args:
+    @scripts/ramdisk.sh "{{ action }}" {{ args }}
 
 # --- Build & Check --------------------------------------------------------
 
@@ -58,7 +57,7 @@ build:
     cargo build {{ pure_crates }} --target {{ host_target }}
 
 # build all crates including ESP-IDF (requires espup; does NOT cover rustyfarian-esp-hal-ws2812 or rustyfarian-avr-ws2812 — use check-hal / check-avr)
-# build every crate the ESP-IDF toolchain compiles
+[doc('build every crate the ESP-IDF toolchain compiles')]
 [group('Build & Check')]
 build-all:
     cargo +esp build --workspace --exclude rustyfarian-esp-hal-ws2812 --exclude rustyfarian-avr-ws2812 --target {{ idf_target }} --target-dir {{ idf_dir }} $(scripts/idf-build-dir.sh --config)
@@ -69,7 +68,7 @@ check:
     cargo check {{ pure_crates }} --target {{ host_target }}
 
 # check all crates including ESP-IDF (requires espup; does NOT cover rustyfarian-esp-hal-ws2812 or rustyfarian-avr-ws2812 — use check-hal / check-avr)
-# check every crate the ESP-IDF toolchain compiles
+[doc('check every crate the ESP-IDF toolchain compiles')]
 [group('Build & Check')]
 check-all:
     cargo +esp check --workspace --exclude rustyfarian-esp-hal-ws2812 --exclude rustyfarian-avr-ws2812 --target {{ idf_target }} --target-dir {{ idf_dir }} $(scripts/idf-build-dir.sh --config)
@@ -84,22 +83,29 @@ check-idf:
 check-ide:
     cargo check -p rustyfarian-esp-idf-ws2812 --target {{ hal_target }} --target-dir {{ hal_dir }}
 
-# check the esp-hal bare-metal driver (requires: rustup target add riscv32imac-unknown-none-elf)
-# check the esp-hal bare-metal driver (RISC-V target)
+# c6 checks the library with the default features on riscv32imac. c3 runs a library pass, then an
+# --examples pass with `rt` so hal_c3_pulse is compiled too (requires: just setup hal)
+[doc('check the esp-hal driver on one RISC-V chip: c6 | c3')]
 [group('Build & Check')]
-check-hal:
-    cargo check {{ hal_crate }} --target {{ hal_target }} --target-dir {{ hal_dir }}
-
-# Library pass, then an --examples pass with `rt` so hal_c3_pulse is compiled too. The C6/imac
-# default set is covered by check-hal (requires: rustup target add riscv32imc-unknown-none-elf)
-# check the esp-hal driver on the ESP32-C3 target
-[group('Build & Check')]
-check-hal-c3:
-    cargo check {{ hal_crate }} --target riscv32imc-unknown-none-elf --target-dir {{ hal_dir }} --no-default-features --features esp32c3,unstable,pennant
-    cargo check {{ hal_crate }} --target riscv32imc-unknown-none-elf --target-dir {{ hal_dir }} --no-default-features --features esp32c3,unstable,pennant,rt --examples
+check-hal chip="c6":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    case "{{ chip }}" in
+        c6)
+            cargo check {{ hal_crate }} --target {{ hal_target }} --target-dir {{ hal_dir }}
+            ;;
+        c3)
+            cargo check {{ hal_crate }} --target riscv32imc-unknown-none-elf --target-dir {{ hal_dir }} --no-default-features --features esp32c3,unstable,pennant
+            cargo check {{ hal_crate }} --target riscv32imc-unknown-none-elf --target-dir {{ hal_dir }} --no-default-features --features esp32c3,unstable,pennant,rt --examples
+            ;;
+        *)
+            echo "error: unknown chip '{{ chip }}' (expected c6 or c3)" >&2
+            exit 1
+            ;;
+    esac
 
 # check the esp-hal driver on the Xtensa ESP32 and ESP32-S3 targets (requires: just setup esp)
-# check the esp-hal driver on the Xtensa ESP32 and ESP32-S3 targets
+[doc('check the esp-hal driver on the Xtensa ESP32 and ESP32-S3 targets')]
 [group('Build & Check')]
 check-hal-xtensa:
     cargo +esp check {{ hal_crate }} --target xtensa-esp32-none-elf --target-dir {{ hal_dir }} --no-default-features --features esp32,unstable,pennant -Z build-std=core
@@ -112,7 +118,7 @@ check-hal-xtensa:
 # Async library pass on C6 and C3, then an --examples pass with `embassy,rt` so the *_async
 # examples compile (hal_c6_*_async, hal_c3_pulse_async). `embassy` implies `async` and pulls esp-rtos.
 # (requires: rustup target add riscv32imac-unknown-none-elf riscv32imc-unknown-none-elf)
-# check the esp-hal driver's async API on the ESP32-C6 and ESP32-C3 targets
+[doc("check the esp-hal driver's async API on the ESP32-C6 and ESP32-C3 targets")]
 [group('Build & Check')]
 check-hal-async:
     cargo check {{ hal_crate }} --target {{ hal_target }} --target-dir {{ hal_dir }} --features async
@@ -122,7 +128,7 @@ check-hal-async:
 
 # Compare each crate's public API with a published release (default: the latest on crates.io),
 # each on the target and features its check recipes use (requires: cargo install cargo-semver-checks)
-# semver-check every crate against crates.io: `just semver 0.8.0`
+[doc('semver-check every crate against crates.io: `just semver 0.8.0`')]
 [group('Build & Check')]
 semver baseline="":
     scripts/semver.sh "{{ baseline }}" "{{ host_target }}" "{{ hal_target }}"
@@ -133,25 +139,25 @@ check-avr:
     cargo check -p rustyfarian-avr-ws2812 --target {{ host_target }}
 
 # check the AVR driver on host with all features (bitbang, smart-leds-trait, pennant)
-# check the AVR driver on host with all features
+[doc('check the AVR driver on host with all features')]
 [group('Build & Check')]
 check-avr-all-features:
     cargo check -p rustyfarian-avr-ws2812 --features bitbang,smart-leds-trait,pennant --target {{ host_target }}
 
 # check the AVR SPI driver against the real avr-none target with smart-leds-trait and pennant (requires: just setup avr, avr-gcc)
-# check AVR SPI driver on avr-none (smart-leds-trait+pennant)
+[doc('check AVR SPI driver on avr-none (smart-leds-trait+pennant)')]
 [group('Build & Check')]
 check-avr-target:
     RUSTFLAGS="-C target-cpu=atmega328p" cargo +{{ avr_nightly }} check -p rustyfarian-avr-ws2812 --features smart-leds-trait,pennant --target avr-none -Z build-std=core
 
 # check the AVR bit-bang driver against the real avr-none target with all features (bitbang, smart-leds-trait, pennant) (requires: just setup avr, avr-gcc)
-# check the AVR bit-bang driver on avr-none, all features
+[doc('check the AVR bit-bang driver on avr-none, all features')]
 [group('Build & Check')]
 check-avr-target-bitbang:
     RUSTFLAGS="-C target-cpu=atmega328p" cargo +{{ avr_nightly }} check -p rustyfarian-avr-ws2812 --features bitbang,smart-leds-trait,pennant --target avr-none -Z build-std=core
 
 # check ferriswheel with the smart-leds-trait feature — exercises the rgb-version-divergence guard; the smart-leds-compat alias is checked too
-# check ferriswheel's smart-leds-trait feature and its alias
+[doc("check ferriswheel's smart-leds-trait feature and its alias")]
 [group('Build & Check')]
 check-ferriswheel-smart-leds-trait:
     cargo check -p ferriswheel --features smart-leds-trait --target {{ host_target }}
@@ -175,19 +181,19 @@ test-crate crate:
     cargo test -p {{ crate }} --target {{ host_target }}
 
 # test pennant with the hal feature — exercises the SimpleLed adapter (off by default)
-# test pennant's hal feature (SimpleLed adapter)
+[doc("test pennant's hal feature (SimpleLed adapter)")]
 [group('Test & Lint')]
 test-pennant-hal:
     cargo test -p pennant --features hal --target {{ host_target }}
 
 # run clippy on pennant's hal feature — covers the SimpleLed / RgbGpioLed / RgbPwmLed adapters (off by default)
-# clippy pennant's hal feature (LED adapters)
+[doc("clippy pennant's hal feature (LED adapters)")]
 [group('Test & Lint')]
 clippy-pennant-hal:
     cargo clippy -p pennant --features hal --target {{ host_target }} -- -D warnings
 
 # test the AVR driver on the host with all features (bitbang, smart-leds-trait, pennant)
-# test the AVR driver on the host with all features
+[doc('test the AVR driver on the host with all features')]
 [group('Test & Lint')]
 test-avr-all-features:
     cargo test -p rustyfarian-avr-ws2812 --features bitbang,smart-leds-trait,pennant --target {{ host_target }}
@@ -208,7 +214,7 @@ clippy:
     cargo clippy {{ pure_crates }} --target {{ host_target }} -- -D warnings
 
 # run clippy on all crates applicable to the ESP-IDF-target lint pass (requires espup); not literally every workspace crate — excludes rustyfarian-esp-hal-ws2812 (use clippy-hal) and rustyfarian-avr-ws2812 (linted on the host target via clippy)
-# clippy every crate the ESP-IDF toolchain lints
+[doc('clippy every crate the ESP-IDF toolchain lints')]
 [group('Test & Lint')]
 clippy-all:
     cargo +esp clippy --workspace --exclude rustyfarian-esp-hal-ws2812 --exclude rustyfarian-avr-ws2812 --target {{ idf_target }} --target-dir {{ idf_dir }} $(scripts/idf-build-dir.sh --config) -- -D warnings
@@ -219,13 +225,13 @@ clippy-idf:
     cargo +esp clippy -p rustyfarian-esp-idf-ws2812 --target {{ idf_target }} --target-dir {{ idf_dir }} $(scripts/idf-build-dir.sh --config) -- -D warnings
 
 # run clippy on the esp-hal bare-metal driver (requires: rustup target add riscv32imac-unknown-none-elf)
-# clippy the esp-hal bare-metal driver
+[doc('clippy the esp-hal bare-metal driver')]
 [group('Test & Lint')]
 clippy-hal:
     cargo clippy {{ hal_crate }} --target {{ hal_target }} --target-dir {{ hal_dir }} -- -D warnings
 
 # run clippy on the esp-hal driver's async API (requires: rustup target add riscv32imac-unknown-none-elf)
-# clippy the esp-hal driver async API
+[doc('clippy the esp-hal driver async API')]
 [group('Test & Lint')]
 clippy-hal-async:
     cargo clippy {{ hal_crate }} --target {{ hal_target }} --target-dir {{ hal_dir }} --features async -- -D warnings
@@ -243,7 +249,7 @@ audit:
 # --- AVR Examples ---------------------------------------------------------
 
 # build the AVR Nano rainbow example (default = bit-bang backend; requires: just setup avr, avr-gcc)
-# build the AVR Nano rainbow example (bit-bang)
+[doc('build the AVR Nano rainbow example (bit-bang)')]
 [group('AVR Examples')]
 build-avr-example:
     scripts/avr.sh "{{ avr_nightly }}" build
@@ -251,7 +257,7 @@ build-avr-example:
 # build every binary in the AVR Nano example crate (default + bitbang_demo + spi_rainbow + bitbang_spike).
 # --locked is the CI reproducibility gate: it fails loudly if Cargo.toml was edited without
 # committing the regenerated Cargo.lock. Local dev recipes deliberately omit it.
-# build every binary in the AVR Nano example crate
+[doc('build every binary in the AVR Nano example crate')]
 [group('AVR Examples')]
 build-avr-example-all-bins:
     cd examples/avr-nano-rainbow && cargo +{{ avr_nightly }} build --release -Z build-std=core --bins --locked
@@ -259,60 +265,60 @@ build-avr-example-all-bins:
 # build the AVR example against upstream avr-hal main instead of the pinned rev — the weekly
 # early-warning check. Works on a throwaway copy in a temp dir, so no tracked file is touched
 # even transiently; the `crates` symlink keeps the example's ../../crates path deps resolving.
-# build the AVR example against upstream avr-hal main
+[doc('build the AVR example against upstream avr-hal main')]
 [group('AVR Examples')]
 build-avr-example-upstream:
     scripts/build-avr-example-upstream.sh "{{ justfile_directory() }}" "{{ avr_nightly }}"
 
 # build and flash the AVR Nano rainbow demo — bit-bang backend, recommended (requires: just setup avr, avr-gcc, ravedude)
-# flash the AVR Nano rainbow demo (bit-bang)
+[doc('flash the AVR Nano rainbow demo (bit-bang)')]
 [group('AVR Examples')]
 flash-avr-example:
     scripts/avr.sh "{{ avr_nightly }}" flash
 
 # build and flash the production bit-bang PulseEffect demo (uses Ws2812BitBang from the driver crate)
-# flash the production bit-bang PulseEffect demo
+[doc('flash the production bit-bang PulseEffect demo')]
 [group('AVR Examples')]
 flash-avr-bitbang-demo: (flash-avr-bin "bitbang_demo")
 
 # build one AVR Nano binary by name (requires: just setup avr, avr-gcc)
-# build one AVR Nano binary by name
+[doc('build one AVR Nano binary by name')]
 [group('AVR Examples')]
 build-avr-bin bin:
     scripts/avr.sh "{{ avr_nightly }}" build "{{ bin }}"
 
 # build and flash one AVR Nano binary by name; ravedude finds the board unless a port is given (requires: just setup avr, avr-gcc, ravedude)
-# build and flash one AVR Nano binary, optionally on a port
+[doc('build and flash one AVR Nano binary, optionally on a port')]
 [group('AVR Examples')]
 flash-avr-bin bin port="":
     scripts/avr.sh "{{ avr_nightly }}" flash "{{ bin }}" "{{ port }}"
 
 # build and flash the SPI prerendered rainbow — DIAGNOSTIC ONLY; many strips render this as white-ish (see ADR 007)
-# flash the SPI prerendered rainbow (DIAGNOSTIC ONLY)
+[doc('flash the SPI prerendered rainbow (DIAGNOSTIC ONLY)')]
 [group('AVR Examples')]
 flash-avr-spi-rainbow: (flash-avr-bin "spi_rainbow")
 
 # build and flash the AVR Nano bit-bang spike (frozen low-level reference, see docs/features/avr-bitbang-driver.md)
-# flash the AVR bit-bang spike (frozen reference)
+[doc('flash the AVR bit-bang spike (frozen reference)')]
 [group('AVR Examples')]
 flash-avr-bitbang-spike: (flash-avr-bin "bitbang_spike")
 
 # --- ESP Examples ---------------------------------------------------------
 
 # build a driver example; the crate is inferred from the hal_/idf_ prefix
-# build an example; crate inferred from the hal_/idf_ prefix
+[doc('build an example; crate inferred from the hal_/idf_ prefix')]
 [group('ESP Examples')]
 build-example example:
     scripts/build-example.sh "{{ example }}" "{{ hal_dir }}" "{{ idf_dir }}"
 
 # ensure the IDF-built bootloader is in the build cache for the given chip
-# cache the IDF-built bootloader for a chip (c3|c6|esp32|s3)
+[doc('cache the IDF-built bootloader for a chip (c3|c6|esp32|s3)')]
 [group('ESP Examples')]
 ensure-bootloader chip:
     scripts/ensure-bootloader.sh "{{ chip }}" "{{ hal_dir }}" "{{ idf_dir }}"
 
 # build and flash a driver example; the crate is inferred from the hal_/idf_ prefix
-# build and flash an example; crate inferred from prefix
+[doc('build and flash an example; crate inferred from prefix')]
 [group('ESP Examples')]
 run-example example:
     scripts/run-example.sh "{{ example }}" "{{ hal_dir }}" "{{ idf_dir }}"
@@ -320,7 +326,7 @@ run-example example:
 # --- Flash & Monitor ------------------------------------------------------
 
 # build and flash any example; crate auto-detected from name prefix (hal_* or idf_*)
-# build and flash any example (crate auto-detected)
+[doc('build and flash any example (crate auto-detected)')]
 [group('Flash & Monitor')]
 flash example:
     scripts/flash.sh "{{ example }}" "{{ hal_dir }}" "{{ idf_dir }}"
@@ -336,13 +342,13 @@ monitor:
     espflash monitor
 
 # erase the connected ESP device's flash completely (use before reflashing on boot failures)
-# erase the connected ESP device's flash completely
+[doc("erase the connected ESP device's flash completely")]
 [confirm]
 [group('Flash & Monitor')]
 erase-flash:
     espflash erase-flash
 
-# guided hardware check: `just bench s3`, `just bench c3 colors`
+# guided hardware check: `just bench s3`, `just bench c6 pulse`
 [group('Flash & Monitor')]
 bench target *args:
     {{ bench }} --repo . run "{{ target }}" {{ args }}
@@ -377,29 +383,27 @@ doc-open:
 
 # --- CI -------------------------------------------------------------------
 
-# verify code quality without modifying files; suggests 'just pre-commit' on formatting issues
 # check code quality without modifying files
 [group('CI')]
-verify:
-    @cargo fmt --all -- --check || (printf '\nFormatting issues found — run `just pre-commit` to auto-fix.\n' >&2 && exit 1)
+verify: fmt-check
     cargo check {{ pure_crates }} --target {{ host_target }}
     cargo clippy {{ pure_crates }} --target {{ host_target }} -- -D warnings
     cargo test {{ pure_crates }} --target {{ host_target }}
     cargo test -p pennant --features hal --target {{ host_target }}
     cargo clippy -p pennant --features hal --target {{ host_target }} -- -D warnings
+    cargo check -p ferriswheel --features smart-leds-trait --target {{ host_target }}
+    cargo check -p ferriswheel --features smart-leds-compat --target {{ host_target }}
 
-# full pre-commit verification: format, check, lint, test (modifies files — local use only)
-# run format, check, lint, test (modifies files)
+# format, then verify (modifies files — local use only)
 [group('CI')]
-pre-commit: fmt check clippy test
+pre-commit: fmt verify
 
-# CI-equivalent verification (non-modifying): the host CI jobs except audit
-# CI-equivalent gate: fmt, deny, clippy, test jobs
+# CI-equivalent gate: verify, then deny
 [group('CI')]
-ci: ci-fmt ci-deny ci-clippy ci-test
+ci: verify deny
 
 # CI job recipes: each GitHub Actions job runs exactly one of these (rustyfarian-ci conventions)
-# CI job: check formatting
+[doc('CI job: check formatting')]
 [group('CI')]
 ci-fmt: fmt-check
 
@@ -421,7 +425,7 @@ ci-audit: audit
 
 # CI job: check the esp-hal driver on the RISC-V targets
 [group('CI')]
-ci-riscv: && check-hal check-hal-c3 check-hal-async
+ci-riscv: && check-hal (check-hal "c3") check-hal-async
     rustup target add riscv32imac-unknown-none-elf riscv32imc-unknown-none-elf
 
 # CI job: check the esp-hal driver on Xtensa (requires espup)
@@ -444,7 +448,7 @@ ci-idf chip:
 # Set RUSTYFARIAN_CI to a local rustyfarian-ci checkout to test unpushed reusable workflows.
 # The default runs the host jobs; act ignores `paths:` filters, so run the toolchain-heavy
 # cross-target jobs explicitly (`just act riscv`; requires Docker + act).
-# run CI jobs via act: all host jobs, or one (`just act fmt`)
+[doc('run CI jobs via act: all host jobs, or one (`just act fmt`)')]
 [group('CI')]
 act job="":
     #!/usr/bin/env bash
@@ -476,20 +480,20 @@ clean:
     rm -rf examples/avr-nano-rainbow/target
 
 # clean ESP-IDF crate artifacts and esp-idf-sys hash dirs (needed after sdkconfig.defaults changes or Cargo.toml edits)
-# clean ESP-IDF artifacts and esp-idf-sys hash dirs
+[doc('clean ESP-IDF artifacts and esp-idf-sys hash dirs')]
 [group('Maintenance')]
 clean-idf:
     cargo clean -p rustyfarian-esp-idf-ws2812 --target-dir "{{ idf_dir }}"
     @scripts/idf-cache.sh clean "{{ idf_dir }}"
 
 # drop superseded esp-idf-sys build dirs, keeping the newest per target (fixes "multiple IDF-built bootloaders")
-# drop superseded esp-idf-sys dirs, keep newest per target
+[doc('drop superseded esp-idf-sys dirs, keep newest per target')]
 [group('Maintenance')]
 clean-idf-stale:
     @scripts/idf-cache.sh clean-stale
 
 # remove the persistent IDF build-dir cache entirely (the relocated esp-idf-sys CMake trees)
-# remove the persistent IDF build-dir cache entirely
+[doc('remove the persistent IDF build-dir cache entirely')]
 [group('Maintenance')]
 clean-idf-cache:
     @scripts/idf-cache.sh clean-all
@@ -507,7 +511,7 @@ watch:
 # --- Release --------------------------------------------------------------
 
 # verify pure-logic crates package cleanly (no upload); driver crates require pure 0.X live on crates.io first — use release-dry-run-crate after Stage 1 publish
-# dry-run packaging of the pure-logic crates
+[doc('dry-run packaging of the pure-logic crates')]
 [group('Release')]
 release-dry-run: verify
     cargo publish --dry-run -p bunting --target {{ host_target }}
@@ -515,19 +519,19 @@ release-dry-run: verify
     cargo publish --dry-run -p ferriswheel --target {{ host_target }}
 
 # verify one pure/AVR crate packages cleanly against host target (no upload). Use: just release-dry-run-crate rustyfarian-avr-ws2812
-# dry-run packaging of one pure/AVR crate
+[doc('dry-run packaging of one pure/AVR crate')]
 [group('Release')]
 release-dry-run-crate crate:
     cargo publish --dry-run -p {{ crate }} --target {{ host_target }}
 
 # verify esp-hal driver packages cleanly against bare-metal target (no upload; requires riscv32imac-unknown-none-elf target installed)
-# dry-run packaging of the esp-hal driver
+[doc('dry-run packaging of the esp-hal driver')]
 [group('Release')]
 release-dry-run-hal:
     cargo publish --dry-run -p rustyfarian-esp-hal-ws2812 --target {{ hal_target }}
 
 # verify esp-idf driver packages cleanly against IDF target (no upload; requires espup)
-# dry-run packaging of the esp-idf driver
+[doc('dry-run packaging of the esp-idf driver')]
 [group('Release')]
 release-dry-run-idf:
     cargo +esp publish --dry-run -p rustyfarian-esp-idf-ws2812 --target riscv32imac-esp-espidf --target-dir {{ idf_dir }} $(scripts/idf-build-dir.sh --config)
@@ -539,7 +543,7 @@ release-publish crate:
     cargo publish -p {{ crate }} --target {{ host_target }}
 
 # publish esp-hal driver to crates.io (requires riscv32imac-unknown-none-elf target installed)
-# publish the esp-hal driver to crates.io
+[doc('publish the esp-hal driver to crates.io')]
 [confirm]
 [group('Release')]
 release-publish-hal:

@@ -13,7 +13,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - CI adopts the shared [rustyfarian-ci](https://github.com/datenkollektiv/rustyfarian-ci) `@v1`: the fmt, clippy, test, deny and audit jobs call its reusable `host-checks.yml`, and the cross-target workflows use its setup actions. Every job runs exactly one `just ci-<job>` recipe and has a timeout; `just act [job]` replaces the `act-*` recipes. `rust.yml` now runs `test` and `deny` as separate jobs, so the GitHub check names change (e.g. `test / test`).
-- CI: the clippy job now also lints pennant's `hal` feature (`just clippy-pennant-hal`), which `just verify` already ran; `just ci` now runs the same host jobs as CI except audit.
+- CI: the clippy job now also lints pennant's `hal` feature (`just clippy-pennant-hal`), which `just verify` already ran; `just ci` is now `verify` then `deny`, the same host checks as CI except audit.
+- just: the recipes follow the rustyfarian family contract: `just check-hal c3` replaces `just check-hal-c3`, `pre-commit` is `fmt` then `verify`, and `verify` also checks ferriswheel's `smart-leds-trait` and `smart-leds-compat` features.
+- just: `just setup tools` also installs `cargo-semver-checks`, `espflash`, `ldproxy` and uv, `just setup avr` installs `ravedude`, and `just ramdisk prune [days]` drops idle target trees from the shared RAM disk.
+- bench: the C3 board key is now `c3-mini1` (the catalogue's ESP32-C3-DevKitM-1), so run `just bench c3-mini1`; the runner pin moves to rustyfarian-bench v0.5.0, which finds the Nano by its USB identity.
+- bench: unattended soak windows that follow a boot step now fail on a reboot (`ESP-ROM:`, `rst:0x`); windows right after the reset keep reading the boot banner and say so.
 - Dependabot also watches GitHub Actions and Cargo, with the ESP-IDF and the exact-pinned esp-hal stacks grouped so each moves as one PR.
 - The workspace builds its ESP-IDF examples and bench firmware against ESP-IDF v6.1 (was v5.3.3); the libraries still do not pin an ESP-IDF version.
 - `.cargo/config.toml` is now committed. It carries the ESP-IDF pin, the `ldproxy` linker, `build-std`, the esp-hal linker scripts and the `sdkconfig.defaults` path, so before this a fresh clone could not build firmware. Cargo never reads it for downstream users.

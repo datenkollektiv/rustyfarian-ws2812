@@ -7,17 +7,6 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
     exit 2
 fi
 
-# is_ramdisk_mounted <path>
-# Returns 0 if <path> is a live mounted volume on macOS, 1 otherwise.
-# Uses `diskutil info` rather than parsing `mount` output, so a stale
-# /Volumes/<name> directory (left over from a failed detach) is correctly
-# reported as unmounted.
-is_ramdisk_mounted() {
-    local path="$1"
-    [ -n "$path" ] || return 1
-    diskutil info "$path" >/dev/null 2>&1
-}
-
 # idf_example_features <example>
 # Prints the comma-separated extra cargo features an IDF example needs (or nothing).
 # The feature is selected from the example's {name} part ({driver}_{chip}_{name}).
