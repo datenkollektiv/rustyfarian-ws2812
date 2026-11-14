@@ -51,7 +51,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       # setup-avr installs avr-gcc (needed for the libgcc 32-bit multiply intrinsics) and the
       # pinned nightly. Keep the toolchain in lockstep with `avr_nightly` in the justfile.

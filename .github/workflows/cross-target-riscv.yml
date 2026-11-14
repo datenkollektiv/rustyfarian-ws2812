@@ -50,7 +50,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       # `just ci-riscv` adds both RISC-V targets itself, so the toolchain step needs no `targets:`.
       - name: Setup Rust and just
