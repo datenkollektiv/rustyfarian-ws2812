@@ -1,8 +1,14 @@
 # Rustyfarian WS2812 Related Crates
 
+<p align="center">
+  <img src="docs/steampunk-meets-future-in-led-workshop.png"
+       alt="ferriswheel — WS2812 LED effects. A steampunk lamp workshop (no_std / esp-hal) and a futuristic LED control console (std / esp-idf), with the rustyfarian ferriswheel mascot holding a rainbow LED strip in front of a glowing Ferris wheel between two ESP32 boards. One chip. Two universes."
+       width="720">
+</p>
+
 [![CI](https://github.com/datenkollektiv/rustyfarian-ws2812/actions/workflows/rust.yml/badge.svg)](https://github.com/datenkollektiv/rustyfarian-ws2812/actions/workflows/rust.yml)
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](#license)
-[![Rust](https://img.shields.io/badge/rust-1.88%2B-orange.svg)](https://www.rust-lang.org)
+[![Rust](https://img.shields.io/badge/rust-1.88%2B%20pure%20and%20avr%20%7C%201.95%2B%20esp%20drivers-orange.svg)](https://www.rust-lang.org)
 [![cargo fmt](https://github.com/datenkollektiv/rustyfarian-ws2812/actions/workflows/fmt.yml/badge.svg)](https://github.com/datenkollektiv/rustyfarian-ws2812/actions/workflows/fmt.yml)
 [![cargo clippy](https://github.com/datenkollektiv/rustyfarian-ws2812/actions/workflows/clippy.yml/badge.svg)](https://github.com/datenkollektiv/rustyfarian-ws2812/actions/workflows/clippy.yml)
 [![cargo audit](https://github.com/datenkollektiv/rustyfarian-ws2812/actions/workflows/audit.yml/badge.svg)](https://github.com/datenkollektiv/rustyfarian-ws2812/actions/workflows/audit.yml)
@@ -10,6 +16,9 @@
 Library-only workspace providing WS2812 (NeoPixel) LED support for ESP32 and `no_std` embedded Rust projects.
 No application code — just reusable, composable crates.
 MSRV is Rust 1.88 for the pure crates and the AVR driver, and 1.95 for the two ESP driver crates (`esp-hal 1.2` requires it); the floor cannot rise while AVR builds on a pinned nightly that reports 1.88.
+
+> **Note:** Large parts of this library (and its documentation) were developed with the assistance of AI tools.
+> All generated code has been reviewed and curated by the maintainer.
 
 TL;DR Grab an ESP32-C6 board and check it out:
 
@@ -49,8 +58,35 @@ Where [`blinksy`](https://crates.io/crates/blinksy) targets spatial LED *install
 
 See [Why Yet Another WS2812 Crate?](docs/why-yet-another-ws2812-crate.md) for the full design rationale, and [docs/blinksy-ecosystem-evaluation.md](docs/blinksy-ecosystem-evaluation.md) for the side-by-side comparison.
 
-> Note: Large parts of this library (and documentation) were developed with the assistance of AI tools.
-> All generated code has been reviewed and curated by the maintainer.
+## Rustyfarian Family
+
+`rustyfarian-ws2812` is one repo in the **rustyfarian** family — composable embedded-Rust libraries for battery-powered ESP32 field deployments (e.g. remote beehive monitoring over LoRaWAN).
+
+```mermaid
+graph TD
+    app["rustyfarian-rgb-clock<br/>reference application"]
+    net["rustyfarian-network<br/>Wi-Fi · MQTT · LoRa · ESP-NOW · OTA"]
+    leds["rustyfarian-ws2812<br/>WS2812 / NeoPixel effects<br/>(this repo)"]
+    pwr["rustyfarian-power<br/>battery · deep sleep · rail gating"]
+    periph["rustyfarian-peripherals<br/>pins · debounce · encoders · buttons · tones"]
+    app --> leds
+    app --> net
+    app -.-> pwr
+    app -.-> periph
+    net --> leds
+    net -.->|PowerRailGate| pwr
+```
+
+Solid edge: depends on it today.
+Dotted edge: a natural fit, not adopted yet.
+
+| Repo                                                                             | Role                                                    |
+|:---------------------------------------------------------------------------------|:--------------------------------------------------------|
+| **rustyfarian-ws2812** (this repo)                                               | WS2812 / NeoPixel LED effects and drivers               |
+| [rustyfarian-network](https://github.com/datenkollektiv/rustyfarian-network)     | Wi-Fi, MQTT, LoRa, ESP-NOW, OTA                         |
+| [rustyfarian-peripherals](https://github.com/datenkollektiv/rustyfarian-peripherals) | Pins, debounce, encoders, buttons, tones            |
+| [rustyfarian-power](https://github.com/datenkollektiv/rustyfarian-power)         | Battery monitoring, deep sleep, power rail gating       |
+| [rustyfarian-rgb-clock](https://github.com/datenkollektiv/rustyfarian-rgb-clock) | Reference application tying the libraries together      |
 
 ## Crates
 
@@ -263,4 +299,11 @@ Then rebuild the IDF example to repopulate build artifacts before flashing.
 
 ## License
 
-MIT or Apache-2.0
+Licensed under either of
+
+- [Apache License, Version 2.0](LICENSE-APACHE)
+- [MIT License](LICENSE-MIT)
+
+at your option.
+
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
