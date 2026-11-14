@@ -5,7 +5,7 @@ Guided, rerunnable hardware checks, driven by [`rustyfarian-bench`](https://gith
 | Board                                | Directory              | Last full pass |
 |:-------------------------------------|:-----------------------|:---------------|
 | CrowPanel 1.28" HMI (S3)             | [s3/](s3/)             | open           |
-| ESP32-C3-DevKitM-1 (ESP32-C3-MINI-1) | [c3-mini1/](c3-mini1/) | open           |
+| ESP32-C3-DevKitM-1 (ESP32-C3-MINI-1) | [c3-mini1/](c3-mini1/) | 2026-11-14     |
 | ESP32-C6-DevKitC-1                   | [c6/](c6/)             | open           |
 | ESP32-WROOM-32 DevKit                | [esp32/](esp32/)       | open           |
 | Arduino Nano                         | [avr/](avr/)           | open           |

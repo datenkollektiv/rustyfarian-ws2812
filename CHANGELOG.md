@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - CI: `cross-target-esp-idf.yml` builds and links every ESP-IDF example on the ESP32-C3, ESP32-C6, ESP32 and ESP32-S3 via the new `just ci-idf <chip>`. Before this no workflow compiled `rustyfarian-esp-idf-ws2812` at all. Green means "links under ESP-IDF v6.1", not "hardware-validated".
+- bench: `bench/README.md` records the first full pass (`--unattended` and `--attended`): the ESP32-C3-DevKitM-1 (`c3-mini1`) on 2026-11-14; the S3, C6, ESP32 and Nano are still open.
 
 ### Changed
 
