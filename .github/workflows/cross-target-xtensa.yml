@@ -27,6 +27,7 @@ on:
       - "crates/pennant/**"
       - "crates/ferriswheel/**"
       - "Cargo.toml"
+      - ".cargo/config.toml"
       - "justfile"
       - ".github/workflows/cross-target-xtensa.yml"
   pull_request:
@@ -37,6 +38,7 @@ on:
       - "crates/pennant/**"
       - "crates/ferriswheel/**"
       - "Cargo.toml"
+      - ".cargo/config.toml"
       - "justfile"
       - ".github/workflows/cross-target-xtensa.yml"
   workflow_dispatch:
